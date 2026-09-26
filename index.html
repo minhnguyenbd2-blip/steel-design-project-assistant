@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steel Design Project Assistant</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#475569',
+                        danger: '#dc2626',
+                        success: '#16a34a'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- KaTeX for formula rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #0f172a; }
+        .dark body { background-color: #0f172a; color: #f8fafc; }
+        .calc-block { border-left: 4px solid #2563eb; background: #ffffff; padding: 1rem; margin-bottom: 1rem; border-radius: 0 0.5rem 0.5rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .dark .calc-block { background: #1e293b; border-left-color: #3b82f6; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .calc-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;}
+        .calc-source { font-size: 0.8rem; color: #64748b; background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 0.25rem; cursor: pointer; }
+        .dark .calc-source { color: #94a3b8; background: #334155; }
+        .calc-formula { margin: 0.75rem 0; overflow-x: auto; }
+        .calc-result { font-weight: bold; color: #2563eb; margin-top: 0.5rem; }
+        .dark .calc-result { color: #60a5fa; }
+        .pass { color: #16a34a; }
+        .fail { color: #dc2626; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Application Scripts -->
+    <script src="js/core/models.js"></script>
+    <script src="js/core/standards/tcvn2737_2023.js"></script>
+    <script src="js/core/standards/tcvn5575_2024.js"></script>
+    <script src="js/core/standards/standard_data.js"></script>
+    <script src="js/core/standards/registry.js"></script>
+    <script src="js/core/engine/validation.js"></script>
+    <script src="js/core/engine/loads_calc.js"></script>
+    <script src="js/core/engine/wind_load.js"></script>
+    <script src="js/core/engine/load_combinations.js"></script>
+    <script src="js/core/engine/section_proposal.js"></script>
+    <script src="js/core/engine/section_check.js"></script>
+    <script src="js/core/engine/connections.js"></script>
+    <script src="js/core/tests/regression.js"></script>
+    <script type="text/babel" src="js/components/WindSvg.jsx"></script>
+    <script type="text/babel" src="js/components/SvgDiagrams.jsx"></script>
+    <script type="text/babel" src="js/components/CalculationBlock.jsx"></script>
+    <script type="text/babel" src="js/app.jsx"></script>
+</body>
+</html>

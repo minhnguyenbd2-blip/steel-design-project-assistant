@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS and temp files
+.DS_Store
+Thumbs.db
+*.tmp
+*.backup
+std_data.js.backup
+
+# Secrets & environment
+.env
+.env.*

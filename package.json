@@ -1,0 +1,11 @@
+{
+  "name": "steel-design-assistant",
+  "version": "1.0.0",
+  "description": "Steel Design Project Assistant - TCVN 2737:2023 & TCVN 5575:2024",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve . -p 3000 -s",
+    "build": "echo 'Static build ready'",
+    "start": "npx serve . -p 3000 -s"
+  }
+}
