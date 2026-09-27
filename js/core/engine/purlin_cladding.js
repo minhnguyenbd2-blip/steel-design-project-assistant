@@ -19,9 +19,9 @@ const PurlinCladdingEngine = {
         const gd_y = gk_y * gamma_f_dead;
         const gd_x = gk_x * gamma_f_dead;
         
-        // Tải trọng gió hút tác dụng lên tôn
         const gamma_T = 0.852;
-        const W3s_10 = gamma_T * W0;
+        const W0_kN_m2 = (Number(W0) > 5) ? (Number(W0) / 100) : (Number(W0) || 0.95);
+        const W3s_10 = gamma_T * W0_kN_m2;
         const ce_suction = Math.abs(windCeSuction);
         const qk_wind = W3s_10 * kz * ce_suction; // kN/m2
         const qd_wind = 2.1 * qk_wind; // Hệ số độ tin cậy gió gamma_f = 2.1
@@ -139,9 +139,9 @@ const PurlinCladdingEngine = {
         const gd_y = gk_y * gamma_f_dead;
         const gd_x = gk_x * gamma_f_dead;
         
-        // Tải trọng gió hút trên diện truyền tải xà gồ
         const gamma_T = 0.852;
-        const W3s_10 = gamma_T * W0;
+        const W0_kN_m2 = (Number(W0) > 5) ? (Number(W0) / 100) : (Number(W0) || 0.95);
+        const W3s_10 = gamma_T * W0_kN_m2;
         const qk_wind_purlin = W3s_10 * kz * Math.abs(windCeSuction) * a; // kN/m
         const qd_wind_purlin = 2.1 * qk_wind_purlin;
         

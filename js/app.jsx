@@ -44,6 +44,21 @@ function App() {
 
     const [validationErrors, setValidationErrors] = useState([]);
     const [fieldErrors, setFieldErrors] = useState({});
+    const [hasLookupComp, setHasLookupComp] = useState(typeof window !== 'undefined' && !!window.SectionLookup);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.SectionLookup) {
+            setHasLookupComp(true);
+            return;
+        }
+        const timer = setInterval(() => {
+            if (typeof window !== 'undefined' && window.SectionLookup) {
+                setHasLookupComp(true);
+                clearInterval(timer);
+            }
+        }, 150);
+        return () => clearInterval(timer);
+    }, []);
 
     // Tự động tính các thông số độ dốc mái
     const roofSlopeCalculations = useMemo(() => {
@@ -606,7 +621,7 @@ function App() {
                     {/* 1.2 Kích thước Hình học & Tự động tính độ dốc */}
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-slate-200 dark:border-slate-700">
                         <h2 className="font-bold text-lg mb-4 border-b dark:border-slate-700 pb-2 flex items-center gap-2 text-primary">
-                            <i data-lucide="rulers" className="w-5 h-5"></i> 1.2 Kích thước Hình học Công trình & Thông số Mái
+                            <i data-lucide="ruler" className="w-5 h-5"></i> 1.2 Kích thước Hình học Công trình & Thông số Mái
                         </h2>
                         
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -1542,44 +1557,51 @@ function App() {
                         <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
                             Tra cứu nhanh thông số tiết diện xà gồ (C/Z), tôn lợp mái, và thép hình chữ I. Dữ liệu từ catalogue Zamil Steel, Hoa Sen và TCVN 5575:2024.
                         </p>
-                        {typeof SectionLookup !== 'undefined' ? (
-                            <SectionLookup 
-                                onSelectPurlin={(purlin) => {
-                                    handleInputChange('selectedPurlinId', purlin.id);
-                                    alert(`Đã chọn xà gồ ${purlin.name} làm xà gồ mái cho Dự án. Vui lòng bấm 'Cập nhật tính toán' để chạy lại bài toán kiểm tra!`);
-                                }}
-                                onSelectCladding={(sheet) => {
-                                    handleInputChange('selectedCladdingId', sheet.id);
-                                    alert(`Đã chọn tôn lợp ${sheet.name} cho Dự án. Vui lòng bấm 'Cập nhật tính toán' để chạy lại bài toán kiểm tra!`);
-                                }}
-                                onSelectIBeam={(colSec) => {
-                                    selectSection(colSec);
-                                    setActiveTab('column');
-                                    alert(`Đã chọn tiết diện ${colSec.name} làm Cột Thép và chuyển tới Tab Kiểm tra Cột!`);
-                                }}
-                                onSelectBeam={(beam) => {
-                                    setProjectState(prev => ({
-                                        ...prev,
-                                        inputs: {
-                                            ...prev.inputs,
-                                            beamParams: { ...prev.inputs.beamParams, chosenBeamId: beam.id }
-                                        }
-                                    }));
-                                    markStale();
-                                    setActiveTab('beam');
-                                    alert(`Đã chọn dầm ${beam.name} cho Sàn BTCT và chuyển tới Tab Thiết kế Dầm!`);
-                                }}
-                                currentPurlinId={projectState.inputs.selectedPurlinId}
-                                currentCladdingId={projectState.inputs.selectedCladdingId}
-                                currentColumnSection={rResults.selectedSections?.column}
-                                currentBeamId={projectState.inputs.beamParams?.chosenBeamId}
-                            />
-                        ) : (
-                            <div className="text-center py-12 text-slate-400">
-                                <i data-lucide="loader" className="w-8 h-8 animate-spin mx-auto mb-2"></i>
-                                <p>Đang tải bảng tra...</p>
-                            </div>
-                        )}
+                        {(() => {
+                            const LookupComponent = (typeof window !== 'undefined' && window.SectionLookup) || (typeof SectionLookup !== 'undefined' ? SectionLookup : null);
+                            if (LookupComponent) {
+                                return (
+                                    <LookupComponent 
+                                        onSelectPurlin={(purlin) => {
+                                            handleInputChange('selectedPurlinId', purlin.id);
+                                            alert(`Đã chọn xà gồ ${purlin.name} làm xà gồ mái cho Dự án. Vui lòng bấm 'Cập nhật tính toán' để chạy lại bài toán kiểm tra!`);
+                                        }}
+                                        onSelectCladding={(sheet) => {
+                                            handleInputChange('selectedCladdingId', sheet.id);
+                                            alert(`Đã chọn tôn lợp ${sheet.name} cho Dự án. Vui lòng bấm 'Cập nhật tính toán' để chạy lại bài toán kiểm tra!`);
+                                        }}
+                                        onSelectIBeam={(colSec) => {
+                                            selectSection(colSec);
+                                            setActiveTab('column');
+                                            alert(`Đã chọn tiết diện ${colSec.name} làm Cột Thép và chuyển tới Tab Kiểm tra Cột!`);
+                                        }}
+                                        onSelectBeam={(beam) => {
+                                            setProjectState(prev => ({
+                                                ...prev,
+                                                inputs: {
+                                                    ...prev.inputs,
+                                                    beamParams: { ...prev.inputs.beamParams, chosenBeamId: beam.id }
+                                                }
+                                            }));
+                                            markStale();
+                                            setActiveTab('beam');
+                                            alert(`Đã chọn dầm ${beam.name} cho Sàn BTCT và chuyển tới Tab Thiết kế Dầm!`);
+                                        }}
+                                        currentPurlinId={projectState.inputs.selectedPurlinId}
+                                        currentCladdingId={projectState.inputs.selectedCladdingId}
+                                        currentColumnSection={rResults.selectedSections?.column}
+                                        currentBeamId={projectState.inputs.beamParams?.chosenBeamId}
+                                    />
+                                );
+                            }
+                            return (
+                                <div className="text-center py-12 text-slate-400">
+                                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                                    <p className="font-medium text-slate-600 dark:text-slate-300">Đang tải bảng tra tiết diện...</p>
+                                    <p className="text-xs text-slate-400 mt-1">Dữ liệu xà gồ C/Z, tôn lợp và thép hình chữ I theo TCVN 5575:2024</p>
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
 

@@ -182,26 +182,41 @@ function SectionLookup({
             onClick={() => setSubTab('purlin')}
             className={`flex items-center px-4 py-2 rounded-full text-sm font-medium transition-colors ${subTab === 'purlin' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}`}
           >
-            <i data-lucide="ruler" className="w-4 h-4 mr-2"></i> Bảng tra Xà gồ
+            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21.3 8.7 8.7 21.3c-1 1-2.5 1-3.4 0l-2.6-2.6c-1-1-1-2.5 0-3.4L15.3 2.7c1-1 2.5-1 3.4 0l2.6 2.6c1 1 1 2.5 0 3.4Z"/>
+              <path d="m14.5 3.5 2 2"/><path d="m11.5 6.5 2 2"/><path d="m8.5 9.5 2 2"/><path d="m5.5 12.5 2 2"/>
+            </svg>
+            Bảng tra Xà gồ
           </button>
           <button 
             onClick={() => setSubTab('sheet')}
             className={`flex items-center px-4 py-2 rounded-full text-sm font-medium transition-colors ${subTab === 'sheet' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}`}
           >
-            <i data-lucide="layers" className="w-4 h-4 mr-2"></i> Bảng tra Tôn lợp
+            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polyline points="2 17 12 22 22 17"/>
+              <polyline points="2 12 12 17 22 12"/>
+            </svg>
+            Bảng tra Tôn lợp
           </button>
           <button 
             onClick={() => setSubTab('ibeam')}
             className={`flex items-center px-4 py-2 rounded-full text-sm font-medium transition-colors ${subTab === 'ibeam' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}`}
           >
-            <i data-lucide="box" className="w-4 h-4 mr-2"></i> Bảng tra Thép I
+            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+              <path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+            </svg>
+            Bảng tra Thép I
           </button>
         </div>
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="relative w-full sm:w-64">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <i data-lucide="search" className="h-4 w-4 text-gray-400"></i>
+              <svg className="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+              </svg>
             </div>
             <input
               type="text"
@@ -406,7 +421,10 @@ function SectionLookup({
                         className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
                         title="Đặt làm loại xà gồ chính cho mái công trình"
                       >
-                        <i data-lucide="check-circle" className="w-4 h-4"></i> Chọn làm Xà gồ Mái
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        Chọn làm Xà gồ Mái
                       </button>
                     )}
                     {subTab === 'sheet' && onSelectCladding && (
@@ -415,7 +433,10 @@ function SectionLookup({
                         className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
                         title="Đặt làm loại tôn lợp chính cho mái công trình"
                       >
-                        <i data-lucide="check-circle" className="w-4 h-4"></i> Chọn làm Tôn lợp Mái
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        Chọn làm Tôn lợp Mái
                       </button>
                     )}
                     {subTab === 'ibeam' && (
@@ -426,7 +447,11 @@ function SectionLookup({
                             className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
                             title="Chọn tiết diện này cho cột thép và chạy kiểm tra khả năng chịu lực"
                           >
-                            <i data-lucide="box" className="w-4 h-4"></i> Chọn làm Cột Thép
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                              <path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+                            </svg>
+                            Chọn làm Cột Thép
                           </button>
                         )}
                         {onSelectBeam && (
@@ -435,7 +460,10 @@ function SectionLookup({
                             className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
                             title="Chọn tiết diện này cho dầm thép đỡ sàn BTCT"
                           >
-                            <i data-lucide="minus" className="w-4 h-4"></i> Chọn làm Dầm Sàn
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            Chọn làm Dầm Sàn
                           </button>
                         )}
                       </div>
@@ -526,9 +554,10 @@ function SectionLookup({
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
 }
 
 window.SectionLookup = SectionLookup;
