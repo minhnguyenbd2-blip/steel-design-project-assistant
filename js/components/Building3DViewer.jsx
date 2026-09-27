@@ -149,6 +149,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         const wallMat = new THREE.MeshPhysicalMaterial({ color: isDark ? 0x1e293b : 0x94a3b8, transparent: true, opacity: 0.25, side: THREE.DoubleSide, clearcoat: 0.5, roughness: 0.4, wireframe: isGeometry });
         const roofMat = new THREE.MeshPhysicalMaterial({ color: isDark ? 0x334155 : 0x64748b, transparent: true, opacity: 0.35, side: THREE.DoubleSide, clearcoat: 0.8, roughness: 0.3, wireframe: isGeometry });
         const wireMat = new THREE.LineBasicMaterial({ color: isDark ? 0x38bdf8 : 0x0284c7, linewidth: 1, transparent: true, opacity: 0.5 });
+        const interactableMeshes = [];
 
         // Engineering Geometry Definitions
         const cDepth = 0.6, cWidth = 0.25;
