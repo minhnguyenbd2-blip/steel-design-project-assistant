@@ -546,15 +546,15 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                     const ratio = (i + 0.5) / numArrows;
                     let ax, az;
                     if(currentDir.includes('X')) {
-                        ax = arrowDir.x * -(L/2 + 25); 
+                        ax = arrowDir.x * -(L/2 + 30); 
                         az = -B_total/2 + B_total * ratio;
                     } else {
-                        az = arrowDir.z * -(B_total/2 + 25);
+                        az = arrowDir.z * -(B_total/2 + 30);
                         ax = -L/2 + L * ratio;
                     }
                     const pos = new THREE.Vector3(ax, H_col * (0.2 + j*0.35), az);
                     const ah = new THREE.ArrowHelper(arrowDir, pos, 12, isDark ? 0x38bdf8 : 0x0284c7, 3, 1.5);
-                    ah.userData = { originalPos: pos.clone(), dir: arrowDir.clone(), offset: Math.random() * 40 };
+                    ah.userData = { originalPos: pos.clone(), dir: arrowDir.clone(), offset: Math.random() * 18 };
                     arrowGroup.add(ah);
                     windArrows.push(ah);
                 }
@@ -594,9 +594,9 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         const renderLoop = () => {
             controls.update();
             if (windArrows.length > 0) {
-                const time = Date.now() * 0.02;
+                const time = Date.now() * 0.015;
                 windArrows.forEach(ah => {
-                    const travelDist = 30;
+                    const travelDist = 18;
                     const progress = (time + ah.userData.offset) % travelDist;
                     ah.position.copy(ah.userData.originalPos).addScaledVector(ah.userData.dir, progress);
                 });
