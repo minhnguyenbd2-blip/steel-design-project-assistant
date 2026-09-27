@@ -1,56 +1,50 @@
 const { useRef, useEffect, useState, useMemo } = React;
 
-function createIBeamGeometry(height, width, tw, tf, length) {
+function createIBeamGeometry(depth, width, tw, tf, length) {
     const shape = new THREE.Shape();
-    shape.moveTo(-width/2, -height/2);
-    shape.lineTo(width/2, -height/2);
-    shape.lineTo(width/2, -height/2 + tf);
-    shape.lineTo(tw/2, -height/2 + tf);
-    shape.lineTo(tw/2, height/2 - tf);
-    shape.lineTo(width/2, height/2 - tf);
-    shape.lineTo(width/2, height/2);
-    shape.lineTo(-width/2, height/2);
-    shape.lineTo(-width/2, height/2 - tf);
-    shape.lineTo(-tw/2, height/2 - tf);
-    shape.lineTo(-tw/2, -height/2 + tf);
-    shape.lineTo(-width/2, -height/2 + tf);
-    shape.lineTo(-width/2, -height/2);
+    shape.moveTo(-width/2, -depth/2);
+    shape.lineTo(width/2, -depth/2);
+    shape.lineTo(width/2, -depth/2 + tf);
+    shape.lineTo(tw/2, -depth/2 + tf);
+    shape.lineTo(tw/2, depth/2 - tf);
+    shape.lineTo(width/2, depth/2 - tf);
+    shape.lineTo(width/2, depth/2);
+    shape.lineTo(-width/2, depth/2);
+    shape.lineTo(-width/2, depth/2 - tf);
+    shape.lineTo(-tw/2, depth/2 - tf);
+    shape.lineTo(-tw/2, -depth/2 + tf);
+    shape.lineTo(-width/2, -depth/2 + tf);
+    shape.lineTo(-width/2, -depth/2);
     const extrudeSettings = { depth: length, bevelEnabled: false };
     const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     geometry.center();
     return geometry;
 }
 
-function createZBeamGeometry(height, width, t, length) {
+function createZBeamGeometry(depth, width, t, length) {
     const shape = new THREE.Shape();
-    shape.moveTo(-width/2, -height/2);
-    shape.lineTo(width/2, -height/2);
-    shape.lineTo(width/2, -height/2 + t);
-    shape.lineTo(-width/2 + t, -height/2 + t);
-    shape.lineTo(-width/2 + t, height/2 - t);
-    shape.lineTo(width/2, height/2 - t);
-    shape.lineTo(width/2, height/2);
-    shape.lineTo(-width/2, height/2);
-    shape.lineTo(-width/2, -height/2);
+    shape.moveTo(-width/2, -depth/2);
+    shape.lineTo(width/2, -depth/2);
+    shape.lineTo(width/2, -depth/2 + t);
+    shape.lineTo(-width/2 + t, -depth/2 + t);
+    shape.lineTo(-width/2 + t, depth/2 - t);
+    shape.lineTo(width/2, depth/2 - t);
+    shape.lineTo(width/2, depth/2);
+    shape.lineTo(-width/2, depth/2);
+    shape.lineTo(-width/2, -depth/2);
     const extrudeSettings = { depth: length, bevelEnabled: false };
     const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     geometry.center();
     return geometry;
 }
 
-function createHaunchGeometry(width, height, thickness) {
-    const shape = new THREE.Shape();
-    shape.moveTo(0, 0);
-    shape.lineTo(width, 0);
-    shape.lineTo(0, -height);
-    shape.lineTo(0, 0);
-    const extrudeSettings = { depth: thickness, bevelEnabled: false };
-    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    geometry.center();
-    return geometry;
+function placeBeam(mesh, p1, p2, up = new THREE.Vector3(0, 1, 0)) {
+    mesh.position.copy(p1).lerp(p2, 0.5);
+    mesh.up.copy(up);
+    mesh.lookAt(p2);
 }
 
-function createTextSprite(message, color = "#ef4444", bgColor = "#0b1121") {
+function createTextSprite(message, color = "#ef4444", bgColor = "rgba(0,0,0,0.8)") {
     const canvas = document.createElement('canvas');
     const size = 256;
     canvas.width = size;
@@ -101,6 +95,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
     const [currentDir, setCurrentDir] = useState(defaultDir);
     const [showCladding, setShowCladding] = useState(mode === 'wind');
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [theme, setTheme] = useState('dark');
     const containerRef = useRef(null);
 
     const L = Number(inputs.L) || 25;
@@ -119,9 +114,10 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         const height = mountRef.current.clientHeight;
 
         const scene = new THREE.Scene();
-        // DARK MODE BACKGROUND matching 2D drawing
         const isGeometry = mode === 'geometry';
-        const bgColor = isGeometry ? 0x0b1121 : 0x0f172a; // Deep navy for Geometry, slightly lighter for Wind
+        const isDark = theme === 'dark';
+        
+        const bgColor = isDark ? (isGeometry ? 0x0b1121 : 0x0f172a) : 0xf8fafc;
         scene.background = new THREE.Color(bgColor);
         scene.fog = new THREE.Fog(bgColor, 50, 400);
 
@@ -137,10 +133,10 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         controls.dampingFactor = 0.05;
 
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, isGeometry ? 0.8 : 0.6);
+        const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 0.7 : 0.9);
         scene.add(ambientLight);
         
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        const dirLight = new THREE.DirectionalLight(0xffffff, isDark ? 1.2 : 1.0);
         dirLight.position.set(50, 150, 100);
         dirLight.castShadow = true;
         dirLight.shadow.mapSize.width = 4096;
@@ -152,78 +148,74 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         dirLight.shadow.bias = -0.0005;
         scene.add(dirLight);
 
-        const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.5);
+        const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.4);
         fillLight.position.set(-50, 50, -50);
         scene.add(fillLight);
 
         const buildingGroup = new THREE.Group();
         scene.add(buildingGroup);
 
-        // Materials (CAD Style)
-        const steelColor = isGeometry ? 0x2563eb : 0x3b82f6; // Blueprint blue
-        const steelMat = new THREE.MeshStandardMaterial({ color: steelColor, metalness: 0.6, roughness: 0.3 });
+        // Materials
+        const steelColor = isDark ? 0x2563eb : 0x1d4ed8; 
+        const steelMat = new THREE.MeshStandardMaterial({ color: steelColor, metalness: 0.5, roughness: 0.4 });
         
-        const purlinColor = isGeometry ? 0xf59e0b : 0x94a3b8; // Orange in Geometry mode to match 2D
-        const purlinMat = new THREE.MeshStandardMaterial({ color: purlinColor, metalness: 0.4, roughness: 0.5 });
+        const purlinColor = 0xf59e0b;
+        const purlinMat = new THREE.MeshStandardMaterial({ color: purlinColor, metalness: 0.3, roughness: 0.6 });
         
         const wallMat = new THREE.MeshPhysicalMaterial({ 
-            color: 0x1e293b, transparent: true, opacity: 0.3, side: THREE.DoubleSide, 
+            color: isDark ? 0x1e293b : 0x94a3b8, transparent: true, opacity: 0.3, side: THREE.DoubleSide, 
             clearcoat: 0.5, roughness: 0.4, wireframe: isGeometry 
         });
         const roofMat = new THREE.MeshPhysicalMaterial({ 
-            color: 0x334155, transparent: true, opacity: 0.4, side: THREE.DoubleSide, 
+            color: isDark ? 0x334155 : 0x64748b, transparent: true, opacity: 0.4, side: THREE.DoubleSide, 
             clearcoat: 0.8, roughness: 0.3, wireframe: isGeometry
         });
-        const wireMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 1, transparent: true, opacity: 0.5 });
+        const wireMat = new THREE.LineBasicMaterial({ color: isDark ? 0x38bdf8 : 0x0284c7, linewidth: 1, transparent: true, opacity: 0.5 });
         const interactableMeshes = [];
 
         // Geometries
-        const colW = 0.4, colH = 0.25;
-        const colGeom = createIBeamGeometry(colW, colH, 0.012, 0.016, H_col);
+        const cDepth = 0.6, cWidth = 0.25;
+        const colGeom = createIBeamGeometry(cDepth, cWidth, 0.012, 0.016, H_col);
         
         const roofRise = H_roof - H_col;
         const halfSpan = L / 2;
         const rafterLength = Math.sqrt(halfSpan*halfSpan + roofRise*roofRise);
         const rafterAngle = Math.atan(roofRise / halfSpan);
-        const rafW = 0.35, rafH = 0.2;
-        const rafterGeom = createIBeamGeometry(rafW, rafH, 0.01, 0.014, rafterLength);
+        const rDepth = 0.5, rWidth = 0.25;
+        const rafterGeom = createIBeamGeometry(rDepth, rWidth, 0.01, 0.014, rafterLength);
         
         const purlinSpacing = Number(inputs.purlinSpacing) || 1.2;
         const numPurlins = Math.floor(rafterLength / purlinSpacing) + 1;
         const purlinGeom = createZBeamGeometry(0.2, 0.07, 0.005, B_total);
 
-        const basePlateGeom = new THREE.BoxGeometry(0.6, 0.05, 0.6);
-        const basePlateMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 });
-
+        const basePlateGeom = new THREE.BoxGeometry(0.7, 0.04, 0.7);
+        const basePlateMat = new THREE.MeshStandardMaterial({ color: isDark ? 0x94a3b8 : 0x475569, metalness: 0.8, roughness: 0.2 });
         const foundationGeom = new THREE.BoxGeometry(1.5, 1.2, 1.5);
-        const foundationMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.9 }); // Concrete
+        const foundationMat = new THREE.MeshStandardMaterial({ color: isDark ? 0x475569 : 0xcbd5e1, roughness: 0.9 }); 
 
-        const haunchGeom = createHaunchGeometry(2.0, 1.2, colH);
-        const apexGeom = new THREE.BoxGeometry(0.8, 0.6, rafH + 0.02);
+        const apexGeom = new THREE.BoxGeometry(rWidth, rDepth + 0.05, 0.04);
 
         const skeletonGroup = new THREE.Group();
         const numFrames = Math.max(2, Math.round(B_total / B_step) + 1);
         const actualStep = B_total / (numFrames - 1);
 
-        // AXES GRIDS
-        const gridMat = new THREE.LineDashedMaterial({ color: 0xef4444, dashSize: 0.5, gapSize: 0.5 });
+        const gridMat = new THREE.LineDashedMaterial({ color: isDark ? 0xef4444 : 0xdc2626, dashSize: 0.5, gapSize: 0.5 });
         
+        const haunchLength = Math.min(L * 0.1, 3.0);
+        const haunchDepth = rDepth * 0.8;
+        const tw = 0.01, tf = 0.014;
+
         for (let i = 0; i < numFrames; i++) {
             const zPos = -B_total/2 + i * actualStep;
             
-            // Axis Line 1, 2, 3...
             if (isGeometry) {
                 const axisGeo = new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(-L/2 - 2, 0, zPos),
-                    new THREE.Vector3(L/2 + 2, 0, zPos)
+                    new THREE.Vector3(-L/2 - 2, 0, zPos), new THREE.Vector3(L/2 + 2, 0, zPos)
                 ]);
                 const axisLine = new THREE.Line(axisGeo, gridMat);
-                axisLine.computeLineDistances();
-                scene.add(axisLine);
-
+                axisLine.computeLineDistances(); scene.add(axisLine);
                 const label1 = createTextSprite(`${i+1}`);
-                label1.position.set(-L/2 - 3, 0.1, zPos);
-                scene.add(label1);
+                label1.position.set(-L/2 - 3, 0.1, zPos); scene.add(label1);
             }
 
             // Foundations
@@ -237,72 +229,80 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
 
             // Base plates
             const baseL = new THREE.Mesh(basePlateGeom, basePlateMat);
-            baseL.position.set(-L/2, 0.025, zPos);
+            baseL.position.set(-L/2, 0.02, zPos);
             baseL.castShadow = true; baseL.receiveShadow = true; skeletonGroup.add(baseL);
 
             const baseR = new THREE.Mesh(basePlateGeom, basePlateMat);
-            baseR.position.set(L/2, 0.025, zPos);
+            baseR.position.set(L/2, 0.02, zPos);
             baseR.castShadow = true; baseR.receiveShadow = true; skeletonGroup.add(baseR);
 
             // Columns
             const colL = new THREE.Mesh(colGeom, steelMat);
-            colL.position.set(-L/2, H_col/2, zPos);
-            colL.rotation.x = Math.PI/2; 
+            placeBeam(colL, new THREE.Vector3(-L/2, 0, zPos), new THREE.Vector3(-L/2, H_col, zPos), new THREE.Vector3(-1, 0, 0));
             colL.castShadow = true; colL.receiveShadow = true; skeletonGroup.add(colL);
             
             const colR = new THREE.Mesh(colGeom, steelMat);
-            colR.position.set(L/2, H_col/2, zPos);
-            colR.rotation.x = Math.PI/2;
+            placeBeam(colR, new THREE.Vector3(L/2, 0, zPos), new THREE.Vector3(L/2, H_col, zPos), new THREE.Vector3(1, 0, 0));
             colR.castShadow = true; colR.receiveShadow = true; skeletonGroup.add(colR);
             
-            // Haunches (Vút nách)
-            const hL = new THREE.Mesh(haunchGeom, steelMat);
-            hL.position.set(-L/2 + colW/2, H_col, zPos);
-            hL.rotation.z = rafterAngle;
-            hL.castShadow = true; hL.receiveShadow = true; skeletonGroup.add(hL);
-
-            const hR = new THREE.Mesh(haunchGeom, steelMat);
-            hR.position.set(L/2 - colW/2, H_col, zPos);
-            hR.rotation.y = Math.PI; // Flip
-            hR.rotation.z = rafterAngle;
-            hR.castShadow = true; hR.receiveShadow = true; skeletonGroup.add(hR);
-
-            // Rafters (Fixed Rotation with lookAt)
-            const p1L = new THREE.Vector3(-L/2, H_col, zPos);
-            const p2L = new THREE.Vector3(0, H_roof, zPos);
+            // Rafters
+            const dy = rDepth / 2 / Math.cos(rafterAngle);
+            const pApex = new THREE.Vector3(0, H_roof + dy, zPos);
+            
             const rafL = new THREE.Mesh(rafterGeom, steelMat);
-            rafL.position.copy(p1L).lerp(p2L, 0.5);
-            rafL.lookAt(p2L);
+            const p1L = new THREE.Vector3(-L/2, H_col + dy, zPos);
+            placeBeam(rafL, p1L, pApex, new THREE.Vector3(0, 1, 0));
             rafL.castShadow = true; rafL.receiveShadow = true; skeletonGroup.add(rafL);
             
-            const p1R = new THREE.Vector3(L/2, H_col, zPos);
-            const p2R = new THREE.Vector3(0, H_roof, zPos);
             const rafR = new THREE.Mesh(rafterGeom, steelMat);
-            rafR.position.copy(p1R).lerp(p2R, 0.5);
-            rafR.lookAt(p2R);
+            const p1R = new THREE.Vector3(L/2, H_col + dy, zPos);
+            placeBeam(rafR, p1R, pApex, new THREE.Vector3(0, 1, 0));
             rafR.castShadow = true; rafR.receiveShadow = true; skeletonGroup.add(rafR);
 
-            // Apex Splice (Bản mã đỉnh)
+            // Apex Splice
             const apex = new THREE.Mesh(apexGeom, basePlateMat);
-            apex.position.set(0, H_roof, zPos);
+            apex.position.set(0, H_roof + dy - rDepth/2, zPos);
             apex.castShadow = true; apex.receiveShadow = true; skeletonGroup.add(apex);
 
-            // X Bracing (Giằng chéo)
+            // Knee Haunches (Vút nách)
+            const buildHaunch = (isLeft) => {
+                const sign = isLeft ? 1 : -1;
+                const startX = (isLeft ? -L/2 : L/2) + sign * cDepth/2;
+                const endX = startX + sign * haunchLength;
+                const startY_top = H_col + (cDepth/2) * Math.tan(rafterAngle);
+                const endY = H_col + (cDepth/2 + haunchLength) * Math.tan(rafterAngle);
+                const startY_bot = startY_top - haunchDepth;
+
+                const shape = new THREE.Shape();
+                shape.moveTo(startX, startY_top);
+                shape.lineTo(endX, endY);
+                shape.lineTo(startX, startY_bot);
+                shape.lineTo(startX, startY_top);
+
+                const web = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: tw, bevelEnabled: false }), steelMat);
+                web.position.set(0, 0, zPos - tw/2);
+                web.castShadow = true; web.receiveShadow = true; skeletonGroup.add(web);
+
+                const flDist = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY_bot, 2));
+                const fl = new THREE.Mesh(new THREE.BoxGeometry(rWidth, tf, flDist), steelMat);
+                placeBeam(fl, new THREE.Vector3(startX, startY_bot, zPos), new THREE.Vector3(endX, endY, zPos), new THREE.Vector3(0, 1, 0));
+                fl.castShadow = true; fl.receiveShadow = true; skeletonGroup.add(fl);
+            };
+            buildHaunch(true);
+            buildHaunch(false);
+
+            // X Bracing
             if (i === 0 || i === numFrames - 2) {
                 const zBraceCenter = -B_total/2 + i * actualStep + actualStep/2;
-                const braceLength = Math.sqrt(actualStep*actualStep + H_col*H_col);
-                const braceAngle = Math.atan(actualStep / H_col);
-                const braceGeom = new THREE.CylinderGeometry(0.015, 0.015, braceLength);
-                
-                const braceMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
+                const braceGeom = new THREE.CylinderGeometry(0.015, 0.015, Math.sqrt(actualStep*actualStep + H_col*H_col));
+                braceGeom.rotateX(Math.PI/2);
+                const braceMat = new THREE.MeshStandardMaterial({ color: isDark ? 0x94a3b8 : 0x64748b });
                 const addX = (xPos) => {
                     const b1 = new THREE.Mesh(braceGeom, braceMat);
-                    b1.position.set(xPos, H_col/2, zBraceCenter);
-                    b1.rotation.x = Math.PI/2 - braceAngle;
+                    placeBeam(b1, new THREE.Vector3(xPos, 0, zPos), new THREE.Vector3(xPos, H_col, zPos + actualStep), new THREE.Vector3(1,0,0));
                     skeletonGroup.add(b1);
                     const b2 = new THREE.Mesh(braceGeom, braceMat);
-                    b2.position.set(xPos, H_col/2, zBraceCenter);
-                    b2.rotation.x = Math.PI/2 + braceAngle;
+                    placeBeam(b2, new THREE.Vector3(xPos, H_col, zPos), new THREE.Vector3(xPos, 0, zPos + actualStep), new THREE.Vector3(1,0,0));
                     skeletonGroup.add(b2);
                 };
                 addX(-L/2); addX(L/2);
@@ -311,38 +311,29 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
 
         // Axis Line A, B
         if (isGeometry) {
-            const axisZGeoA = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(-L/2, 0, -B_total/2 - 2), new THREE.Vector3(-L/2, 0, B_total/2 + 2)
-            ]);
-            const lineA = new THREE.Line(axisZGeoA, gridMat); lineA.computeLineDistances(); scene.add(lineA);
-            const labelA = createTextSprite("A"); labelA.position.set(-L/2, 0.1, B_total/2 + 3); scene.add(labelA);
-
-            const axisZGeoB = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(L/2, 0, -B_total/2 - 2), new THREE.Vector3(L/2, 0, B_total/2 + 2)
-            ]);
-            const lineB = new THREE.Line(axisZGeoB, gridMat); lineB.computeLineDistances(); scene.add(lineB);
-            const labelB = createTextSprite("B"); labelB.position.set(L/2, 0.1, B_total/2 + 3); scene.add(labelB);
+            const addAxis = (x, label) => {
+                const geo = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(x, 0, -B_total/2 - 2), new THREE.Vector3(x, 0, B_total/2 + 2)
+                ]);
+                const line = new THREE.Line(geo, gridMat); line.computeLineDistances(); scene.add(line);
+                const txt = createTextSprite(label); txt.position.set(x, 0.1, B_total/2 + 3); scene.add(txt);
+            };
+            addAxis(-L/2, "A"); addAxis(L/2, "B");
             
-            // 3D Dimension Lines
-            const dimMat = new THREE.LineBasicMaterial({ color: 0x38bdf8 });
-            
-            // Width Dimension
+            const dimMat = new THREE.LineBasicMaterial({ color: isDark ? 0x38bdf8 : 0x0284c7 });
             const dimGeoL = new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(-L/2, -1, B_total/2 + 1), new THREE.Vector3(L/2, -1, B_total/2 + 1)
             ]);
             scene.add(new THREE.Line(dimGeoL, dimMat));
             const dimTextL = createDimensionText(`L = ${L}m`);
-            dimTextL.position.set(0, -0.5, B_total/2 + 1);
-            scene.add(dimTextL);
+            dimTextL.position.set(0, -0.5, B_total/2 + 1); scene.add(dimTextL);
 
-            // Height Dimension
             const dimGeoH = new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(-L/2 - 2, 0, B_total/2), new THREE.Vector3(-L/2 - 2, H_col, B_total/2)
             ]);
             scene.add(new THREE.Line(dimGeoH, dimMat));
             const dimTextH = createDimensionText(`H = ${H_col}m`);
-            dimTextH.position.set(-L/2 - 3, H_col/2, B_total/2);
-            scene.add(dimTextH);
+            dimTextH.position.set(-L/2 - 3, H_col/2, B_total/2); scene.add(dimTextH);
         }
 
         // Purlins
@@ -352,14 +343,21 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                 const ratio = p / (numPurlins - 1);
                 const px = sign * L/2 * (1 - ratio);
                 const py = H_col + roofRise * ratio;
+                
                 const purlin = new THREE.Mesh(purlinGeom, purlinMat);
-                purlin.position.set(px, py + rafH/2 + 0.05, 0);
-                purlin.rotation.z = sign * rafterAngle;
+                // Shift up to sit on top of the rafter
+                const dy = rDepth/2 / Math.cos(rafterAngle);
+                const p1P = new THREE.Vector3(px, py + dy + 0.1, -B_total/2);
+                const p2P = new THREE.Vector3(px, py + dy + 0.1, B_total/2);
+                
+                const nx = sign * Math.sin(rafterAngle);
+                const ny = Math.cos(rafterAngle);
+                placeBeam(purlin, p1P, p2P, new THREE.Vector3(nx, ny, 0));
+                
                 purlin.castShadow = true; purlin.receiveShadow = true;
                 skeletonGroup.add(purlin);
             }
         }
-        
         buildingGroup.add(skeletonGroup);
 
         // CLADDING
@@ -374,8 +372,8 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
 
             let mat = type === 'wall' ? wallMat.clone() : roofMat.clone();
             if (zoneData) {
-                if (zoneData.c_net > 0) mat.color.setHex(0xfca5a5); 
-                else mat.color.setHex(0x60a5fa); 
+                if (zoneData.c_net > 0) mat.color.setHex(isDark ? 0xfca5a5 : 0xef4444); 
+                else mat.color.setHex(isDark ? 0x60a5fa : 0x3b82f6); 
                 mat.opacity = 0.85; 
                 mat.wireframe = false;
             } else if (isGeometry) {
@@ -391,7 +389,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             buildingGroup.add(mesh);
 
             const edges = new THREE.EdgesGeometry(geometry);
-            const lineMat = isGeometry ? wireMat : new THREE.LineBasicMaterial({ color: 0x94a3b8, opacity: 0.3, transparent: true });
+            const lineMat = isGeometry ? wireMat : new THREE.LineBasicMaterial({ color: isDark ? 0x94a3b8 : 0x64748b, opacity: 0.3, transparent: true });
             const line = new THREE.LineSegments(edges, lineMat);
             line.visible = showCladding;
             buildingGroup.add(line);
@@ -401,11 +399,16 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
 
         const xMin = -L/2, xMax = L/2;
         const zMin = -B_total/2, zMax = B_total/2;
-        const y0 = 0, yCol = H_col, yRoof = H_roof;
+        const y0 = 0;
+        
+        // Cladding points wrapping over purlins
+        const dy = rDepth/2 / Math.cos(rafterAngle);
+        const yColTop = H_col + dy + 0.25; // added purlin depth
+        const yRoofTop = H_roof + dy + 0.25;
 
         const N0 = [xMin, y0, zMax], N1 = [xMax, y0, zMax], N2 = [xMax, y0, zMin], N3 = [xMin, y0, zMin];
-        const C0 = [xMin, yCol, zMax], C1 = [xMax, yCol, zMax], C2 = [xMax, yCol, zMin], C3 = [xMin, yCol, zMin];
-        const R0 = [0, yRoof, zMax], R1 = [0, yRoof, zMin];
+        const C0 = [xMin, yColTop, zMax], C1 = [xMax, yColTop, zMax], C2 = [xMax, yColTop, zMin], C3 = [xMin, yColTop, zMin];
+        const R0 = [0, yRoofTop, zMax], R1 = [0, yRoofTop, zMin];
 
         let windwardZone, leewardZone, sideZone, roofWindward, roofLeeward;
         if (mode === 'wind' && caseData) {
@@ -423,13 +426,13 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             }
         }
 
-        createQuad(N0, N1, C1, C0, 'wall', currentDir==='+Y'?windwardZone:(currentDir==='-Y'?leewardZone:sideZone)); // Front (+Z)
-        createQuad(N1, N2, C2, C1, 'wall', currentDir==='+X'?leewardZone:(currentDir==='-X'?windwardZone:sideZone)); // Right (+X)
-        createQuad(N2, N3, C3, C2, 'wall', currentDir==='-Y'?windwardZone:(currentDir==='+Y'?leewardZone:sideZone)); // Back (-Z)
-        createQuad(N3, N0, C0, C3, 'wall', currentDir==='+X'?windwardZone:(currentDir==='-X'?leewardZone:sideZone)); // Left (-X)
+        createQuad(N0, N1, C1, C0, 'wall', currentDir==='+Y'?windwardZone:(currentDir==='-Y'?leewardZone:sideZone)); 
+        createQuad(N1, N2, C2, C1, 'wall', currentDir==='+X'?leewardZone:(currentDir==='-X'?windwardZone:sideZone)); 
+        createQuad(N2, N3, C3, C2, 'wall', currentDir==='-Y'?windwardZone:(currentDir==='+Y'?leewardZone:sideZone)); 
+        createQuad(N3, N0, C0, C3, 'wall', currentDir==='+X'?windwardZone:(currentDir==='-X'?leewardZone:sideZone)); 
 
-        createQuad(C0, R0, R1, C3, 'roof', currentDir==='+X'?roofWindward:roofLeeward); // Left Roof
-        createQuad(R0, C1, C2, R1, 'roof', currentDir==='+X'?roofLeeward:roofWindward); // Right Roof
+        createQuad(C0, R0, R1, C3, 'roof', currentDir==='+X'?roofWindward:roofLeeward); 
+        createQuad(R0, C1, C2, R1, 'roof', currentDir==='+X'?roofLeeward:roofWindward); 
 
         // WIND VISUALIZATION
         if (mode === 'wind') {
@@ -454,39 +457,31 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                         ax = -L/2 + L * ratio;
                     }
                     const pos = new THREE.Vector3(ax, H_col * (0.2 + j*0.35), az);
-                    const ah = new THREE.ArrowHelper(arrowDir, pos, 12, 0x38bdf8, 2, 1);
+                    const ah = new THREE.ArrowHelper(arrowDir, pos, 12, isDark ? 0x38bdf8 : 0x0284c7, 2, 1);
                     arrowGroup.add(ah);
                 }
             }
             scene.add(arrowGroup);
         }
 
-        // Camera setup
         const maxDim = Math.max(L, B_total, H_roof);
         camera.position.set(maxDim * 0.9, maxDim * 0.6, maxDim * 1.1);
         camera.lookAt(0, H_col/2, 0);
 
-        // Ground setup (Dark grid for Geometry, subtle for Wind)
-        const gridColor = isGeometry ? 0x1e293b : 0x1e293b;
-        const gridCenterColor = isGeometry ? 0x334155 : 0x334155;
+        const gridColor = isDark ? 0x1e293b : 0xe2e8f0;
+        const gridCenterColor = isDark ? 0x334155 : 0xcbd5e1;
         const grid = new THREE.GridHelper(maxDim * 3, 60, gridCenterColor, gridColor);
         grid.position.y = -0.01;
         scene.add(grid);
         
         const groundGeo = new THREE.PlaneGeometry(maxDim * 5, maxDim * 5);
         const groundMat = new THREE.MeshStandardMaterial({ 
-            color: bgColor, 
-            depthWrite: false, 
-            roughness: 1, 
-            metalness: 0
+            color: bgColor, depthWrite: false, roughness: 1, metalness: 0
         });
         const ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.y = -0.02;
-        ground.receiveShadow = true;
+        ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02; ground.receiveShadow = true;
         scene.add(ground);
 
-        // Interaction
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         const onMouseClick = (event) => {
@@ -496,11 +491,8 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(interactableMeshes);
-            if (intersects.length > 0) {
-                setSelectedZone(intersects[0].object.userData);
-            } else {
-                setSelectedZone(null);
-            }
+            if (intersects.length > 0) setSelectedZone(intersects[0].object.userData);
+            else setSelectedZone(null);
         };
         renderer.domElement.addEventListener('click', onMouseClick);
 
@@ -525,17 +517,15 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
 
         return () => {
             resizeObserver.disconnect();
-            if (renderer && renderer.domElement) {
-                renderer.domElement.removeEventListener('click', onMouseClick);
-            }
+            if (renderer && renderer.domElement) renderer.domElement.removeEventListener('click', onMouseClick);
             cancelAnimationFrame(animationFrameId);
             renderer.dispose();
         };
-    }, [inputs, caseData, currentDir, showCladding, mode]);
+    }, [inputs, caseData, currentDir, showCladding, mode, theme]);
 
     useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
-    }, [mode, currentDir, showCladding, isFullscreen]);
+    }, [mode, currentDir, showCladding, isFullscreen, theme]);
 
     const windDirs = ['+X', '-X', '+Y', '-Y'];
 
@@ -549,14 +539,17 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         }
     };
 
-    // UI Dark mode matching
     const isGeometry = mode === 'geometry';
-    const uiBg = isGeometry ? "bg-slate-900 border-slate-800" : "bg-slate-900 border-slate-800";
-    const textCol = "text-slate-200";
+    const isDark = theme === 'dark';
+    
+    const uiBg = isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200";
+    const textCol = isDark ? "text-slate-200" : "text-slate-800";
+    const hudBg = isDark ? "bg-slate-900/80 border-slate-700/50" : "bg-white/90 border-slate-200/80";
+    const hudText = isDark ? "text-slate-300" : "text-slate-600";
+    const btnBg = isDark ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white" : "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200 hover:text-slate-900";
 
     return (
-        <div ref={containerRef} className={`flex flex-col gap-3 ${isFullscreen ? (isGeometry ? 'bg-[#0b1121]' : 'bg-slate-900') + ' p-6 h-screen w-screen z-50 fixed inset-0' : ''}`}>
-            {/* Control Panel */}
+        <div ref={containerRef} className={`flex flex-col gap-3 ${isFullscreen ? (isDark ? 'bg-[#0b1121]' : 'bg-slate-50') + ' p-6 h-screen w-screen z-50 fixed inset-0' : ''}`}>
             <div className={`flex flex-wrap items-center justify-between p-3 rounded-xl border shadow-sm z-10 ${uiBg}`}>
                 <div className="flex items-center gap-4">
                     <span className={`font-bold ${textCol}`}>
@@ -564,12 +557,11 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                     </span>
                     
                     {mode === 'wind' && (
-                        <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
+                        <div className={`flex rounded-lg p-1 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
                             {windDirs.map(d => (
                                 <button 
-                                    key={d}
-                                    onClick={() => setCurrentDir(d)}
-                                    className={`px-3 py-1 text-sm rounded-md transition-all font-semibold ${currentDir === d ? 'bg-blue-600 shadow text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                                    key={d} onClick={() => setCurrentDir(d)}
+                                    className={`px-3 py-1 text-sm rounded-md transition-all font-semibold ${currentDir === d ? 'bg-blue-600 shadow text-white' : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800')}`}
                                 >
                                     Hướng {d}
                                 </button>
@@ -580,65 +572,71 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                 
                 <div className="flex items-center gap-2">
                     <button 
+                        onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                        className={`p-2 rounded-lg border transition-colors ${btnBg}`}
+                        title="Đổi giao diện Sáng/Tối"
+                    >
+                        <i data-lucide={isDark ? "sun" : "moon"} className="w-4 h-4"></i>
+                    </button>
+                    <button 
                         onClick={() => setShowCladding(!showCladding)}
-                        className={`px-4 py-1.5 text-sm font-medium rounded-lg border transition-colors ${showCladding ? 'bg-blue-900/50 border-blue-500/50 text-blue-300' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}
+                        className={`px-4 py-1.5 text-sm font-medium rounded-lg border transition-colors ${showCladding ? 'bg-blue-600 text-white border-blue-700 shadow-inner' : btnBg}`}
                     >
                         {showCladding ? 'Ẩn lớp Bao che' : 'Hiện lớp Bao che'}
                     </button>
-                    <button onClick={toggleFullscreen} className="p-2 text-slate-400 hover:text-white bg-slate-800 rounded-lg border border-slate-700">
+                    <button onClick={toggleFullscreen} className={`p-2 rounded-lg border transition-colors ${btnBg}`}>
                         <i data-lucide={isFullscreen ? "minimize" : "maximize"} className="w-4 h-4"></i>
                     </button>
                 </div>
             </div>
 
-            <div className={`relative w-full ${isGeometry ? 'bg-[#0b1121]' : 'bg-slate-900'} border border-slate-800 rounded-xl overflow-hidden shadow-inner ${isFullscreen ? 'flex-1' : 'h-[650px]'}`}>
+            <div className={`relative w-full ${isDark ? (isGeometry ? 'bg-[#0b1121]' : 'bg-slate-900') : 'bg-slate-50'} border ${isDark ? 'border-slate-800' : 'border-slate-200'} rounded-xl overflow-hidden shadow-inner ${isFullscreen ? 'flex-1' : 'h-[650px]'}`}>
                 <div ref={mountRef} className="absolute inset-0" />
                 
-                {/* Floating HUD */}
                 <div className="absolute top-4 left-4 pointer-events-none">
-                    <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-lg shadow-lg border border-slate-700/50">
-                        <h3 className="font-bold text-white flex items-center gap-2 border-b border-slate-700 pb-2 mb-2">
+                    <div className={`${hudBg} backdrop-blur-md p-4 rounded-lg shadow-lg border`}>
+                        <h3 className={`font-bold ${isDark ? 'text-white' : 'text-slate-800'} flex items-center gap-2 border-b ${isDark ? 'border-slate-700' : 'border-slate-200'} pb-2 mb-2`}>
                             {mode === 'wind' ? (
-                                <><i data-lucide="wind" className="text-blue-400 w-5 h-5"></i> Gió {currentDir}</>
+                                <><i data-lucide="wind" className="text-blue-500 w-5 h-5"></i> Gió {currentDir}</>
                             ) : (
-                                <><i data-lucide="box" className="text-blue-400 w-5 h-5"></i> Hình học Tổng thể</>
+                                <><i data-lucide="box" className="text-blue-500 w-5 h-5"></i> Hình học Tổng thể</>
                             )}
                         </h3>
-                        <div className="text-xs text-slate-300 space-y-1.5 font-mono">
-                            <p className="flex justify-between gap-6"><span>Nhịp (L):</span> <b className="text-blue-400">{inputs.L || 25} m</b></p>
-                            <p className="flex justify-between gap-6"><span>Bước cột (B):</span> <b className="text-blue-400">{inputs.B || 6} m</b></p>
-                            <p className="flex justify-between gap-6"><span>Chiều dài:</span> <b className="text-blue-400">{inputs.length || 72} m</b></p>
-                            <p className="flex justify-between gap-6"><span>Cao cột (H):</span> <b className="text-blue-400">{inputs.H_column || 8} m</b></p>
-                            <p className="flex justify-between gap-6"><span>Cao mái:</span> <b className="text-blue-400">{inputs.H_roof || 9.25} m</b></p>
-                            <p className="flex justify-between gap-6"><span>Khoảng cách Xà gồ:</span> <b className="text-orange-400">{inputs.purlinSpacing || 1.2} m</b></p>
+                        <div className={`text-xs ${hudText} space-y-1.5 font-mono`}>
+                            <p className="flex justify-between gap-6"><span>Nhịp (L):</span> <b className="text-blue-500">{inputs.L || 25} m</b></p>
+                            <p className="flex justify-between gap-6"><span>Bước cột (B):</span> <b className="text-blue-500">{inputs.B || 6} m</b></p>
+                            <p className="flex justify-between gap-6"><span>Chiều dài:</span> <b className="text-blue-500">{inputs.length || 72} m</b></p>
+                            <p className="flex justify-between gap-6"><span>Cao cột (H):</span> <b className="text-blue-500">{inputs.H_column || 8} m</b></p>
+                            <p className="flex justify-between gap-6"><span>Cao mái:</span> <b className="text-blue-500">{inputs.H_roof || 9.25} m</b></p>
+                            <p className="flex justify-between gap-6"><span>Khoảng cách Xà gồ:</span> <b className="text-orange-500">{inputs.purlinSpacing || 1.2} m</b></p>
                         </div>
                     </div>
                 </div>
                 
-                <div className="absolute bottom-4 right-4 text-xs text-slate-400 bg-slate-900/80 backdrop-blur p-2.5 rounded-lg shadow border border-slate-700/50">
+                <div className={`absolute bottom-4 right-4 text-xs ${hudText} ${hudBg} backdrop-blur p-2.5 rounded-lg shadow border`}>
                     <span className="flex items-center gap-2"><i data-lucide="mouse-pointer-2" className="w-4 h-4"></i> Xoay (Trái) • Zoom (Cuộn) • Di chuyển (Phải)</span>
-                    {mode === 'wind' && showCladding && <span className="text-blue-400 font-semibold block mt-1.5 border-t border-slate-700 pt-1.5">Click vào tường/mái để xem Áp lực</span>}
+                    {mode === 'wind' && showCladding && <span className="text-blue-500 font-semibold block mt-1.5 border-t border-slate-200/20 pt-1.5">Click vào tường/mái để xem Áp lực</span>}
                 </div>
                 
                 {mode === 'wind' && selectedZone && showCladding && (
-                    <div className="absolute bottom-4 left-4 bg-slate-900/95 backdrop-blur p-4 rounded-xl shadow-2xl border border-blue-500/30 w-64 text-sm z-10 animate-fade-in text-slate-200">
-                        <h4 className="font-bold border-b border-slate-700 pb-2 mb-3 text-white flex justify-between items-center">
+                    <div className={`absolute bottom-4 left-4 ${isDark ? 'bg-slate-900/95 text-slate-200 border-blue-500/30' : 'bg-white/95 text-slate-700 border-blue-400'} backdrop-blur p-4 rounded-xl shadow-2xl border w-64 text-sm z-10 animate-fade-in`}>
+                        <h4 className={`font-bold border-b ${isDark ? 'border-slate-700 text-white' : 'border-slate-200 text-slate-900'} pb-2 mb-3 flex justify-between items-center`}>
                             <span>Vùng {selectedZone.zone}</span>
-                            <span className="text-[10px] uppercase tracking-wider bg-blue-900/50 text-blue-300 border border-blue-500/50 px-2 py-0.5 rounded-full">{selectedZone.surface}</span>
+                            <span className="text-[10px] uppercase tracking-wider bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-200 dark:border-blue-500/50 px-2 py-0.5 rounded-full">{selectedZone.surface}</span>
                         </h4>
-                        <div className="flex justify-between py-1.5 border-b border-slate-800">
-                            <span className="text-slate-400">Hệ số c_e:</span>
-                            <span className="font-mono font-bold text-white">{selectedZone.ce > 0 ? '+' : ''}{selectedZone.ce}</span>
+                        <div className={`flex justify-between py-1.5 border-b ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+                            <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Hệ số c_e:</span>
+                            <span className={`font-mono font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{selectedZone.ce > 0 ? '+' : ''}{selectedZone.ce}</span>
                         </div>
-                        <div className="flex justify-between py-1.5 border-b border-slate-800">
-                            <span className="text-slate-400">Giá trị w_d:</span>
-                            <span className={`font-mono font-bold ${selectedZone.pressure_d > 0 ? 'text-red-400' : 'text-blue-400'}`}>
+                        <div className={`flex justify-between py-1.5 border-b ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+                            <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Giá trị w_d:</span>
+                            <span className={`font-mono font-bold ${selectedZone.pressure_d > 0 ? 'text-red-500' : 'text-blue-500'}`}>
                                 {selectedZone.pressure_d.toFixed(2)} kN/m²
                             </span>
                         </div>
                         <div className="flex justify-between pt-1.5">
-                            <span className="text-slate-400">Phân loại:</span>
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded ${selectedZone.pressure_d > 0 ? 'bg-red-900/30 text-red-400' : 'bg-blue-900/30 text-blue-400'}`}>
+                            <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Phân loại:</span>
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded ${selectedZone.pressure_d > 0 ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}`}>
                                 {selectedZone.pressure_d > 0 ? 'Áp lực Đẩy (+)' : 'Áp lực Hút (-)'}
                             </span>
                         </div>
