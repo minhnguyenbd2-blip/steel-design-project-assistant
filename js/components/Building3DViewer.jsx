@@ -290,7 +290,10 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                 
                 const edgesGeom = new THREE.EdgesGeometry(geometry);
                 edges = new THREE.LineSegments(edgesGeom, new THREE.LineBasicMaterial({ color: isDark ? 0xffffff : 0x000000, opacity: 0.3, transparent: true }));
-            } else if (isGeometry) { mat.opacity = 0.15; mat.color.setHex(type === 'wall' ? (isDark ? 0x38bdf8 : 0x0ea5e9) : (isDark ? 0x818cf8 : 0x6366f1)); }
+            } else if (isGeometry) { 
+                mat.opacity = type === 'wall' ? 0.2 : 0.35; 
+                mat.color.setHex(type === 'wall' ? (isDark ? 0x38bdf8 : 0x0ea5e9) : (isDark ? 0x818cf8 : 0x4f46e5)); // Indigo-600 for roof
+            }
             
             const mesh = new THREE.Mesh(geometry, mat);
             if (zoneData) { mesh.userData = zoneData; interactableMeshes.push(mesh); }
@@ -415,8 +418,8 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         } else {
             // Geometry mode: Simple 2 quads
             const R0 = [0, yRoofTop, zMax], R1 = [0, yRoofTop, zMin];
-            createQuad(C0, R0, R1, C3, 'roof', null); 
-            createQuad(R0, C1, C2, R1, 'roof', null); 
+            createQuad(C0, C3, R1, R0, 'roof', null); // Left slope (counter-clockwise -> Normal UP)
+            createQuad(R0, R1, C2, C1, 'roof', null); // Right slope (counter-clockwise -> Normal UP) 
         } 
 
         // GENTLE ORGANIC WIND ENGINE (Visually stunning, smooth, low-speed)
