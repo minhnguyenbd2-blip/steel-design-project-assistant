@@ -43,6 +43,7 @@ function App() {
     });
 
     const [validationErrors, setValidationErrors] = useState([]);
+    const [fieldErrors, setFieldErrors] = useState({});
 
     // Tự động tính các thông số độ dốc mái
     const roofSlopeCalculations = useMemo(() => {
@@ -91,13 +92,34 @@ function App() {
     }, [setProjectState]);
 
     const handleInputChange = (key, value, type) => {
-        setProjectState(prev => ({
-            ...prev,
-            inputs: {
+        // Xóa lỗi của trường này ngay lập tức khi người dùng nhập dữ liệu
+        if (fieldErrors[key]) {
+            setFieldErrors(prev => {
+                const next = { ...prev };
+                delete next[key];
+                return next;
+            });
+        }
+
+        setProjectState(prev => {
+            const val = type === 'boolean' ? value : (type === 'number' ? (parseFloat(value) || 0) : value);
+            const newInputs = {
                 ...prev.inputs,
-                [key]: type === 'boolean' ? value : (type === 'number' ? (parseFloat(value) || 0) : value)
-            }
-        }));
+                [key]: val
+            };
+
+            // Tự động tính toán và đồng bộ roofSlope (%)
+            const curL = Number(key === 'L' ? val : newInputs.L) || 25;
+            const curHcol = Number(key === 'H_column' ? val : newInputs.H_column) || 8;
+            const curHrf = Number(key === 'H_roof' ? val : newInputs.H_roof) || 9.25;
+            const rise = Math.max(0, curHrf - curHcol);
+            newInputs.roofSlope = Number(((rise / (curL / 2)) * 100).toFixed(2));
+
+            return {
+                ...prev,
+                inputs: newInputs
+            };
+        });
         markStale();
     };
 
@@ -171,6 +193,8 @@ function App() {
                 forces: [ ...ProjectState.forces ],
                 assumptions: [ ...ProjectState.assumptions ]
             });
+            setValidationErrors([]);
+            setFieldErrors({});
             setActiveTab('input');
         }
     };
@@ -185,22 +209,33 @@ function App() {
                 forces: [ ...TestCase01.forces ],
                 assumptions: [ ...ProjectState.assumptions ]
             });
+            setValidationErrors([]);
+            setFieldErrors({});
             markStale();
         }
     };
 
     // CHẠY TOÀN BỘ CÁC BỘ TÍNH TOÁN (ENGINE SUITE)
     const runCalculations = () => {
-        const valResult = validateInputs(projectState.inputs);
+        // Đồng bộ chính xác độ dốc mái vào inputs trước khi chạy thẩm tra
+        const currentInputs = {
+            ...projectState.inputs,
+            roofSlope: roofSlopeCalculations.slopePercent
+        };
+
+        const valResult = validateInputs(currentInputs);
         if (!valResult.isValid) {
             setValidationErrors(valResult.errors);
-            alert("Lỗi dữ liệu đầu vào. Vui lòng kiểm tra lại:\n" + valResult.errors.join("\n"));
+            setFieldErrors(valResult.fieldErrors || {});
+            setActiveTab('input');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
         setValidationErrors([]);
+        setFieldErrors({});
 
         // 1. Tải trọng Gió TCVN 2737:2023
-        const windResult = calculateWindLoad(projectState.inputs);
+        const windResult = calculateWindLoad(currentInputs);
 
         // 2. Thiết kế Tôn lợp mái & Xà gồ thép
         const claddingProfile = StandardData.TCVN2737_2023.PurlinAndCladding.sheetProfiles.find(s => s.id === projectState.inputs.selectedCladdingId);
@@ -447,6 +482,33 @@ function App() {
                     </div>
                 )}
 
+                {/* Banner cảnh báo lỗi dữ liệu đầu vào (Validation Error Banner) */}
+                {validationErrors.length > 0 && (
+                    <div className="bg-red-50 dark:bg-red-950/40 border-2 border-red-500 rounded-xl p-4 mb-6 shadow-md print:hidden">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3">
+                                <i data-lucide="alert-octagon" className="w-6 h-6 text-red-600 dark:text-red-400 shrink-0 mt-0.5"></i>
+                                <div>
+                                    <h4 className="font-bold text-red-800 dark:text-red-200 text-sm">
+                                        Phát hiện {validationErrors.length} lỗi dữ liệu đầu vào. Vui lòng kiểm tra lại các trường được viền đỏ bên dưới:
+                                    </h4>
+                                    <ul className="text-xs text-red-700 dark:text-red-300 list-disc list-inside mt-1.5 space-y-1 font-medium">
+                                        {validationErrors.map((err, idx) => (
+                                            <li key={idx}>{err}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => { setValidationErrors([]); setFieldErrors({}); }} 
+                                className="text-red-600 hover:text-red-800 dark:text-red-300 text-xs font-bold px-2 py-1 rounded hover:bg-red-100 dark:hover:bg-red-900/50"
+                            >
+                                Đóng
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* ========================================================================================= */}
                 {/* 1. TAB CÀI ĐẶT DỰ ÁN & HÌNH HỌC 2D */}
                 {/* ========================================================================================= */}
@@ -480,11 +542,24 @@ function App() {
                             </div>
                             <div>
                                 <label className="text-xs font-semibold text-slate-500 uppercase">Vùng gió (TCVN 2737:2023)</label>
-                                <select value={rInputs.windZone} onChange={e => handleInputChange('windZone', e.target.value, 'string')} className="w-full p-2 border rounded mt-1 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-600 outline-none font-semibold text-primary">
+                                <select 
+                                    value={rInputs.windZone} 
+                                    onChange={e => handleInputChange('windZone', e.target.value, 'string')} 
+                                    className={`w-full p-2 border rounded mt-1 outline-none font-semibold transition-all ${
+                                        fieldErrors['windZone'] 
+                                            ? 'border-2 border-red-500 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-100 ring-2 ring-red-400' 
+                                            : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-primary'
+                                    }`}
+                                >
                                     {Object.keys(StandardData.TCVN2737_2023.Wind.BasicWind.data).map(k => (
                                         <option key={k} value={k}>Vùng {k} (W₀ = {StandardData.TCVN2737_2023.Wind.BasicWind.data[k]} kN/m²)</option>
                                     ))}
                                 </select>
+                                {fieldErrors['windZone'] && (
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold flex items-center gap-1">
+                                        <i data-lucide="alert-circle" className="w-3.5 h-3.5 inline"></i> {fieldErrors['windZone']}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -498,72 +573,204 @@ function App() {
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <div>
                                 <label className="text-xs font-semibold text-slate-500 uppercase">Nhịp khung ngang L (m)</label>
-                                <input type="number" step="0.5" value={rInputs.L} onChange={e => handleInputChange('L', e.target.value, 'number')} className="w-full p-2 border rounded mt-1 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-600 outline-none font-bold text-primary font-mono" />
+                                <input 
+                                    type="number" step="0.5" 
+                                    value={rInputs.L} 
+                                    onChange={e => handleInputChange('L', e.target.value, 'number')} 
+                                    className={`w-full p-2 border rounded mt-1 outline-none font-bold font-mono transition-all ${
+                                        fieldErrors['L'] 
+                                            ? 'border-2 border-red-500 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-100 ring-2 ring-red-400' 
+                                            : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-primary'
+                                    }`} 
+                                />
+                                {fieldErrors['L'] && (
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold flex items-center gap-1">
+                                        <i data-lucide="alert-circle" className="w-3.5 h-3.5 inline"></i> {fieldErrors['L']}
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <label className="text-xs font-semibold text-slate-500 uppercase">Bước cột B (m)</label>
-                                <input type="number" step="0.5" value={rInputs.B} onChange={e => handleInputChange('B', e.target.value, 'number')} className="w-full p-2 border rounded mt-1 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-600 outline-none font-bold text-primary font-mono" />
+                                <input 
+                                    type="number" step="0.5" 
+                                    value={rInputs.B} 
+                                    onChange={e => handleInputChange('B', e.target.value, 'number')} 
+                                    className={`w-full p-2 border rounded mt-1 outline-none font-bold font-mono transition-all ${
+                                        fieldErrors['B'] 
+                                            ? 'border-2 border-red-500 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-100 ring-2 ring-red-400' 
+                                            : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-primary'
+                                    }`} 
+                                />
+                                {fieldErrors['B'] && (
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold flex items-center gap-1">
+                                        <i data-lucide="alert-circle" className="w-3.5 h-3.5 inline"></i> {fieldErrors['B']}
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <label className="text-xs font-semibold text-slate-500 uppercase">Chiều dài nhà (m)</label>
-                                <input type="number" step="1" value={rInputs.length} onChange={e => handleInputChange('length', e.target.value, 'number')} className="w-full p-2 border rounded mt-1 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-600 outline-none font-bold text-primary font-mono" />
+                                <input 
+                                    type="number" step="1" 
+                                    value={rInputs.length} 
+                                    onChange={e => handleInputChange('length', e.target.value, 'number')} 
+                                    className={`w-full p-2 border rounded mt-1 outline-none font-bold font-mono transition-all ${
+                                        fieldErrors['length'] 
+                                            ? 'border-2 border-red-500 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-100 ring-2 ring-red-400' 
+                                            : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-primary'
+                                    }`} 
+                                />
+                                {fieldErrors['length'] && (
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold flex items-center gap-1">
+                                        <i data-lucide="alert-circle" className="w-3.5 h-3.5 inline"></i> {fieldErrors['length']}
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <label className="text-xs font-semibold text-slate-500 uppercase">Chiều cao đỉnh cột (m)</label>
-                                <input type="number" step="0.1" value={rInputs.H_column} onChange={e => handleInputChange('H_column', e.target.value, 'number')} className="w-full p-2 border rounded mt-1 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-600 outline-none font-bold text-amber-500 font-mono" />
+                                <input 
+                                    type="number" step="0.1" 
+                                    value={rInputs.H_column} 
+                                    onChange={e => handleInputChange('H_column', e.target.value, 'number')} 
+                                    className={`w-full p-2 border rounded mt-1 outline-none font-bold font-mono transition-all ${
+                                        fieldErrors['H_column'] 
+                                            ? 'border-2 border-red-500 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-100 ring-2 ring-red-400' 
+                                            : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-amber-500'
+                                    }`} 
+                                />
+                                {fieldErrors['H_column'] && (
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold flex items-center gap-1">
+                                        <i data-lucide="alert-circle" className="w-3.5 h-3.5 inline"></i> {fieldErrors['H_column']}
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <label className="text-xs font-semibold text-slate-500 uppercase">Chiều cao đỉnh mái (m)</label>
-                                <input type="number" step="0.05" value={rInputs.H_roof} onChange={e => handleInputChange('H_roof', e.target.value, 'number')} className="w-full p-2 border rounded mt-1 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-600 outline-none font-bold text-amber-500 font-mono" />
+                                <input 
+                                    type="number" step="0.05" 
+                                    value={rInputs.H_roof} 
+                                    onChange={e => handleInputChange('H_roof', e.target.value, 'number')} 
+                                    className={`w-full p-2 border rounded mt-1 outline-none font-bold font-mono transition-all ${
+                                        fieldErrors['H_roof'] 
+                                            ? 'border-2 border-red-500 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-100 ring-2 ring-red-400' 
+                                            : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-amber-500'
+                                    }`} 
+                                />
+                                {fieldErrors['H_roof'] && (
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold flex items-center gap-1">
+                                        <i data-lucide="alert-circle" className="w-3.5 h-3.5 inline"></i> {fieldErrors['H_roof']}
+                                    </p>
+                                )}
                             </div>
                         </div>
 
                         {/* Thẻ hiển thị tính toán tự động độ dốc */}
-                        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/40 rounded-lg border border-blue-200 dark:border-blue-800 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div className={`mt-4 p-4 rounded-xl border grid grid-cols-1 md:grid-cols-4 gap-4 text-sm transition-all ${
+                            fieldErrors['roofSlope'] || (fieldErrors['H_roof'] && fieldErrors['H_column'])
+                                ? 'bg-red-50 dark:bg-red-950/30 border-2 border-red-500 ring-2 ring-red-300'
+                                : 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800'
+                        }`}>
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-md text-blue-700 dark:text-blue-300 font-bold">ΔH</div>
+                                <div className="p-2.5 bg-blue-100 dark:bg-blue-900 rounded-lg text-blue-700 dark:text-blue-300 font-bold font-mono">ΔH</div>
                                 <div>
                                     <div className="text-xs text-slate-500 dark:text-slate-400">Chiều cao dâng mái:</div>
-                                    <div className="font-bold text-slate-800 dark:text-white font-mono">{roofSlopeCalculations.roofRise} m</div>
+                                    <div className="font-bold text-slate-800 dark:text-white font-mono text-base">{roofSlopeCalculations.roofRise} m</div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-md text-blue-700 dark:text-blue-300 font-bold">i %</div>
+                                <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900 rounded-lg text-emerald-700 dark:text-emerald-300 font-bold font-mono">i %</div>
                                 <div>
-                                    <div className="text-xs text-slate-500 dark:text-slate-400">Độ dốc mái i hiện tại:</div>
-                                    <div className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">{roofSlopeCalculations.slopePercent} % (i = 1/{((rInputs.L/2)/roofSlopeCalculations.roofRise).toFixed(1)})</div>
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">Độ dốc mái i (roofSlope):</div>
+                                    <div className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-base">{roofSlopeCalculations.slopePercent} %</div>
+                                    <div className="text-[10px] text-slate-500">i = 1/{((rInputs.L/2)/roofSlopeCalculations.roofRise).toFixed(1)} (tự động)</div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-md text-blue-700 dark:text-blue-300 font-bold">α °</div>
+                                <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900 rounded-lg text-indigo-700 dark:text-indigo-300 font-bold font-mono">α °</div>
                                 <div>
                                     <div className="text-xs text-slate-500 dark:text-slate-400">Góc dốc mái nghiêng:</div>
-                                    <div className="font-bold text-indigo-600 dark:text-indigo-400 font-mono">{roofSlopeCalculations.alphaDeg}°</div>
+                                    <div className="font-bold text-indigo-600 dark:text-indigo-400 font-mono text-base">{roofSlopeCalculations.alphaDeg}°</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 border-t md:border-t-0 md:border-l dark:border-slate-700 pt-2 md:pt-0 md:pl-3">
+                                <div className="text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                                    <div className="font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-200">
+                                        <i data-lucide="check-check" className="w-3.5 h-3.5 text-emerald-500"></i> Đồng bộ tự động
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 leading-tight">
+                                        i = (H_roof - H_col) / (L/2) × 100%. TCVN 2737 tra bảng hệ số khí động tự động theo góc α này.
+                                    </p>
                                 </div>
                             </div>
                         </div>
+
+                        {fieldErrors['roofSlope'] && (
+                            <p className="text-xs text-red-600 dark:text-red-400 mt-2 font-semibold flex items-center gap-1">
+                                <i data-lucide="alert-circle" className="w-3.5 h-3.5 inline"></i> {fieldErrors['roofSlope']}
+                            </p>
+                        )}
 
                         {/* Các thông số kỹ thuật phụ trợ */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 pt-4 border-t dark:border-slate-700">
                             <div>
                                 <label className="text-xs font-semibold text-slate-500 uppercase">Dạng địa hình (Bảng 8)</label>
-                                <select value={rInputs.terrainCategory} onChange={e => handleInputChange('terrainCategory', e.target.value, 'string')} className="w-full p-2 border rounded mt-1 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-600 outline-none text-sm">
+                                <select 
+                                    value={rInputs.terrainCategory} 
+                                    onChange={e => handleInputChange('terrainCategory', e.target.value, 'string')} 
+                                    className={`w-full p-2 border rounded mt-1 outline-none text-sm transition-all ${
+                                        fieldErrors['terrainCategory'] 
+                                            ? 'border-2 border-red-500 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-100 ring-2 ring-red-400' 
+                                            : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50'
+                                    }`}
+                                >
                                     <option value="A">Địa hình A (Trống trải ven biển, đồng bằng)</option>
                                     <option value="B">Địa hình B (Tương đối trống trải, ngoại thành)</option>
                                     <option value="C">Địa hình C (Đô thị, rừng cây, vật cản dày)</option>
                                 </select>
+                                {fieldErrors['terrainCategory'] && (
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold flex items-center gap-1">
+                                        <i data-lucide="alert-circle" className="w-3.5 h-3.5 inline"></i> {fieldErrors['terrainCategory']}
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <label className="text-xs font-semibold text-slate-500 uppercase">Mác thép kết cấu</label>
-                                <select value={rInputs.steelGrade} onChange={e => handleInputChange('steelGrade', e.target.value, 'string')} className="w-full p-2 border rounded mt-1 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-600 outline-none text-sm font-semibold">
+                                <select 
+                                    value={rInputs.steelGrade} 
+                                    onChange={e => handleInputChange('steelGrade', e.target.value, 'string')} 
+                                    className={`w-full p-2 border rounded mt-1 outline-none text-sm font-semibold transition-all ${
+                                        fieldErrors['steelGrade'] 
+                                            ? 'border-2 border-red-500 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-100 ring-2 ring-red-400' 
+                                            : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50'
+                                    }`}
+                                >
                                     <option value="S235">S235 (f = 215 - 235 MPa)</option>
                                     <option value="S275">S275 (f = 255 - 275 MPa)</option>
                                     <option value="S355">S355 (f = 335 - 355 MPa)</option>
                                 </select>
+                                {fieldErrors['steelGrade'] && (
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold flex items-center gap-1">
+                                        <i data-lucide="alert-circle" className="w-3.5 h-3.5 inline"></i> {fieldErrors['steelGrade']}
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <label className="text-xs font-semibold text-slate-500 uppercase">Độ hở bao che μ (%) (F.12)</label>
-                                <input type="number" step="1" value={rInputs.porosityPercent} onChange={e => handleInputChange('porosityPercent', e.target.value, 'number')} className="w-full p-2 border rounded mt-1 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-600 outline-none font-mono text-sm" placeholder="≤ 5% (Kín)" />
+                                <input 
+                                    type="number" step="1" 
+                                    value={rInputs.porosityPercent} 
+                                    onChange={e => handleInputChange('porosityPercent', e.target.value, 'number')} 
+                                    className={`w-full p-2 border rounded mt-1 outline-none font-mono text-sm transition-all ${
+                                        fieldErrors['porosityPercent'] 
+                                            ? 'border-2 border-red-500 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-100 ring-2 ring-red-400' 
+                                            : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50'
+                                    }`} 
+                                    placeholder="≤ 5% (Kín)" 
+                                />
+                                {fieldErrors['porosityPercent'] && (
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold flex items-center gap-1">
+                                        <i data-lucide="alert-circle" className="w-3.5 h-3.5 inline"></i> {fieldErrors['porosityPercent']}
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <label className="text-xs font-semibold text-slate-500 uppercase">Dấu áp lực trong c_i</label>

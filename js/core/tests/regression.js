@@ -26,6 +26,7 @@ const RegressionTests = {
         this.testPurlinCladding();
         this.testSlabDesign();
         this.testBeamDesign();
+        this.testValidationLayer();
         
         console.log("Kết quả Kiểm thử Hồi quy (Regression Tests):", this.results);
         const passCount = this.results.filter(r => r.pass).length;
@@ -181,6 +182,23 @@ const RegressionTests = {
         const res = SlabBeamEngine.calculateBeam({ L_beam: 9.0, tributaryWidth: 2.5, slabLoadQd: 6.5, slabLoadQk: 5.0, steelGrade: 'S235', chosenBeamId: 'I350' });
         this.assert("testBeamDesign - Mmax > 0", res.M_max_kNm > 0, true);
         this.assert("testBeamDesign - sigma uốn hợp lệ", res.checks.sigma_uon > 0, true);
+    },
+    testValidationLayer: function() {
+        // 1. Kiểm tra dữ liệu chuẩn ProjectState hợp lệ
+        const validRes = validateInputs(ProjectState.inputs);
+        this.assert("testValidationLayer - ProjectState hợp lệ", validRes.isValid, true);
+        this.assert("testValidationLayer - Không có lỗi", validRes.errors.length, 0);
+
+        // 2. Kiểm tra phát hiện lỗi khi H_roof <= H_col
+        const invalidGeomRes = validateInputs({ ...ProjectState.inputs, H_roof: 7.0, H_column: 8.0 });
+        this.assert("testValidationLayer - Phát hiện lỗi H_roof <= H_column", invalidGeomRes.isValid, false);
+        this.assert("testValidationLayer - Có fieldError H_roof", !!invalidGeomRes.fieldErrors.H_roof, true);
+
+        // 3. Kiểm tra tự động suy ra roofSlope khi thiếu
+        const noSlopeInput = { ...ProjectState.inputs };
+        delete noSlopeInput.roofSlope;
+        const autoSlopeRes = validateInputs(noSlopeInput);
+        this.assert("testValidationLayer - Tự động tính roofSlope khi thiếu", autoSlopeRes.isValid, true);
     }
 };
 

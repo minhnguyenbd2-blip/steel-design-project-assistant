@@ -17,6 +17,7 @@ const ProjectState = {
         length: 72.0,      // Chiều dài toàn bộ nhà (m)
         H_column: 8.0,     // Chiều cao đỉnh cột (m)
         H_roof: 9.25,      // Chiều cao đỉnh mái (m)
+        roofSlope: 10.0,   // Độ dốc mái i (%) = (9.25 - 8.0) / (25 / 2) * 100
         
         // Điều kiện tính toán & Tiêu chuẩn
         windZone: "II",             // Vùng gió (I, II, III, IV, V)
@@ -100,6 +101,7 @@ const TestCase01 = {
         length: 72.0,
         H_column: 8.0,
         H_roof: 9.25,
+        roofSlope: 10.0,
         windZone: "II",
         terrainCategory: "B",
         porosityPercent: 0,
