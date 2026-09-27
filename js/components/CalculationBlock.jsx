@@ -1,5 +1,7 @@
 
-function CalculationBlock({ stepId, title, source, formulaLaTeX, substitutionLaTeX, result, unit, check = null, notes = "" }) {
+function CalculationBlock({ step }) {
+    if (!step) return null;
+    const { stepId, title, source, formulaLaTeX, substitutionLaTeX, result, unit, check = null, notes = "" } = step;
     // 1. Phân tích nội dung ghi chú (Notes)
     // Tách Ý NGHĨA KÝ HIỆU và GHI CHÚ CHUNG
     const lines = notes.split('\n');
