@@ -44,10 +44,16 @@ function Wind3DViewer({ geom, loadCases, currentDir = '+X' }) {
         scene.add(dirLight);
         
         // Geometry specs
-        const L = geom.L;
-        const B = geom.d_total || geom.length || 72; // length of building
-        const H_col = geom.H_col || geom.H_column;
-        const H_roof = geom.H_rf || geom.H_roof;
+        console.log('Wind3DViewer geom:', geom);
+        const L = Number(geom.L) || 25;
+        const B = Number(geom.d_total) || Number(geom.length) || 72; // length of building
+        const H_col = Number(geom.H_col) || Number(geom.H_column) || 8;
+        const H_roof = Number(geom.H_rf) || Number(geom.H_roof) || 9.25;
+        
+        if (isNaN(L) || isNaN(B) || isNaN(H_col) || isNaN(H_roof)) {
+            console.error('Wind3DViewer: Invalid geometry parameters', { L, B, H_col, H_roof });
+            return;
+        }
 
         // Group for building
         const buildingGroup = new THREE.Group();
@@ -66,8 +72,8 @@ function Wind3DViewer({ geom, loadCases, currentDir = '+X' }) {
         function createQuad(p1, p2, p3, p4, type, zoneData) {
             const geometry = new THREE.BufferGeometry();
             const vertices = new Float32Array([
-                ...p1, ...p2, ...p3,
-                ...p1, ...p3, ...p4
+                p1[0], p1[1], p1[2],  p2[0], p2[1], p2[2],  p3[0], p3[1], p3[2],
+                p1[0], p1[1], p1[2],  p3[0], p3[1], p3[2],  p4[0], p4[1], p4[2]
             ]);
             geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
             geometry.computeVertexNormals();
@@ -118,6 +124,9 @@ function Wind3DViewer({ geom, loadCases, currentDir = '+X' }) {
 
         const R0 = [0, yRoof, zMax];
         const R1 = [0, yRoof, zMin];
+
+        console.log('3D Viewer Geometry inputs:', { L, B, H_col, H_roof });
+        console.log('Computed nodes:', { N0, C0, R0 });
 
         // Retrieve zones for current direction
         const zones = caseData.surfaces || [];
