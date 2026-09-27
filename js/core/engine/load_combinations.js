@@ -1,59 +1,88 @@
-// Load Combination Engine (TCVN 2737:2023)
+// Load Combination Engine (TCVN 2737:2023, Điều 4.3)
+// Phân chia rõ ràng: Tổ hợp cơ bản 1 (1 hoạt tải) và Tổ hợp cơ bản 2 (từ 2 hoạt tải trở lên)
 
 function calculateLoadCombinations(gravityResult, windResult) {
     const steps = [];
     
-    // Thu thập kết quả tải phân bố từ bước trước
     const q_DL = gravityResult.q_DL || 0;
     const q_LL = gravityResult.q_LL || 0;
     
-    // Wind result cung cấp nội lực Push/Pull cho cột và mái. 
-    // Trích xuất step để minh họa. Trong thực tế solver FEA sẽ giải.
+    // Tải trọng gió trên cột và dầm mái từ kết quả tính toán gió
     let q_W_push = 0;
-    if (windResult.loadCases && windResult.loadCases['+X']) {
-        const zoneD = windResult.loadCases['+X'].surfaces.find(s => s.zone === 'D');
-        if (zoneD) {
-            q_W_push = zoneD.frameLineLoad || 0;
-        }
+    let q_W_pull = 0;
+    let q_W_roof_suction = 0;
+    
+    if (windResult && windResult.loadCases && windResult.loadCases['+X']) {
+        const surfaces = windResult.loadCases['+X'].surfaces;
+        const zoneD = surfaces.find(s => s.zone === 'D');
+        const zoneE = surfaces.find(s => s.zone === 'E');
+        const zoneH = surfaces.find(s => s.zone === 'H');
+        if (zoneD) q_W_push = zoneD.frameLineLoad_d || 0;
+        if (zoneE) q_W_pull = zoneE.frameLineLoad_d || 0;
+        if (zoneH) q_W_roof_suction = zoneH.frameLineLoad_d || 0;
     }
 
-    const psi_t_ll = 1.0; 
-    const psi_t_wind = 0.9;
-    
-    // CB1: DL + 1.0 LL
-    const q_TH1 = q_DL + psi_t_ll * q_LL;
-    
+    // ================= 1. TỔ HỢP CƠ BẢN 1 (THCB1): TĨNH TẢI + 1 HOẠT TẢI CHÍNH =================
+    // Trường hợp 1A: Tĩnh tải + Hoạt tải mái (DL + 1.0 LL)
+    const q_TH1A = Number((q_DL + 1.0 * q_LL).toFixed(2));
     steps.push(createCalculationStep(
         "CALC-COMB-001",
-        "Tổ hợp cơ bản 1 (THCB1)",
-        { standard: 'TCVN 2737:2023', section: '4.3.3' },
-        "q_{TH1} = q_{DL} + \\psi_{t1} q_{LL}",
-        `q_{TH1} = ${q_DL.toFixed(2)} + ${psi_t_ll.toFixed(2)} \\times ${q_LL.toFixed(2)}`,
-        Number(q_TH1.toFixed(2)),
+        "Tổ hợp cơ bản 1A (THCB 1A): Tĩnh tải + Hoạt tải mái",
+        { standard: 'TCVN 2737:2023', section: 'Điều 4.3.3' },
+        "q_{TH1A} = q_{DL} + \\psi_{t1} \\cdot q_{LL}",
+        `q_{TH1A} = ${q_DL.toFixed(2)} + 1,0 \\times ${q_LL.toFixed(2)} = ${q_TH1A}\\text{ kN/m}`,
+        q_TH1A,
         "kN/m",
-        null,
-        "Hệ số tổ hợp = 1.0 (Một hoạt tải). Tải phân bố tổng cộng trên dầm mái."
+        { isPass: true },
+        "Ý NGHĨA KÝ HIỆU & HỆ SỐ TỔ HỢP:\n" +
+        "• q_{DL}: Tĩnh tải dầm mái tính toán (kN/m)\n" +
+        "• q_{LL}: Hoạt tải sửa chữa mái tính toán (kN/m)\n" +
+        "• ψ_{t1} = 1,0: Hệ số tổ hợp khi chỉ có 1 hoạt tải tạm thời (TCVN 2737:2023 Điều 4.3.3)"
     ));
 
-    // CB2: DL + 0.9 LL + 0.9 Wind
-    const q_TH2_gravity = q_DL + 0.9 * q_LL;
-    const q_TH2_wind = psi_t_wind * q_W_push;
-
+    // Trường hợp 1B: Tĩnh tải + Tải trọng gió (DL + 1.0 Wind)
+    const q_TH1B_horiz = Number((1.0 * q_W_push).toFixed(2));
+    const q_TH1B_vert = Number((q_DL + 1.0 * q_W_roof_suction).toFixed(2));
     steps.push(createCalculationStep(
         "CALC-COMB-002",
-        "Tổ hợp cơ bản 2 (THCB2)",
-        { standard: 'TCVN 2737:2023', section: '4.3.4' },
-        "\\text{Đứng: } q_{TH2,v} = q_{DL} + 0.9 q_{LL} \\\\ \\text{Ngang: } q_{TH2,h} = 0.9 q_{W,push}",
-        `q_{TH2,v} = ${q_DL.toFixed(2)} + 0.9 \\times ${q_LL.toFixed(2)} = ${q_TH2_gravity.toFixed(2)} \\\\ q_{TH2,h} = 0.9 \\times ${q_W_push.toFixed(2)} = ${q_TH2_wind.toFixed(2)}`,
-        null,
+        "Tổ hợp cơ bản 1B (THCB 1B): Tĩnh tải + Tải trọng gió chính",
+        { standard: 'TCVN 2737:2023', section: 'Điều 4.3.3' },
+        "q_{ngang} = 1,0 \\cdot q_{W,push}; \\quad q_{dung} = q_{DL} + 1,0 \\cdot q_{W,roof}",
+        `q_{ngang} = 1,0 \\times ${q_W_push.toFixed(2)} = ${q_TH1B_horiz}\\text{ kN/m}; \\quad q_{dung} = ${q_DL.toFixed(2)} + 1,0 \\times (${q_W_roof_suction.toFixed(2)}) = ${q_TH1B_vert}\\text{ kN/m}`,
+        q_TH1B_horiz,
         "kN/m",
-        null,
-        "Hệ số tổ hợp = 0.9 (Hai hoạt tải trở lên)."
+        { isPass: true },
+        "Ý NGHĨA KÝ HIỆU & NGUYÊN TẮC TỔ HỢP:\n" +
+        "• q_{W,push}: Tải trọng gió đẩy tác dụng vào cột đón gió (kN/m)\n" +
+        "• q_{W,roof}: Tải trọng gió tác dụng lên dầm mái (kN/m) (dấu âm thể hiện lực bốc mái)\n" +
+        "• ψ_{t} = 1,0: Tải trọng gió là hoạt tải chính duy nhất"
+    ));
+
+    // ================= 2. TỔ HỢP CƠ BẢN 2 (THCB2): TĨNH TẢI + TỪ 2 HOẠT TẢI TRỞ LÊN =================
+    // DL + 0.9 LL + 0.9 Wind
+    const q_TH2_horiz = Number((0.9 * q_W_push).toFixed(2));
+    const q_TH2_vert = Number((q_DL + 0.9 * q_LL + 0.9 * q_W_roof_suction).toFixed(2));
+    steps.push(createCalculationStep(
+        "CALC-COMB-003",
+        "Tổ hợp cơ bản 2 (THCB 2): Tĩnh tải + 0,9 Hoạt tải mái + 0,9 Tải trọng gió",
+        { standard: 'TCVN 2737:2023', section: 'Điều 4.3.4' },
+        "q_{ngang} = 0,9 \\cdot q_{W,push}; \\quad q_{dung} = q_{DL} + 0,9 \\cdot q_{LL} + 0,9 \\cdot q_{W,roof}",
+        `q_{ngang} = 0,9 \\times ${q_W_push.toFixed(2)} = ${q_TH2_horiz}\\text{ kN/m}; \\quad q_{dung} = ${q_DL.toFixed(2)} + 0,9 \\times ${q_LL.toFixed(2)} + 0,9 \\times (${q_W_roof_suction.toFixed(2)}) = ${q_TH2_vert}\\text{ kN/m}`,
+        q_TH2_vert,
+        "kN/m",
+        { isPass: true },
+        "Ý NGHĨA KÝ HIỆU & HỆ SỐ TỔ HỢP:\n" +
+        "• ψ = 0,9: Hệ số giảm trừ tổ hợp khi có từ 2 hoạt tải trở lên cùng xuất hiện đồng thời (TCVN 2737:2023 Điều 4.3.4)"
     ));
 
     return {
         steps,
-        success: true
+        success: true,
+        combos: {
+            TH1A: q_TH1A,
+            TH1B: { horiz: q_TH1B_horiz, vert: q_TH1B_vert },
+            TH2: { horiz: q_TH2_horiz, vert: q_TH2_vert }
+        }
     };
 }
 
