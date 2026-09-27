@@ -1378,7 +1378,7 @@ function App() {
                                 <input 
                                     type="number" step="0.1" 
                                     value={rInputs.slabParams.L1} 
-                                    onChange={e => setProjectState(prev => ({ ...prev, inputs: { ...prev.inputs, slabParams: { ...prev.inputs.slabParams, L1: parseFloat(e.target.value) || 2.5 } } }))} 
+                                    onChange={e => setProjectState(prev => ({ ...prev, results: { ...prev.results, isStale: true }, inputs: { ...prev.inputs, slabParams: { ...prev.inputs.slabParams, L1: parseFloat(e.target.value) || 2.5 } } }))} 
                                     className="w-full p-2 border rounded mt-1 bg-white dark:bg-slate-800 font-bold font-mono text-primary text-sm outline-none" 
                                 />
                             </div>
@@ -1387,7 +1387,7 @@ function App() {
                                 <input 
                                     type="number" step="0.5" 
                                     value={rInputs.slabParams.L2} 
-                                    onChange={e => setProjectState(prev => ({ ...prev, inputs: { ...prev.inputs, slabParams: { ...prev.inputs.slabParams, L2: parseFloat(e.target.value) || 6.0 } } }))} 
+                                    onChange={e => setProjectState(prev => ({ ...prev, results: { ...prev.results, isStale: true }, inputs: { ...prev.inputs, slabParams: { ...prev.inputs.slabParams, L2: parseFloat(e.target.value) || 6.0 } } }))} 
                                     className="w-full p-2 border rounded mt-1 bg-white dark:bg-slate-800 font-bold font-mono text-primary text-sm outline-none" 
                                 />
                             </div>
@@ -1396,7 +1396,7 @@ function App() {
                                 <input 
                                     type="number" step="0.5" 
                                     value={rInputs.slabParams.liveLoad} 
-                                    onChange={e => setProjectState(prev => ({ ...prev, inputs: { ...prev.inputs, slabParams: { ...prev.inputs.slabParams, liveLoad: parseFloat(e.target.value) || 3.0 } } }))} 
+                                    onChange={e => setProjectState(prev => ({ ...prev, results: { ...prev.results, isStale: true }, inputs: { ...prev.inputs, slabParams: { ...prev.inputs.slabParams, liveLoad: parseFloat(e.target.value) || 3.0 } } }))} 
                                     className="w-full p-2 border rounded mt-1 bg-white dark:bg-slate-800 font-bold font-mono text-amber-500 text-sm outline-none" 
                                 />
                             </div>
@@ -1404,7 +1404,7 @@ function App() {
                                 <label className="text-xs font-semibold text-slate-500 uppercase">Cấp độ bền bê tông</label>
                                 <select 
                                     value={rInputs.slabParams.concreteGrade} 
-                                    onChange={e => setProjectState(prev => ({ ...prev, inputs: { ...prev.inputs, slabParams: { ...prev.inputs.slabParams, concreteGrade: e.target.value } } }))}
+                                    onChange={e => setProjectState(prev => ({ ...prev, results: { ...prev.results, isStale: true }, inputs: { ...prev.inputs, slabParams: { ...prev.inputs.slabParams, concreteGrade: e.target.value } } }))}
                                     className="w-full p-2 border rounded mt-1 bg-white dark:bg-slate-800 font-semibold text-sm outline-none"
                                 >
                                     <option value="B20">B20 (M250 - Rb = 11,5 MPa)</option>
@@ -1463,12 +1463,18 @@ function App() {
                             </div>
                         )}
                     </div>
-                          {projectState.slabResult && projectState.slabResult.steps && (
+                          
+<div className="mt-8 flex justify-center print:hidden">
+    <button onClick={runCalculations} className="bg-primary hover:bg-blue-700 text-white px-8 py-3 rounded-xl shadow-lg font-bold flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95">
+        <i data-lucide="calculator" className="w-5 h-5"></i> Cập nhật & Tính toán Sàn BTCT
+    </button>
+</div>
+{rResults.slabResult && rResults.slabResult.steps && (
                               <div className="mt-8">
                                   <div>
         <h3 className="font-bold text-lg mb-4 text-primary border-b pb-2">DIỄN GIẢI CHI TIẾT CÔNG THỨC & Ý NGHĨA KÝ HIỆU TOÁN HỌC</h3>
         <div className="space-y-4">
-            {projectState.slabResult.steps.map(step => <CalculationBlock key={step.stepId} step={step} />)}
+            {rResults.slabResult.steps.map(step => <CalculationBlock key={step.stepId} step={step} />)}
         </div>
     </div>
                               </div>
@@ -1496,7 +1502,7 @@ function App() {
                                 <input 
                                     type="number" step="0.5" 
                                     value={rInputs.beamParams.L_beam} 
-                                    onChange={e => setProjectState(prev => ({ ...prev, inputs: { ...prev.inputs, beamParams: { ...prev.inputs.beamParams, L_beam: parseFloat(e.target.value) || 9.0 } } }))} 
+                                    onChange={e => setProjectState(prev => ({ ...prev, results: { ...prev.results, isStale: true }, inputs: { ...prev.inputs, beamParams: { ...prev.inputs.beamParams, L_beam: parseFloat(e.target.value) || 9.0 } } }))} 
                                     className="w-full p-2 border rounded mt-1 bg-white dark:bg-slate-800 font-bold font-mono text-primary text-sm outline-none" 
                                 />
                             </div>
@@ -1505,7 +1511,7 @@ function App() {
                                 <input 
                                     type="number" step="0.5" 
                                     value={rInputs.beamParams.tributaryWidth} 
-                                    onChange={e => setProjectState(prev => ({ ...prev, inputs: { ...prev.inputs, beamParams: { ...prev.inputs.beamParams, tributaryWidth: parseFloat(e.target.value) || 2.5 } } }))} 
+                                    onChange={e => setProjectState(prev => ({ ...prev, results: { ...prev.results, isStale: true }, inputs: { ...prev.inputs, beamParams: { ...prev.inputs.beamParams, tributaryWidth: parseFloat(e.target.value) || 2.5 } } }))} 
                                     className="w-full p-2 border rounded mt-1 bg-white dark:bg-slate-800 font-bold font-mono text-primary text-sm outline-none" 
                                 />
                             </div>
@@ -1513,7 +1519,7 @@ function App() {
                                 <label className="text-xs font-semibold text-slate-500 uppercase">Chọn tiết diện Dầm chữ I</label>
                                 <select 
                                     value={rInputs.beamParams.chosenBeamId} 
-                                    onChange={e => setProjectState(prev => ({ ...prev, inputs: { ...prev.inputs, beamParams: { ...prev.inputs.beamParams, chosenBeamId: e.target.value } } }))}
+                                    onChange={e => setProjectState(prev => ({ ...prev, results: { ...prev.results, isStale: true }, inputs: { ...prev.inputs, beamParams: { ...prev.inputs.beamParams, chosenBeamId: e.target.value } } }))}
                                     className="w-full p-2 border rounded mt-1 bg-white dark:bg-slate-800 font-semibold text-sm outline-none text-primary"
                                 >
                                     {StandardData.TCVN5575_2024.BeamLibrary.map(b => (
@@ -1566,12 +1572,18 @@ function App() {
                             </div>
                         )}
                     </div>
-                          {projectState.beamResult && projectState.beamResult.steps && (
+                          
+<div className="mt-8 flex justify-center print:hidden">
+    <button onClick={runCalculations} className="bg-primary hover:bg-blue-700 text-white px-8 py-3 rounded-xl shadow-lg font-bold flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95">
+        <i data-lucide="calculator" className="w-5 h-5"></i> Cập nhật & Tính toán Dầm Thép
+    </button>
+</div>
+{rResults.beamResult && rResults.beamResult.steps && (
                               <div className="mt-8">
                                   <div>
         <h3 className="font-bold text-lg mb-4 text-primary border-b pb-2">DIỄN GIẢI CHI TIẾT CÔNG THỨC & Ý NGHĨA KÝ HIỆU TOÁN HỌC</h3>
         <div className="space-y-4">
-            {projectState.beamResult.steps.map(step => <CalculationBlock key={step.stepId} step={step} />)}
+            {rResults.beamResult.steps.map(step => <CalculationBlock key={step.stepId} step={step} />)}
         </div>
     </div>
                               </div>

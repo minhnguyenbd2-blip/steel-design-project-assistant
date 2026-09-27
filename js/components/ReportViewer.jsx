@@ -18,12 +18,12 @@ function ReportViewer({ projectState }) {
     const inputs = projectState.inputs;
     
     // Wind steps
-    const windSteps = projectState.windResult ? projectState.windResult.steps : [];
+    const windSteps = projectState.results?.traces?.wind || [];
     
     // Slab & Beam steps
-    const slabSteps = projectState.slabResult ? projectState.slabResult.steps : [];
+    const slabSteps = projectState.results?.slabResult?.steps || [];
     const purlinSteps = projectState.results?.purlinResult?.steps || [];
-    const beamSteps = projectState.beamResult ? projectState.beamResult.steps : [];
+    const beamSteps = projectState.results?.beamResult?.steps || [];
     
     // Column & Connection steps
     const columnSteps = projectState.results?.traces?.column || [];
