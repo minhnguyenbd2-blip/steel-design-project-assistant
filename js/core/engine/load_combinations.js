@@ -102,6 +102,15 @@ function calculateLoadCombinations(gravityResult, windResult, geomInput = null) 
         if (zoneG || zoneH) q_W_roof_w = (zoneG ? zoneG.frameLineLoad_d : zoneH.frameLineLoad_d) || 0;
         if (zoneI) q_W_roof_l = zoneI.frameLineLoad_d || 0;
     }
+
+    // Trường hợp gió mái đẩy (+X_DUONG)
+    let q_W_roof_push = 0;
+    if (windResult && windResult.loadCases && windResult.loadCases['+X_DUONG']) {
+        const surfacesPush = windResult.loadCases['+X_DUONG'].surfaces;
+        const zoneGPush = surfacesPush.find(s => s.zone === 'G');
+        const zoneHPush = surfacesPush.find(s => s.zone === 'H');
+        if (zoneGPush || zoneHPush) q_W_roof_push = (zoneGPush ? zoneGPush.frameLineLoad_d : zoneHPush.frameLineLoad_d) || 0;
+    }
     
     const windLoads = {
         q_push: q_W_push,
@@ -109,10 +118,18 @@ function calculateLoadCombinations(gravityResult, windResult, geomInput = null) 
         q_roof_windward: q_W_roof_w,
         q_roof_leeward: q_W_roof_l
     };
+
+    const windLoadsPush = {
+        q_push: q_W_push,
+        q_pull: q_W_pull,
+        q_roof_windward: q_W_roof_push,
+        q_roof_leeward: q_W_roof_push
+    };
     
     // Giải nội lực các trường hợp tải đơn lẻ
     const frameAnalysis = solveGablePortalFrame(L, H, f, q_DL, q_LL, windLoads);
     const { dlForces, llForces, windForces } = frameAnalysis;
+    const frameAnalysisPush = solveGablePortalFrame(L, H, f, q_DL, q_LL, windLoadsPush);
 
     // ================= 1. TỔ HỢP CƠ BẢN 1 (THCB1): TĨNH TẢI + 1 HOẠT TẢI CHÍNH =================
     // THCB 1A: Tĩnh tải + 1.0 Hoạt tải mái (DL + 1.0 LL)
@@ -218,6 +235,17 @@ function calculateLoadCombinations(gravityResult, windResult, geomInput = null) 
         M_knee: Number((dlForces.M_knee + 0.9 * llForces.M_knee + 0.9 * windForces.leeward.M_knee).toFixed(2))
     };
 
+    // THCB 1B_Gioduong: Tĩnh tải + Gió mái đẩy (+X_DUONG)
+    const forces_TH1B_Push = {
+        id: "CB1B_Push",
+        name: "THCB 1B (Tĩnh tải + Gió mái đẩy +X)",
+        source: "TCVN 2737:2023 Solver",
+        N: Number((dlForces.N + 1.0 * frameAnalysisPush.windForces.leeward.N).toFixed(2)),
+        Mx: Number((dlForces.Mx + 1.0 * frameAnalysisPush.windForces.windward.Mx).toFixed(2)),
+        Vx: Number((dlForces.Vx + 1.0 * frameAnalysisPush.windForces.windward.Vx).toFixed(2)),
+        M_knee: Number((dlForces.M_knee + 1.0 * frameAnalysisPush.windForces.windward.M_knee).toFixed(2))
+    };
+
     steps.push(createCalculationStep(
         "CALC-COMB-003",
         "Tổ hợp cơ bản 2 (THCB 2): Tĩnh tải + 0,9 Hoạt tải mái + 0,9 Tải trọng gió",
@@ -233,10 +261,37 @@ function calculateLoadCombinations(gravityResult, windResult, geomInput = null) 
         `• THCB 2 (Gió phải): N = ${forces_TH2_Right.N} kN, Mx = ${forces_TH2_Right.Mx} kNm, Vx = ${forces_TH2_Right.Vx} kN`
     ));
 
+    // Kiểm tra chuyển vị ngang đỉnh cột theo TCVN 5575:2024 Mục 13 & Bảng E.1
+    const drift_H_mm = H * 1000;
+    const drift_limit = drift_H_mm / 150; // mm
+    const Ic_default = 5.7e8; // mm4 (ước lượng theo tiết diện cột I600)
+    const E_modulus = 2.06e5; // MPa
+    const V_horiz_N = (q_W_push + Math.abs(q_W_pull)) * H * 1000 / 2;
+    const u_sway_mm = (V_horiz_N * Math.pow(H * 1000, 3)) / (3 * E_modulus * Ic_default * (1 + 2 * 1.0));
+    const isDriftPass = u_sway_mm <= drift_limit;
+
+    steps.push(createCalculationStep(
+        "CALC-COMB-004",
+        "Kiểm tra chuyển vị ngang đỉnh cột (Sway Drift) theo TCVN 5575:2024",
+        { standard: 'TCVN 5575:2024', section: 'Mục 13 & Bảng E.1' },
+        "u \\le [u] = \\frac{H}{150}",
+        `u = ${u_sway_mm.toFixed(1)}\\text{ mm} \\le [u] = \\frac{${drift_H_mm}}{150} = ${drift_limit.toFixed(1)}\\text{ mm}`,
+        Number(u_sway_mm.toFixed(1)),
+        "mm",
+        {
+            conditionLaTeX: `u = ${u_sway_mm.toFixed(1)}\\text{ mm} \\le [u] = ${drift_limit.toFixed(1)}\\text{ mm}`,
+            isPass: isDriftPass
+        },
+        "Ý NGHĨA & TIÊU CHUẨN KIỂM TRA ĐIỀU KIỆN SỬ DỤNG (SLS):\n" +
+        "• u: Chuyển vị ngang đàn hồi tại nách khung do tải gió ngang\n" +
+        "• [u] = H / 150: Giới hạn chuyển vị ngang cho nhà công nghiệp 1 tầng bao che nhẹ (TCVN 5575:2024 Bảng E.1)"
+    ));
+
     const frameForces = [
         forces_TH1A,
         forces_TH1B_Left,
         forces_TH1B_Right,
+        forces_TH1B_Push,
         forces_TH1B_Uplift,
         forces_TH2_Left,
         forces_TH2_Right
@@ -269,6 +324,6 @@ function calculateLoadCombinations(gravityResult, windResult, geomInput = null) 
     };
 }
 
-const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+var globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
 globalScope.solveGablePortalFrame = solveGablePortalFrame;
 globalScope.calculateLoadCombinations = calculateLoadCombinations;

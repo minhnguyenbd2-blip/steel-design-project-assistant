@@ -239,5 +239,5 @@ const PurlinCladdingEngine = {
     }
 };
 
-const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+var globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
 globalScope.PurlinCladdingEngine = PurlinCladdingEngine;

@@ -221,21 +221,45 @@ const WindEngine = {
             };
         });
         
-        // 6. Tính toán ma sát Wf khi θ = 90° (Mục F.4.2.3)
+        // 6. Tính toán ma sát Wf theo TCVN 2737:2023 Mục 10.2.1b & Phụ lục F.4.2.3
+        const x0_friction = Math.min(2 * b, 4 * h);
+        const isFrictionApplicable = d > x0_friction;
         let frictionData = null;
-        if (!isTheta0) {
-            const cf = 0.02; // Mái trơn dài
-            const roofSurfaceArea = 2 * (geom.L / (2 * Math.cos(geom.alphaDeg * Math.PI / 180))) * geom.d_total;
+        
+        if (isFrictionApplicable) {
+            const L_fr = d - x0_friction; // Chiều dài vùng phát triển ma sát
+            const cf_roof = 0.02; // Mái tôn lượn sóng/trơn (Mục F.4.2.3)
+            const cf_wall = 0.02; // Tường tôn gờ thấp
+            const roofFrArea = 2 * (geom.L / (2 * Math.cos(geom.alphaDeg * Math.PI / 180))) * L_fr;
+            const wallFrArea = 2 * H_col * L_fr;
+            
             const kz_roof = StandardData.TCVN2737_2023.Wind.HeightCoefficient.getKze(h, terrain).value || 1.0;
             const qp_roof = W3s_10 * kz_roof * Gf;
-            const Wf_k = qp_roof * cf * roofSurfaceArea; // kN
+            
+            const Wf_k_roof = qp_roof * cf_roof * roofFrArea;
+            const Wf_k_wall = qp_roof * cf_wall * wallFrArea;
+            const Wf_k = Wf_k_roof + Wf_k_wall;
             const Wf_d = 2.1 * Wf_k;
+            
             frictionData = {
-                cf,
-                area: Number(roofSurfaceArea.toFixed(1)),
+                isApplicable: true,
+                x0: Number(x0_friction.toFixed(2)),
+                L_fr: Number(L_fr.toFixed(2)),
+                cf_roof,
+                cf_wall,
+                roofFrArea: Number(roofFrArea.toFixed(1)),
+                wallFrArea: Number(wallFrArea.toFixed(1)),
+                totalArea: Number((roofFrArea + wallFrArea).toFixed(1)),
                 Wf_k: Number(Wf_k.toFixed(2)),
                 Wf_d: Number(Wf_d.toFixed(2)),
-                description: "Hệ số ma sát c_f = 0,02 theo TCVN 2737:2023 mục F.4.2.3 cho mái trơn dài khi gió θ = 90°"
+                lineLoad_d: Number((Wf_d / d).toFixed(2)),
+                description: `Ma sát phát sinh từ khoảng cách x₀ = min(2b, 4h) = ${x0_friction.toFixed(1)}m trên chiều dài L_fr = ${L_fr.toFixed(1)}m. Truyền tải vào hệ giằng mái và giằng cột dọc nhà.`
+            };
+        } else {
+            frictionData = {
+                isApplicable: false,
+                x0: Number(x0_friction.toFixed(2)),
+                reason: `d = ${d}m ≤ min(2b, 4h) = ${x0_friction.toFixed(1)}m theo TCVN 2737:2023 Điều 10.2.1b (lực ma sát không đáng kể, đã bao gồm trong c_e)`
             };
         }
         
@@ -267,6 +291,31 @@ const WindEngine = {
 
 function calculateWindLoad(inputs) {
     const steps = [];
+    
+    // Kiểm tra tính hợp lệ của dữ liệu đầu vào (Không âm thầm tính toán với dữ liệu sai)
+    if (typeof validateInputs !== 'undefined' && inputs) {
+        const normalized = {
+            L: inputs.L || inputs.B_span || 24,
+            B: inputs.B || inputs.B_step || 6,
+            length: inputs.length || inputs.length_d || 72,
+            H_column: inputs.H_column || inputs.H || 8,
+            H_roof: inputs.H_roof || inputs.H_rf || 9.25,
+            windZone: inputs.windZone || 'II',
+            terrainCategory: inputs.terrainCategory || 'B',
+            porosityPercent: inputs.porosityPercent !== undefined ? inputs.porosityPercent : 0
+        };
+        const valRes = validateInputs(normalized);
+        if (!valRes.isValid) {
+            return {
+                steps: [],
+                success: false,
+                errors: valRes.errors,
+                fieldErrors: valRes.fieldErrors,
+                loadCases: {},
+                geom: null
+            };
+        }
+    }
     
     // 1. Phân tích hình học
     const geom = WindEngine.analyzeGeometry(
@@ -371,6 +420,6 @@ function calculateWindLoad(inputs) {
     };
 }
 
-const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+var globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
 globalScope.WindEngine = WindEngine;
 globalScope.calculateWindLoad = calculateWindLoad;

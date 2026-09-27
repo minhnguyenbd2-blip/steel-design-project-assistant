@@ -285,11 +285,11 @@ const StandardData = {
                         c_i = (sign === '-') ? -0.5 : 0.8;
                         desc = "Độ hở μ ≥ 30%: c_i1 = -0,5; c_i2 = +0,8 theo Mục F.12.2 TCVN 2737:2023";
                     } else {
-                        // 5% < μ < 30%: Tiêu chuẩn TCVN 2737:2023 không cung cấp công thức nội suy tuyến tính quy định
+                        // 5% < μ < 30%: Tiêu chuẩn TCVN 2737:2023 Mục F.12 không quy định công thức nội suy tuyến tính tùy tiện
+                        // Bắt buộc phân tích sơ đồ lỗ mở hoặc yêu cầu người dùng xác nhận
                         status = "NEEDS VERIFICATION / USER CONFIRMED";
-                        const ratio = (mu - 5) / (30 - 5);
-                        c_i = (sign === '-') ? (-0.2 + ratio * (-0.5 - (-0.2))) : (0.2 + ratio * (0.8 - 0.2));
-                        desc = `Độ hở 5% < μ=${mu}% < 30%: Tiêu chuẩn không quy định công thức nội suy chính thức (NEEDS VERIFICATION / USER CONFIRMED)`;
+                        c_i = (sign === '-') ? -0.2 : 0.2;
+                        desc = `Độ hở 5% < μ=${mu}% < 30%: Tiêu chuẩn không quy định nội suy tuyến tính (Mục F.12) - Yêu cầu xác nhận sơ đồ lỗ mở (NEEDS VERIFICATION / USER CONFIRMED)`;
                     }
                     
                     return {
@@ -467,4 +467,8 @@ const StandardData = {
     }
 };
 
-(typeof window !== 'undefined' ? window : global).StandardData = StandardData;
+const _globalTarget = (typeof window !== 'undefined' ? window : global);
+_globalTarget.StandardData = StandardData;
+if (_globalTarget.TCVN5575_2024) {
+    _globalTarget.TCVN5575_2024.BeamLibrary = StandardData.TCVN5575_2024.BeamLibrary;
+}

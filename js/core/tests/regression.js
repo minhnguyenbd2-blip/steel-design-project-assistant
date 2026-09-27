@@ -22,6 +22,7 @@ const RegressionTests = {
         this.testInternalPressure();
         this.testInternalPressureEnvelopeThesis();
         this.testFriction();
+        this.testFrictionClause1021b();
         this.testGustFactor();
         this.testTributaryLoad();
         
@@ -31,16 +32,23 @@ const RegressionTests = {
         this.testPhiEFullTableD3();
         this.testCFactorClause925();
         this.testSectionCheckAndSlenderness();
+        this.testSectionCheckTensionMember();
+        this.testSectionCheckPureBending();
         this.testSectionProposal();
+        this.testBeamLibraryLookup();
         
         // 3. Khung ngang & Tổ hợp tải trọng
         this.testPortalFrameSolverAndCombinations();
+        this.testPositiveRoofWindCombination();
         
         // 4. Module Cấu kiện phụ & Sàn BTCT
         this.testPurlinCladding();
+        this.testDynamicRoofSuctionPurlin();
         this.testSlabDesign();
         this.testBeamDesign();
+        this.testBeamStressUnits();
         this.testValidationLayer();
+        this.testPorosityValidationBoundaries();
         
         // 5. Kiểm tra an toàn số học (Robustness & Integrity)
         this.testNoNaN();
@@ -226,6 +234,21 @@ const RegressionTests = {
         this.assert("testFriction - cf=0.02 khi theta=90°", res.value, 0.02);
     },
 
+    // 1.14b Điều kiện phát sinh ma sát theo Điều 10.2.1b & Mục F.4.2.3
+    testFrictionClause1021b: function() {
+        const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+        const geom = globalScope.WindEngine.analyzeGeometry(25, 9, 72, 8, 9.25, 'gable');
+        // θ = 0°: d = 25m, x0 = min(2*72, 4*9.25) = 37m -> d <= x0 -> isApplicable = false
+        const branch0 = globalScope.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
+        this.assert("testFrictionClause1021b - θ=0° không phát sinh ma sát (d <= min(2b, 4h))", branch0.friction.isApplicable, false);
+        
+        // θ = 90°: d = 72m, x0 = min(2*25, 4*9.25) = 37m -> d > x0 -> isApplicable = true
+        const branch90 = globalScope.WindEngine.calculateDirectionBranch('+Y', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
+        this.assert("testFrictionClause1021b - θ=90° phát sinh ma sát (d > min(2b, 4h))", branch90.friction.isApplicable, true);
+        this.assert("testFrictionClause1021b - θ=90° L_fr = 35m", branch90.friction.L_fr, 35, 0.1);
+        this.assert("testFrictionClause1021b - θ=90° Lực ma sát Wf_d > 0", branch90.friction.Wf_d > 0, true);
+    },
+
     // 1.15 Hệ số ứng giật Gf (Phụ lục E)
     testGustFactor: function() {
         const res = StandardData.TCVN2737_2023.Wind.GustFactor.getGf(9.25);
@@ -297,6 +320,30 @@ const RegressionTests = {
         this.assert("testSectionCheckAndSlenderness - Có hệ số tận dụng", res.utilization.max > 0, true);
     },
 
+    // 2.5b Kiểm tra cấu kiện chịu kéo uốn (Uplift N < 0) theo TCVN 5575:2024 Mục 9.1
+    testSectionCheckTensionMember: function() {
+        const sec = createSectionRecord('I', 'I 600x300x10x16', 600, 300, 10, 16);
+        const mat = TCVN5575_2024.getMaterialProperties('S235');
+        // N = -45.2 kN (kéo do bốc gió), M = 150 kNm
+        const res = checkSectionCapacity(sec, -45.2, 150, 40, mat, 8.0 * 2.0, 8.0 * 1.0);
+        this.assert("testSectionCheckTensionMember - Nhận diện đúng cấu kiện chịu kéo", res.isTension, true);
+        this.assert("testSectionCheckTensionMember - Giới hạn độ mảnh kéo [lambda]=300 (Bảng 26)", res.slenderness.limit, 300);
+        this.assert("testSectionCheckTensionMember - Đạt kiểm tra chịu lực", res.isAllPass, true);
+        this.assert("testSectionCheckTensionMember - Không xét uốn dọc nén trong mặt phẳng (util=0)", res.utilization.inPlane, 0);
+        this.assert("testSectionCheckTensionMember - Không xét uốn dọc nén ngoài mặt phẳng (util=0)", res.utilization.outPlane, 0);
+    },
+
+    // 2.5c Kiểm tra uốn thuần túy (N = 0)
+    testSectionCheckPureBending: function() {
+        const sec = createSectionRecord('I', 'I 600x300x10x16', 600, 300, 10, 16);
+        const mat = TCVN5575_2024.getMaterialProperties('S235');
+        // N = 0 (uốn thuần túy), M = 200 kNm
+        const res = checkSectionCapacity(sec, 0, 200, 50, mat, 8.0 * 2.0, 8.0 * 1.0);
+        this.assert("testSectionCheckPureBending - isCompression là false", res.isCompression, false);
+        this.assert("testSectionCheckPureBending - isTension là false", res.isTension, false);
+        this.assert("testSectionCheckPureBending - Đạt ứng suất bền uốn", res.utilization.strength > 0, true);
+    },
+
     // 2.6 Đề xuất tiết diện
     testSectionProposal: function() {
         const mat = TCVN5575_2024.getMaterialProperties('S235');
@@ -306,14 +353,23 @@ const RegressionTests = {
         this.assert("testSectionProposal - Đã sắp xếp theo khối lượng", res.candidates[0].massPerMeter <= res.candidates[res.candidates.length - 1].massPerMeter, true);
     },
 
-    // 3. Khung ngang và tổ hợp tải trọng
+    // 2.7 Thư viện tiết diện dầm I (SectionLookup)
+    testBeamLibraryLookup: function() {
+        const lib1 = StandardData.TCVN5575_2024.BeamLibrary;
+        const lib2 = (typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this)).TCVN5575_2024?.BeamLibrary;
+        this.assert("testBeamLibraryLookup - BeamLibrary trong StandardData có ít nhất 8 tiết diện", Array.isArray(lib1) && lib1.length >= 8, true);
+        this.assert("testBeamLibraryLookup - BeamLibrary được ánh xạ đồng bộ sang TCVN5575_2024", Array.isArray(lib2) && lib2.length >= 8, true);
+        this.assert("testBeamLibraryLookup - Có tiết diện I350", lib1.some(b => b.id === 'I350'), true);
+    },
+
+    // 3.1 Khung ngang và tổ hợp tải trọng
     testPortalFrameSolverAndCombinations: function() {
         const windRes = calculateWindLoad(TestCase01.inputs);
         const gravRes = calculateGravityLoads(TestCase01.inputs, TestCase01.roofComponents);
         const combRes = calculateLoadCombinations(gravRes, windRes);
         
         this.assert("testPortalFrameSolver - Thành công", combRes.success, true);
-        this.assert("testPortalFrameSolver - Đủ 6 trường hợp nội lực", combRes.frameForces.length, 6);
+        this.assert("testPortalFrameSolver - Đủ 7 trường hợp nội lực", combRes.frameForces.length, 7);
         
         // Kiểm tra trường hợp mô men chân cột lớn nhất
         const maxM = combRes.governingForces.columnBase.maxM;
@@ -324,12 +380,34 @@ const RegressionTests = {
         this.assert("testPortalFrameSolver - Có lực nhổ chân cột (N < 0)", minN.N < 0, true);
     },
 
+    // 3.2 Trường hợp gió mái đẩy (+X_DUONG)
+    testPositiveRoofWindCombination: function() {
+        const windRes = calculateWindLoad(TestCase01.inputs);
+        const gravRes = calculateGravityLoads(TestCase01.inputs, TestCase01.roofComponents);
+        const combRes = calculateLoadCombinations(gravRes, windRes);
+        const pushCase = combRes.frameForces.find(f => f.id === 'CB1B_Push');
+        this.assert("testPositiveRoofWindCombination - Có trường hợp tổ hợp gió mái đẩy CB1B_Push", !!pushCase, true);
+        this.assert("testPositiveRoofWindCombination - Lực dọc N của gió mái đẩy là nén (N > 0)", pushCase && pushCase.N > 0, true);
+    },
+
     // 4.1 Tôn lợp và xà gồ
     testPurlinCladding: function() {
         const res = PurlinCladdingEngine.designRoofCladding(null, 1.2, 5.71, 0.95, 1.05, -1.372);
         this.assert("testPurlinCladding - Kiểm tra tole đạt", res.isAllPass, true);
         const purlinRes = PurlinCladdingEngine.designPurlin(null, null, 1.2, 9.0, 5.71, 0.95, 1.05, -1.372);
         this.assert("testPurlinCladding - Tĩnh tải xà gồ > 0", purlinRes.actualRoofDeadLoad_kN_m2 > 0, true);
+    },
+
+    // 4.1b Tải trọng hút mái động tác dụng lên xà gồ
+    testDynamicRoofSuctionPurlin: function() {
+        // Khảo sát theo Đồ án tham chiếu Thầy Hùng & Bích Ngọc (B = 6,0m)
+        const res6m = PurlinCladdingEngine.designPurlin(null, null, 1.2, 6.0, 5.71, 0.95, 1.05, -1.372);
+        this.assert("testDynamicRoofSuctionPurlin - Bước cột B=6m đạt khả năng chịu lực", res6m.isAllPass, true);
+        this.assert("testDynamicRoofSuctionPurlin - Moment uốn Mx1 > 0", res6m.combo1.Mx > 0, true);
+        
+        // Khảo sát bước cột lớn B = 9,0m (Đỗ Minh Nguyên): cảnh báo vượt khả năng chịu lực của tiết diện Z250x1.9
+        const res9m = PurlinCladdingEngine.designPurlin(null, null, 1.2, 9.0, 5.71, 0.95, 1.05, -1.372);
+        this.assert("testDynamicRoofSuctionPurlin - Bước cột B=9m cảnh báo vượt ứng suất Z250", res9m.combo1.isStrengthPass, false);
     },
 
     // 4.2 Sàn bê tông cốt thép
@@ -346,6 +424,15 @@ const RegressionTests = {
         this.assert("testBeamDesign - Ứng suất uốn sigma > 0", res.checks.sigma_uon > 0, true);
     },
 
+    // 4.3b Đồng bộ đơn vị ứng suất dầm (MPa)
+    testBeamStressUnits: function() {
+        const res = SlabBeamEngine.calculateBeam({ L_beam: 9.0, tributaryWidth: 2.5, slabLoadQd: 6.5, slabLoadQk: 5.0, steelGrade: 'S235', chosenBeamId: 'I350' });
+        this.assert("testBeamStressUnits - Có trường sigma_uon_MPa", res.checks.sigma_uon_MPa !== undefined, true);
+        this.assert("testBeamStressUnits - Có trường f_allow_MPa", res.checks.f_allow_MPa !== undefined, true);
+        this.assert("testBeamStressUnits - Đổi đúng đơn vị 1 kN/cm2 = 10 MPa", Math.abs(res.checks.sigma_uon_MPa - res.checks.sigma_uon * 10) < 0.05, true);
+        this.assert("testBeamStressUnits - f_allow_MPa = 223.8 MPa", Math.abs(res.checks.f_allow_MPa - 223.8) < 0.5, true);
+    },
+
     // 4.4 Lớp kiểm tra tính hợp lệ dữ liệu
     testValidationLayer: function() {
         const validRes = validateInputs(ProjectState.inputs);
@@ -360,6 +447,16 @@ const RegressionTests = {
         delete noSlopeInput.roofSlope;
         const autoSlopeRes = validateInputs(noSlopeInput);
         this.assert("testValidationLayer - Tự động tính roofSlope khi thiếu", autoSlopeRes.isValid, true);
+    },
+
+    // 4.4b Biên kiểm tra độ hở tường μ (%)
+    testPorosityValidationBoundaries: function() {
+        const resNeg = validateInputs({ ...TestCase01.inputs, porosityPercent: -5 });
+        this.assert("testPorosityValidationBoundaries - Chặn độ hở âm (mu < 0)", resNeg.isValid, false);
+        const resOver = validateInputs({ ...TestCase01.inputs, porosityPercent: 105 });
+        this.assert("testPorosityValidationBoundaries - Chặn độ hở vượt 100% (mu > 100)", resOver.isValid, false);
+        const resValid = validateInputs({ ...TestCase01.inputs, porosityPercent: 15 });
+        this.assert("testPorosityValidationBoundaries - Chấp nhận độ hở hợp lệ (mu = 15%)", resValid.isValid, true);
     },
 
     // 5.1 Không có NaN
@@ -387,5 +484,53 @@ const RegressionTests = {
     }
 };
 
-const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+var globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
 globalScope.RegressionTests = RegressionTests;
+
+// Tự động chạy khi gọi qua Node.js (node js/core/tests/regression.js)
+if (typeof window === 'undefined' && typeof require !== 'undefined') {
+    const fs = require('fs');
+    const path = require('path');
+    
+    if (require.main === module) {
+        const rootDir = path.resolve(__dirname, '../../..');
+        const coreFiles = [
+            'js/core/models.js',
+            'js/core/standards/tcvn2737_2023.js',
+            'js/core/standards/tcvn5575_2024.js',
+            'js/core/standards/standard_data.js',
+            'js/core/standards/registry.js',
+            'js/core/engine/validation.js',
+            'js/core/engine/loads_calc.js',
+            'js/core/engine/wind_load.js',
+            'js/core/engine/load_combinations.js',
+            'js/core/engine/section_check.js',
+            'js/core/engine/section_proposal.js',
+            'js/core/engine/purlin_cladding.js',
+            'js/core/engine/slab_beam.js',
+            'js/core/engine/connections.js'
+        ];
+        
+        for (const file of coreFiles) {
+            const filePath = path.join(rootDir, file);
+            if (fs.existsSync(filePath)) {
+                const code = fs.readFileSync(filePath, 'utf8');
+                const fn = new Function(code);
+                fn.call(globalScope);
+            }
+        }
+        
+        console.log("======================================================");
+        console.log("CHẠY BỘ KIỂM THỬ HỒI QUY TỰ ĐỘNG ĐỘC LẬP TCVN 2737/5575");
+        console.log("======================================================");
+        const results = RegressionTests.runAll();
+        const failures = results.filter(r => !r.pass);
+        if (failures.length > 0) {
+            console.error(`BỘ KIỂM THỬ THẤT BẠI: Có ${failures.length} lỗi.`);
+            process.exit(1);
+        } else {
+            console.log("TOÀN BỘ CÁC BÀI TOÁN KIỂM THỬ ĐÃ ĐẠT 100%!");
+            process.exit(0);
+        }
+    }
+}

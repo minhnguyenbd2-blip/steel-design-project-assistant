@@ -140,18 +140,21 @@ const SlabBeamEngine = {
         const V_max_kN = (qd_line * L_beam) / 2; // kN
         
         // 1. Kiểm tra ứng suất uốn bền
-        // Wx trong thư viện là cm3 -> đổi ra cm3
+        // Wx trong thư viện là cm3 -> M_kNcm / Wx_cm3 ra kN/cm2, nhân 10 ra MPa (N/mm2)
         const Wx_cm3 = beam.Wx;
         const M_kNcm = M_max_kNm * 100;
-        const sigma_uon = M_kNcm / Wx_cm3; // kN/cm2
-        const f_allow_kN_cm2 = (f_steel / 10) * gamma_c; // MPa -> kN/cm2
-        const isBendingPass = sigma_uon <= f_allow_kN_cm2;
+        const sigma_uon_kN_cm2 = M_kNcm / Wx_cm3; // kN/cm2
+        const sigma_uon_MPa = sigma_uon_kN_cm2 * 10; // MPa
+        const f_allow_MPa = f_steel * gamma_c; // MPa
+        const f_allow_kN_cm2 = f_allow_MPa / 10; // kN/cm2
+        const isBendingPass = sigma_uon_MPa <= f_allow_MPa;
         
-        // 2. Kiểm tra ứng suất cắt
+        // 2. Kiểm tra ứng suất tiếp cắt
         // tau = V / (hw * tw)
         const hw_mm = beam.h - 2 * beam.tf;
         const tau_MPa = (V_max_kN * 1000) / (hw_mm * beam.tw); // N/mm2 (MPa)
-        const isShearPass = tau_MPa <= (fv_steel * gamma_c);
+        const fv_allow_MPa = fv_steel * gamma_c;
+        const isShearPass = tau_MPa <= fv_allow_MPa;
         
         // 3. Kiểm tra độ võng (dùng tải tiêu chuẩn)
         // f = 5/384 * qk * L^4 / (E * Ix)
@@ -179,11 +182,14 @@ const SlabBeamEngine = {
             M_max_kNm: Number(M_max_kNm.toFixed(2)),
             V_max_kN: Number(V_max_kN.toFixed(2)),
             checks: {
-                sigma_uon: Number(sigma_uon.toFixed(2)),
+                sigma_uon: Number(sigma_uon_kN_cm2.toFixed(2)),
+                sigma_uon_MPa: Number(sigma_uon_MPa.toFixed(2)),
                 f_allow: Number(f_allow_kN_cm2.toFixed(2)),
+                f_allow_MPa: Number(f_allow_MPa.toFixed(2)),
                 isBendingPass,
                 tau_MPa: Number(tau_MPa.toFixed(2)),
-                fv_allow: Number((fv_steel * gamma_c).toFixed(2)),
+                fv_allow: Number(fv_allow_MPa.toFixed(2)),
+                fv_allow_MPa: Number(fv_allow_MPa.toFixed(2)),
                 isShearPass,
                 defl_cm: Number(defl_cm.toFixed(2)),
                 defl_ratio: `1/${Math.round(1 / defl_ratio)}`,
@@ -197,5 +203,5 @@ const SlabBeamEngine = {
     }
 };
 
-const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+var globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
 globalScope.SlabBeamEngine = SlabBeamEngine;

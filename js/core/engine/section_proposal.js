@@ -53,5 +53,5 @@ function proposeSectionsForDesign(forces, materialProps, L0x_m, L0y_m, options =
     };
 }
 
-const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+var globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
 globalScope.proposeSectionsForDesign = proposeSectionsForDesign;

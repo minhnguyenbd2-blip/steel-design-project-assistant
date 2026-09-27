@@ -35,11 +35,11 @@ const WindSvg = (props) => {
     const H_rf = geom.H_roof || geom.H_rf || 0;
     const alpha = geom.alphaDeg || geom.alpha || 0;
     
-    // Dimensions
-    const b = isTheta0 ? B : L;
-    const d = isTheta0 ? L : B;
-    const h = H_col;
-    const e = Math.min(b, 2 * h);
+    // Kích thước chuẩn xác theo TCVN 2737:2023 Phụ lục F.4 & analyzeGeometry
+    const h = geom.h || geom.H_rf || geom.H_roof || H_rf || H_col;
+    const b = isTheta0 ? (geom.theta0?.b || geom.d_total || geom.length || 72) : (geom.theta90?.b || geom.L || 25);
+    const d = isTheta0 ? (geom.theta0?.d || geom.L || 25) : (geom.theta90?.d || geom.d_total || geom.length || 72);
+    const e = isTheta0 ? (geom.theta0?.e || Math.min(b, 2 * h)) : (geom.theta90?.e || Math.min(b, 2 * h));
 
     const getZoneData = (surface, zoneName) => {
         if (currentCase.surfaces) {

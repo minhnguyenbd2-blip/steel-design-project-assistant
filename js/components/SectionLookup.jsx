@@ -20,7 +20,7 @@ function SectionLookup() {
   // Data Sources
   const purlinData = window.StandardData?.TCVN2737_2023?.PurlinAndCladding?.purlinProfiles || [];
   const sheetData = window.StandardData?.TCVN2737_2023?.PurlinAndCladding?.sheetProfiles || [];
-  const ibeamData = window.TCVN5575_2024?.BeamLibrary || [];
+  const ibeamData = window.StandardData?.TCVN5575_2024?.BeamLibrary || window.TCVN5575_2024?.BeamLibrary || [];
 
   // Filter and Sort Data
   const activeData = useMemo(() => {

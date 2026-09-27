@@ -265,13 +265,23 @@ function App() {
         const W0_val = StandardData.TCVN2737_2023.Wind.BasicWind.getW0(projectState.inputs.windZone).value;
         const kz_roof = StandardData.TCVN2737_2023.Wind.HeightCoefficient.getKze(projectState.inputs.H_roof, projectState.inputs.terrainCategory).value;
 
+        // Trích xuất hệ số khí động hút mái bất lợi nhất từ kết quả gió thực tế (thay thế hardcode)
+        let calculatedRoofSuction = -1.372;
+        if (windResult && windResult.loadCases && windResult.loadCases['+X']) {
+            const roofZones = windResult.loadCases['+X'].surfaces.filter(s => s.surface === 'Mái');
+            const minCnet = Math.min(...roofZones.map(r => r.c_net));
+            if (isFinite(minCnet) && minCnet < 0) {
+                calculatedRoofSuction = minCnet;
+            }
+        }
+
         const claddingResult = PurlinCladdingEngine.designRoofCladding(
             claddingProfile,
             projectState.inputs.purlinSpacing,
             roofSlopeCalculations.alphaDeg,
             W0_val,
             kz_roof,
-            -1.372
+            calculatedRoofSuction
         );
 
         const purlinResult = PurlinCladdingEngine.designPurlin(
@@ -282,7 +292,7 @@ function App() {
             roofSlopeCalculations.alphaDeg,
             W0_val,
             kz_roof,
-            -1.372
+            calculatedRoofSuction
         );
 
         // Cập nhật lại danh mục tĩnh tải mái chính xác từ tôn và xà gồ đã chọn
@@ -392,7 +402,10 @@ function App() {
 
         for (let force of projectState.forces) {
             const check = checkSectionCapacity(section, force.N, force.Mx, force.Vx, mat, L0x, L0y);
-            if (!governingCheck || !check.isAllPass) {
+            const currentStressUtil = Math.max(check.utilization.strength, check.utilization.shear, check.utilization.inPlane, check.utilization.outPlane);
+            const govStressUtil = governingCheck ? Math.max(governingCheck.utilization.strength, governingCheck.utilization.shear, governingCheck.utilization.inPlane, governingCheck.utilization.outPlane) : -1;
+            
+            if (!governingCheck || (!check.isAllPass && governingCheck.isAllPass) || (check.isAllPass === governingCheck.isAllPass && currentStressUtil > govStressUtil)) {
                 governingCheck = check;
                 governingCase = force;
             }
@@ -1360,8 +1373,8 @@ function App() {
                                     </div>
                                     <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border dark:border-slate-700">
                                         <div className="text-xs text-slate-500 font-semibold">Kiểm tra Ứng suất Bền:</div>
-                                        <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-1 font-mono">σ = {rResults.beamResult.checks.sigma_uon} MPa</div>
-                                        <div className="text-xs text-slate-500 mt-1">f·γc = {rResults.beamResult.checks.f_allow * 10} MPa ({rResults.beamResult.checks.isBendingPass ? 'ĐẠT BỀN' : 'VƯỢT'})</div>
+                                        <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-1 font-mono">σ = {rResults.beamResult.checks.sigma_uon_MPa || (rResults.beamResult.checks.sigma_uon * 10).toFixed(2)} MPa</div>
+                                        <div className="text-xs text-slate-500 mt-1">f·γc = {rResults.beamResult.checks.f_allow_MPa || (rResults.beamResult.checks.f_allow * 10).toFixed(2)} MPa ({rResults.beamResult.checks.isBendingPass ? 'ĐẠT BỀN' : 'VƯỢT'})</div>
                                     </div>
                                     <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border dark:border-slate-700">
                                         <div className="text-xs text-slate-500 font-semibold">Kiểm tra Độ võng f/L:</div>
@@ -1416,7 +1429,10 @@ function App() {
                                             <th className="p-3 border-b dark:border-slate-700">Tên Tiết diện</th>
                                             <th className="p-3 border-b dark:border-slate-700">Kích thước (h × b × tw × tf)</th>
                                             <th className="p-3 border-b dark:border-slate-700">Khối lượng (kg/m)</th>
-                                            <th className="p-3 border-b dark:border-slate-700 text-center">Trạng thái Kiểm tra</th>
+                                            <th className="p-3 border-b dark:border-slate-700">Diện tích A (cm²)</th>
+                                            <th className="p-3 border-b dark:border-slate-700 text-center">Hệ số tận dụng max</th>
+                                            <th className="p-3 border-b dark:border-slate-700">Kiểm tra chi phối</th>
+                                            <th className="p-3 border-b dark:border-slate-700 text-center">Trạng thái</th>
                                             <th className="p-3 border-b dark:border-slate-700 text-center">Lựa chọn</th>
                                         </tr>
                                     </thead>
@@ -1426,6 +1442,17 @@ function App() {
                                                 <td className="p-3 font-mono font-bold text-primary">{cand.section.name}</td>
                                                 <td className="p-3 font-mono">{cand.section.h} × {cand.section.b} × {cand.section.tw} × {cand.section.tf} mm</td>
                                                 <td className="p-3 font-mono">{cand.section.massPerMeter.toFixed(1)}</td>
+                                                <td className="p-3 font-mono">{(cand.section.A / 100).toFixed(1)} cm²</td>
+                                                <td className="p-3 text-center font-mono font-bold">
+                                                    <span className={`px-2 py-0.5 rounded text-xs ${(cand.utilization?.max || 0) > 0.85 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'}`}>
+                                                        {((cand.utilization?.max || 0) * 100).toFixed(1)}%
+                                                    </span>
+                                                </td>
+                                                <td className="p-3 text-xs text-slate-500">
+                                                    {(cand.utilization?.outPlane >= cand.utilization?.inPlane && cand.utilization?.outPlane >= cand.utilization?.strength) ? 'Ổn định ngoài MP (c·φy)' :
+                                                    (cand.utilization?.inPlane >= cand.utilization?.strength ? 'Ổn định trong MP (φe)' :
+                                                    (cand.utilization?.slenderness >= cand.utilization?.strength ? 'Độ mảnh ([λ]=180)' : 'Bền nén uốn (σ)'))}
+                                                </td>
                                                 <td className="p-3 text-center">
                                                     <span className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 px-2.5 py-1 rounded text-xs font-bold">
                                                         {cand.status}

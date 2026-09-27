@@ -10,7 +10,10 @@ const FieldNames = {
     roofSlope: 'Độ dốc mái i (%)',
     windZone: 'Vùng gió (TCVN 2737:2023)',
     terrainCategory: 'Dạng địa hình (A, B, C)',
-    steelGrade: 'Mác thép kết cấu (S235, S275, S355)'
+    steelGrade: 'Mác thép kết cấu (S235, S275, S355)',
+    porosityPercent: 'Độ hở tường chắn bao che μ (%)',
+    purlinSpacing: 'Khoảng cách xà gồ a (m)',
+    L_col_actual: 'Chiều dài thực tế cột L_col (m)'
 };
 
 const ValidationRules = {
@@ -22,7 +25,10 @@ const ValidationRules = {
     roofSlope: { required: false, min: 0, max: 100, type: 'number', message: 'Độ dốc mái (i) phải từ 0% đến 100%.' },
     windZone: { required: true, allowed: ['I', 'II', 'III', 'IV', 'V'], type: 'string', message: 'Vùng gió không hợp lệ (chỉ chấp nhận I, II, III, IV, V).' },
     terrainCategory: { required: true, allowed: ['A', 'B', 'C'], type: 'string', message: 'Dạng địa hình không hợp lệ (chỉ chấp nhận A, B, C theo Bảng 8 TCVN 2737:2023).' },
-    steelGrade: { required: true, allowed: ['S235', 'S275', 'S355'], type: 'string', message: 'Mác thép không hợp lệ (chỉ hỗ trợ S235, S275, S355).' }
+    steelGrade: { required: false, allowed: ['S235', 'S275', 'S355'], type: 'string', message: 'Mác thép không hợp lệ (chỉ hỗ trợ S235, S275, S355).' },
+    porosityPercent: { required: false, min: 0, max: 100, type: 'number', message: 'Độ hở tường chắn bao che (μ) phải từ 0% đến 100%.' },
+    purlinSpacing: { required: false, min: 0.5, max: 5.0, type: 'number', message: 'Khoảng cách xà gồ (a) phải từ 0,5m đến 5,0m.' },
+    L_col_actual: { required: false, min: 1, max: 50, type: 'number', message: 'Chiều dài thực tế cột phải từ 1m đến 50m.' }
 };
 
 function validateInputs(inputs) {
