@@ -47,7 +47,7 @@ const PurlinCladdingEngine = {
         const M1_kNm = Math.abs(Py1_design) * Math.pow(a, 2) / 8; // kNm
         const M1_kNcm = M1_kNm * 100;
         
-        const sigma1 = M1_kNcm / profile.Wx; // kN/cm2
+        const sigma1 = M1_kNcm / purlin.Wx; // kN/cm2
         const isStrength1Pass = sigma1 <= f_allow;
         
         // Độ võng Tổ hợp 1 (dùng tải tiêu chuẩn)
@@ -55,7 +55,7 @@ const PurlinCladdingEngine = {
         // f = 5/384 * P * a^4 / (E * J) -> chuyển đơn vị sang cm
         const P_ser1_N_per_cm = Math.abs(Py1_service) * 10; // kN/m = 10 N/cm
         const a_cm = a * 100;
-        const defl1_cm = (5 / 384) * (Math.abs(Py1_service) * Math.pow(a_cm, 4)) / (E_steel * profile.Ix * 100);
+        const defl1_cm = (5 / 384) * (Math.abs(Py1_service) * Math.pow(a_cm, 4)) / (E_steel * purlin.Ix * 100);
         const defl1_ratio = defl1_cm / a_cm;
         const defl1_limit = 1 / 150;
         const isDefl1Pass = defl1_ratio <= defl1_limit;
@@ -66,13 +66,13 @@ const PurlinCladdingEngine = {
         const Mx2_kNm = Math.abs(Py2_design) * Math.pow(a, 2) / 8;
         const My2_kNm = Math.abs(Px2_design) * Math.pow(a, 2) / 8;
         
-        const sigma2 = (Mx2_kNm * 100) / profile.Wx + (My2_kNm * 100) / (profile.Wx * 1.2);
+        const sigma2 = (Mx2_kNm * 100) / purlin.Wx + (My2_kNm * 100) / (purlin.Wx * 1.2);
         const isStrength2Pass = sigma2 <= f_allow;
         
         const Py2_service = (gk_y + qk_live_y) * 1.0;
         const Px2_service = (gk_x + qk_live_x) * 1.0;
-        const defl2_y_cm = (5 / 384) * (Math.abs(Py2_service) * Math.pow(a_cm, 4)) / (E_steel * profile.Ix * 100);
-        const defl2_x_cm = (5 / 384) * (Math.abs(Px2_service) * Math.pow(a_cm, 4)) / (E_steel * profile.Ix * 100);
+        const defl2_y_cm = (5 / 384) * (Math.abs(Py2_service) * Math.pow(a_cm, 4)) / (E_steel * purlin.Ix * 100);
+        const defl2_x_cm = (5 / 384) * (Math.abs(Px2_service) * Math.pow(a_cm, 4)) / (E_steel * purlin.Ix * 100);
         const defl2_cm = Math.sqrt(Math.pow(defl2_y_cm, 2) + Math.pow(defl2_x_cm, 2));
         const defl2_ratio = defl2_cm / a_cm;
         const isDefl2Pass = defl2_ratio <= defl1_limit;
@@ -208,11 +208,11 @@ const PurlinCladdingEngine = {
         const steps = [];
         steps.push(window.createCalculationStep(
             "CALC-PURLIN-001",
-            "Đặc trưng Hình học Xà gồ (" + profile.name + ")",
+            "Đặc trưng Hình học Xà gồ (" + purlin.name + ")",
             { standard: 'Catalogue Xà gồ', section: '' },
-            "W_x = " + profile.Wx + "\\text{ cm}^3; \\quad W_y = " + profile.Wy + "\\text{ cm}^3",
-            "I_x = " + profile.Ix + "\\text{ cm}^4; \\quad I_y = " + profile.Iy + "\\text{ cm}^4",
-            profile.Wx,
+            "W_x = " + purlin.Wx + "\\text{ cm}^3; \\quad W_y = " + purlin.Wy + "\\text{ cm}^3",
+            "I_x = " + (purlin.Ix).toFixed(2) + "\\text{ cm}^4; \\quad I_y = " + (purlin.Iy).toFixed(2) + "\\text{ cm}^4",
+            purlin.Wx,
             "cm3",
             { isPass: true }
         ));
@@ -221,8 +221,8 @@ const PurlinCladdingEngine = {
             "Tải trọng tác dụng (Tĩnh tải + Hoạt tải mái)",
             { standard: 'TCVN 2737:2023', section: 'Mục 8' },
             "q_{total} = q_{TL} + q_{HL}",
-            "q_{y} = " + q_max_y.toFixed(2) + "\\text{ kN/m}; \\quad q_{x} = " + q_max_x.toFixed(2) + "\\text{ kN/m}",
-            q_max_y.toFixed(2),
+            "q_{y} = " + Py2.toFixed(2) + "\\text{ kN/m}; \\quad q_{x} = " + Px2.toFixed(2) + "\\text{ kN/m}",
+            Py2.toFixed(2),
             "kN/m",
             { isPass: true }
         ));
@@ -231,21 +231,22 @@ const PurlinCladdingEngine = {
             "Kiểm tra Bền chịu uốn xiên (M_x, M_y)",
             { standard: 'TCVN 5575:2024', section: 'Mục 7.2.1.1' },
             "\\sigma = \\frac{M_x}{c_x W_x} + \\frac{M_y}{c_y W_y} \\le f_y \\gamma_c",
-            "\\sigma = \\frac{" + Mx_combo1.toFixed(2) + " \\times 10^3}{" + profile.Wx + "} + \\frac{" + My_combo1.toFixed(2) + " \\times 10^3}{" + profile.Wy + "} = " + sigma_combo1.toFixed(2) + "\\text{ MPa} \\le " + fy + "\\text{ MPa}",
-            sigma_combo1.toFixed(2),
-            "MPa",
-            { isPass: isStr1Pass }
+            "\\sigma = \\frac{" + Mx2.toFixed(2) + " \\times 10^2}{" + Wx_cm3.toFixed(2) + "} + \\frac{" + My2.toFixed(2) + " \\times 10^2}{" + Wy_cm3.toFixed(2) + "} = " + sigma2.toFixed(2) + "\\text{ kN/cm}^2 \\le " + f_allow.toFixed(2) + "\\text{ kN/cm}^2",
+            sigma2.toFixed(2),
+            "kN/cm2",
+            { isPass: isStrength2Pass }
         ));
         steps.push(window.createCalculationStep(
             "CALC-PURLIN-004",
             "Kiểm tra Độ võng Xà gồ (Thành phần y)",
             { standard: 'TCVN 5575:2024', section: 'Mục 7.3' },
             "\\Delta_y = \\frac{5}{384} \\frac{q_y^c L^4}{E I_x} \\le [\\Delta] = \\frac{L}{200}",
-            "\\Delta_y = " + defl2_y.toFixed(2) + "\\text{ mm} \\le " + defl_limit.toFixed(2) + "\\text{ mm}",
-            defl2_y.toFixed(2),
+            "\\Delta_y = " + (defl2_y_cm * 10).toFixed(2) + "\\text{ mm} \\le " + (B * 1000 / 200).toFixed(2) + "\\text{ mm}",
+            (defl2_y_cm * 10).toFixed(2),
             "mm",
             { isPass: isDefl2Pass }
         ));
+        
         return { steps, 
             purlin,
             tole,
