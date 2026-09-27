@@ -48,7 +48,7 @@ const LoadCombinationManager = ({ workspaceState }) => {
                                             </span>
                                         </td>
                                         <td className="p-3 font-mono text-xs text-slate-600 dark:text-slate-300">
-                                            {window.TCVN2737_2023 && !combo.legacyForce ? window.TCVN2737_2023.formatCombinationFormula(combo, workspaceState.loadCases) : (combo.legacyForce ? combo.legacyForce.name : '--')}
+                                            {window.CodeManager_TCVN2737 && !combo.legacyForce ? window.CodeManager_TCVN2737.formatCombinationFormula(combo, workspaceState.loadCases) : (combo.legacyForce ? combo.legacyForce.name : '--')}
                                         </td>
                                         <td className="p-3 text-center">
                                             <span className="text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded text-xs font-bold">

@@ -1,7 +1,7 @@
 ﻿// js/core/codes/tcvn_2737_2023.js
 // Tiêu chuẩn Tải trọng và Tác động (TCVN 2737:2023)
 
-window.TCVN2737_2023 = {
+window.CodeManager_TCVN2737 = {
     codeName: 'TCVN 2737:2023',
     description: 'Tải trọng và tác động - Tiêu chuẩn thiết kế',
     

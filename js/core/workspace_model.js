@@ -125,8 +125,8 @@ window.WorkspaceModel = {
         p.loadCases.push({ id: 'lc-wY', name: 'Gió Y (Wind Y)', category: 'WIND', factor: 1.2 });
 
         // Auto-generate TCVN 2737 Combinations (Phase 4)
-        if (window.TCVN2737_2023) {
-            const autoCombos = window.TCVN2737_2023.generateCombinations(p.loadCases);
+        if (window.CodeManager_TCVN2737) {
+            const autoCombos = window.CodeManager_TCVN2737.generateCombinations(p.loadCases);
             p.loadCombinations.push(...autoCombos);
         }
 

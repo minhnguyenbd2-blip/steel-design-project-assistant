@@ -1,7 +1,7 @@
 ﻿// js/core/codes/tcvn_5575_2024.js
 // Tiêu chuẩn Thiết kế Kết cấu thép (TCVN 5575:2024)
 
-window.TCVN5575_2024 = {
+window.CodeManager_TCVN5575 = {
     codeName: 'TCVN 5575:2024',
     description: 'Kết cấu thép - Tiêu chuẩn thiết kế',
 
