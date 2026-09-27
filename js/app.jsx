@@ -1796,7 +1796,7 @@ function App() {
             {activeModule === 'dashboard' ? (
                 workspaceState ? <Dashboard workspaceState={workspaceState} /> : <div>Initializing Workspace...</div>
             ) : activeModule === 'model' ? (
-                workspaceState ? <Workspace3DViewer workspaceState={workspaceState} /> : <div>Loading 3D Viewer...</div>
+                workspaceState ? <ModelWorkspace workspaceState={workspaceState} /> : <div>Loading 3D Model...</div>
             ) : activeModule === 'combinations' ? (
                 workspaceState ? <LoadCombinationManager workspaceState={workspaceState} /> : <div>Loading Combinations...</div>
             ) : activeModule === 'report' ? (

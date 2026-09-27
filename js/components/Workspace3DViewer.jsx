@@ -3,6 +3,7 @@
 function Workspace3DViewer({ workspaceState }) {
     const mountRef = useRef(null);
     const [selectedMember, setSelectedMember] = useState(null);
+    const [viewMode, setViewMode] = useState('UTILIZATION'); // MODEL, UTILIZATION
 
     useEffect(() => {
         if (!mountRef.current || !window.THREE) return;
@@ -65,7 +66,7 @@ function Workspace3DViewer({ workspaceState }) {
                     
                     let colorHex = m.type === 'column' ? 0x64748b : 0x94a3b8;
                     const dr = workspaceState.designResults ? workspaceState.designResults[m.id] : null;
-                    if (dr && dr.analysisStatus === 'ANALYZED') {
+                    if (viewMode === 'UTILIZATION' && dr && dr.analysisStatus === 'ANALYZED') {
                         if (dr.utilization <= 0.5) colorHex = 0x10b981; // Green
                         else if (dr.utilization <= 0.8) colorHex = 0xf59e0b; // Yellow
                         else if (dr.utilization <= 1.0) colorHex = 0xf97316; // Orange
@@ -102,9 +103,16 @@ function Workspace3DViewer({ workspaceState }) {
             
             // Reset colors
             memberMeshes.forEach(mesh => {
-                let cHex = mesh.userData.member.type === 'column' ? 0x64748b : 0x94a3b8;
+                let cHex = 0x94a3b8;
+                if (mesh.userData.member.role === 'PRIMARY') {
+                    cHex = mesh.userData.member.type === 'column' ? 0x64748b : 0x475569;
+                } else if (mesh.userData.member.role === 'SECONDARY') {
+                    cHex = 0x94a3b8;
+                } else if (mesh.userData.member.role === 'BRACING') {
+                    cHex = 0xf87171;
+                }
                 const dr = workspaceState.designResults ? workspaceState.designResults[mesh.userData.member.id] : null;
-                if (dr && dr.analysisStatus === 'ANALYZED') {
+                if (viewMode === 'UTILIZATION' && dr && dr.analysisStatus === 'ANALYZED') {
                     if (dr.utilization <= 0.5) cHex = 0x10b981;
                     else if (dr.utilization <= 0.8) cHex = 0xf59e0b;
                     else if (dr.utilization <= 1.0) cHex = 0xf97316;
@@ -151,12 +159,16 @@ function Workspace3DViewer({ workspaceState }) {
             renderer.dispose();
             window.removeEventListener('resize', onWindowResize);
         };
-    }, [workspaceState]);
+    }, [workspaceState, viewMode]);
 
     return (
-        <div className="flex border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900 relative shadow-sm" style={{ height: 'calc(100vh - 10rem)', minHeight: '600px' }}>
+        <div className="flex rounded-t-xl overflow-hidden bg-white dark:bg-slate-900 relative" style={{ height: 'calc(100vh - 10rem)', minHeight: '600px' }}>
             <div className="flex-1 relative" ref={mountRef}>
                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur dark:bg-slate-800/90 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm z-10">
+                    <div className="flex gap-2 mb-2">
+                        <button onClick={() => setViewMode('MODEL')} className={"px-2 py-1 text-xs font-bold rounded " + (viewMode === 'MODEL' ? "bg-primary text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300")}>Model</button>
+                        <button onClick={() => setViewMode('UTILIZATION')} className={"px-2 py-1 text-xs font-bold rounded " + (viewMode === 'UTILIZATION' ? "bg-primary text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300")}>Utilization</button>
+                    </div>
                     <h3 className="font-bold text-sm mb-1">{window.t('model')} 3D</h3>
                     <p className="text-xs text-slate-500">Kéo chuột để xoay. Click vào phần tử để xem thông tin.</p>
                 </div>
@@ -179,6 +191,10 @@ function Workspace3DViewer({ workspaceState }) {
                             <div>
                                 <label className="text-xs text-slate-500 block">Loại (Type)</label>
                                 <div className="font-medium capitalize">{selectedMember.type}</div>
+                            </div>
+                            <div>
+                                <label className="text-xs text-slate-500 block">Vai trò (Role)</label>
+                                <div className="font-medium font-bold text-primary">{selectedMember.role || 'N/A'}</div>
                             </div>
                             <div>
                                 <label className="text-xs text-slate-500 block">Chiều dài (Length)</label>
