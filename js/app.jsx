@@ -519,15 +519,15 @@ function App() {
             </header>
 
             {/* Workflow Navigation */}
-            <nav className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 print:hidden shadow-sm sticky top-[69px] z-10">
+            <nav className={`bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 print:hidden shadow-sm ${activeModule === 'design' ? '' : 'hidden'}`}>
                 <div className="max-w-7xl mx-auto flex overflow-x-auto text-sm">
-                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'input' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('input')}>
+                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'input' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('input')} style={{ display: 'none' }}>
                         <i data-lucide="sliders" className="w-4 h-4"></i> 1. Cài đặt Dự án & Hình học 2D
                     </button>
-                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'loads' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('loads')}>
+                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'loads' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('loads')} style={{ display: 'none' }}>
                         <i data-lucide="wind" className="w-4 h-4"></i> 2. Tải trọng & Xà gồ mái
                     </button>
-                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'forces' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('forces')}>
+                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'forces' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('forces')} style={{ display: 'none' }}>
                         <i data-lucide="table" className="w-4 h-4"></i> 3. Nội lực Thiết kế ({projectState.forces.length} THCB)
                     </button>
                     <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'slab' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('slab')}>
@@ -542,7 +542,7 @@ function App() {
                     <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'lookup' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('lookup')}>
                         <i data-lucide="book-open" className="w-4 h-4"></i> 7. Bảng tra Tiết diện
                     </button>
-                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'report' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('report')}>
+                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'report' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('report')} style={{ display: 'none' }}>
                         <i data-lucide="printer" className="w-4 h-4 text-emerald-600"></i> 8. Xuất Thuyết Minh
                     </button>
 
