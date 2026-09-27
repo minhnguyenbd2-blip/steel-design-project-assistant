@@ -109,6 +109,7 @@ function validateInputs(inputs) {
     };
 }
 
-window.validateInputs = validateInputs;
-window.ValidationRules = ValidationRules;
-window.FieldNames = FieldNames;
+const _validScope = typeof window !== 'undefined' ? window : global;
+_validScope.validateInputs = validateInputs;
+_validScope.ValidationRules = ValidationRules;
+_validScope.FieldNames = FieldNames;

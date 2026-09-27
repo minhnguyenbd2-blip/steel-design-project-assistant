@@ -1,79 +1,259 @@
-// Load Combination Engine (TCVN 2737:2023, Điều 4.3)
+// Load Combination & Structural Frame Solver Engine (TCVN 2737:2023 Điều 4.3 & TCVN 5575:2024)
 // Phân chia rõ ràng: Tổ hợp cơ bản 1 (1 hoạt tải) và Tổ hợp cơ bản 2 (từ 2 hoạt tải trở lên)
+// Tích hợp giải nội lực khung ngang (Portal Frame Solver) chân ngàm/khớp theo phương pháp Kleinlogel
 
-function calculateLoadCombinations(gravityResult, windResult) {
+function solveGablePortalFrame(L, H, f, q_DL, q_LL, windLoads) {
+    // L: Nhịp khung (m), H: Chiều cao cột (m), f: Độ dốc mái (m)
+    const k = 1.0; // Tỷ số độ cứng tương đối giữa dầm xà và cột k = (Ix/s) / (Ic/H)
+    
+    // 1. Tác dụng tải trọng đứng phân bố đều trên mái (Tĩnh tải DL hoặc Hoạt tải LL)
+    function getVerticalForces(q) {
+        const V_base = (q * L) / 2;
+        // Lực xô ngang chân cột:
+        const thrust = (q * Math.pow(L, 2)) / (16 * H) * (1 / (1 + 0.5 * k));
+        // Mô men uốn tại chân cột:
+        const M_base = - (q * Math.pow(L, 2)) / 32 * (1 / (1 + k));
+        // Mô men tại nách khung (đỉnh cột):
+        const M_knee = M_base + thrust * H;
+        // Mô men tại đỉnh mái:
+        const M_apex = (q * Math.pow(L, 2)) / 8 - thrust * (H + f) + M_base;
+        
+        return {
+            N: Number(V_base.toFixed(2)),
+            Mx: Number(Math.abs(M_base).toFixed(2)),
+            Vx: Number(thrust.toFixed(2)),
+            M_knee: Number(Math.abs(M_knee).toFixed(2)),
+            M_apex: Number(Math.abs(M_apex).toFixed(2))
+        };
+    }
+    
+    // 2. Tác dụng tải trọng gió ngang trên khung (q_push đón gió, q_pull hút gió, q_r1 và q_r2 trên mái)
+    function getWindForces(q_push, q_pull, q_r1, q_r2) {
+        const V_tot = (q_push + Math.abs(q_pull)) * H / 2;
+        const M_base_windward = (q_push * Math.pow(H, 2)) / 8 + V_tot * (H / 4);
+        const M_base_leeward = (Math.abs(q_pull) * Math.pow(H, 2)) / 8 - V_tot * (H / 4);
+        
+        const overturning_M = (q_push + Math.abs(q_pull)) * H * (H / 2);
+        const N_overturning = overturning_M / L;
+        // Tải trọng bốc mái (giá trị âm) làm giảm lực dọc nén cột:
+        const N_suction = (q_r1 + q_r2) * (L / 4);
+        
+        const N_windward = Number((N_suction - N_overturning).toFixed(2));
+        const N_leeward = Number((N_suction + N_overturning).toFixed(2));
+        
+        const M_knee_windward = (q_push * Math.pow(H, 2)) / 2 - Math.abs(M_base_windward);
+        const M_knee_leeward = (Math.abs(q_pull) * Math.pow(H, 2)) / 2 - Math.abs(M_base_leeward);
+        
+        return {
+            windward: {
+                N: N_windward,
+                Mx: Number(M_base_windward.toFixed(2)),
+                Vx: Number((q_push * H / 2).toFixed(2)),
+                M_knee: Number(Math.abs(M_knee_windward).toFixed(2))
+            },
+            leeward: {
+                N: N_leeward,
+                Mx: Number(M_base_leeward.toFixed(2)),
+                Vx: Number((Math.abs(q_pull) * H / 2).toFixed(2)),
+                M_knee: Number(Math.abs(M_knee_leeward).toFixed(2))
+            }
+        };
+    }
+    
+    const dlForces = getVerticalForces(q_DL);
+    const llForces = getVerticalForces(q_LL);
+    const windForces = getWindForces(
+        windLoads.q_push || 0,
+        windLoads.q_pull || 0,
+        windLoads.q_roof_windward || 0,
+        windLoads.q_roof_leeward || 0
+    );
+    
+    return { dlForces, llForces, windForces };
+}
+
+function calculateLoadCombinations(gravityResult, windResult, geomInput = null) {
     const steps = [];
     
     const q_DL = gravityResult.q_DL || 0;
     const q_LL = gravityResult.q_LL || 0;
     
-    // Tải trọng gió trên cột và dầm mái từ kết quả tính toán gió
+    // Hình học khung ngang
+    const L = (geomInput && geomInput.L) || (windResult && windResult.geom && windResult.geom.L) || 25;
+    const H = (geomInput && geomInput.H_col) || (windResult && windResult.geom && windResult.geom.H_col) || 8;
+    const H_rf = (geomInput && geomInput.H_rf) || (windResult && windResult.geom && windResult.geom.H_rf) || 9.25;
+    const f = Math.max(0.1, H_rf - H);
+    
+    // Trích xuất tải trọng gió tác dụng lên khung
     let q_W_push = 0;
     let q_W_pull = 0;
-    let q_W_roof_suction = 0;
+    let q_W_roof_w = 0;
+    let q_W_roof_l = 0;
     
     if (windResult && windResult.loadCases && windResult.loadCases['+X']) {
         const surfaces = windResult.loadCases['+X'].surfaces;
         const zoneD = surfaces.find(s => s.zone === 'D');
         const zoneE = surfaces.find(s => s.zone === 'E');
+        const zoneG = surfaces.find(s => s.zone === 'G');
         const zoneH = surfaces.find(s => s.zone === 'H');
+        const zoneI = surfaces.find(s => s.zone === 'I');
         if (zoneD) q_W_push = zoneD.frameLineLoad_d || 0;
         if (zoneE) q_W_pull = zoneE.frameLineLoad_d || 0;
-        if (zoneH) q_W_roof_suction = zoneH.frameLineLoad_d || 0;
+        if (zoneG || zoneH) q_W_roof_w = (zoneG ? zoneG.frameLineLoad_d : zoneH.frameLineLoad_d) || 0;
+        if (zoneI) q_W_roof_l = zoneI.frameLineLoad_d || 0;
     }
+    
+    const windLoads = {
+        q_push: q_W_push,
+        q_pull: q_W_pull,
+        q_roof_windward: q_W_roof_w,
+        q_roof_leeward: q_W_roof_l
+    };
+    
+    // Giải nội lực các trường hợp tải đơn lẻ
+    const frameAnalysis = solveGablePortalFrame(L, H, f, q_DL, q_LL, windLoads);
+    const { dlForces, llForces, windForces } = frameAnalysis;
 
     // ================= 1. TỔ HỢP CƠ BẢN 1 (THCB1): TĨNH TẢI + 1 HOẠT TẢI CHÍNH =================
-    // Trường hợp 1A: Tĩnh tải + Hoạt tải mái (DL + 1.0 LL)
+    // THCB 1A: Tĩnh tải + 1.0 Hoạt tải mái (DL + 1.0 LL)
     const q_TH1A = Number((q_DL + 1.0 * q_LL).toFixed(2));
+    const forces_TH1A = {
+        id: "CB1A",
+        name: "THCB 1A (Tĩnh tải + Hoạt tải mái)",
+        source: "TCVN 2737:2023 Solver",
+        N: Number((dlForces.N + 1.0 * llForces.N).toFixed(2)),
+        Mx: Number((dlForces.Mx + 1.0 * llForces.Mx).toFixed(2)),
+        Vx: Number((dlForces.Vx + 1.0 * llForces.Vx).toFixed(2)),
+        M_knee: Number((dlForces.M_knee + 1.0 * llForces.M_knee).toFixed(2)),
+        M_apex: Number((dlForces.M_apex + 1.0 * llForces.M_apex).toFixed(2))
+    };
+    
     steps.push(createCalculationStep(
         "CALC-COMB-001",
         "Tổ hợp cơ bản 1A (THCB 1A): Tĩnh tải + Hoạt tải mái",
         { standard: 'TCVN 2737:2023', section: 'Điều 4.3.3' },
-        "q_{TH1A} = q_{DL} + \\psi_{t1} \\cdot q_{LL}",
-        `q_{TH1A} = ${q_DL.toFixed(2)} + 1,0 \\times ${q_LL.toFixed(2)} = ${q_TH1A}\\text{ kN/m}`,
+        "q_{TH1A} = q_{DL} + \\psi_{t1} \\cdot q_{LL}; \\quad S_{TH1A} = S_{DL} + 1,0 \\cdot S_{LL}",
+        `q_{TH1A} = ${q_DL.toFixed(2)} + 1,0 \\times ${q_LL.toFixed(2)} = ${q_TH1A}\\text{ kN/m}; \\quad N = ${forces_TH1A.N}\\text{ kN}, M_x = ${forces_TH1A.Mx}\\text{ kNm}, V_x = ${forces_TH1A.Vx}\\text{ kN}`,
         q_TH1A,
         "kN/m",
         { isPass: true },
         "Ý NGHĨA KÝ HIỆU & HỆ SỐ TỔ HỢP:\n" +
-        "• q_{DL}: Tĩnh tải dầm mái tính toán (kN/m)\n" +
-        "• q_{LL}: Hoạt tải sửa chữa mái tính toán (kN/m)\n" +
-        "• ψ_{t1} = 1,0: Hệ số tổ hợp khi chỉ có 1 hoạt tải tạm thời (TCVN 2737:2023 Điều 4.3.3)"
+        "• q_{DL}: Tĩnh tải dầm mái tính toán; q_{LL}: Hoạt tải sửa chữa mái tính toán\n" +
+        "• ψ_{t1} = 1,0: Hệ số tổ hợp khi chỉ có 1 hoạt tải tạm thời (TCVN 2737:2023 Điều 4.3.3)\n" +
+        `• Nội lực chân cột: N = ${forces_TH1A.N} kN, Mx = ${forces_TH1A.Mx} kNm, Vx = ${forces_TH1A.Vx} kN`
     ));
 
-    // Trường hợp 1B: Tĩnh tải + Tải trọng gió (DL + 1.0 Wind)
+    // THCB 1B_Giotrai: Tĩnh tải + 1.0 Gió trái (+X)
     const q_TH1B_horiz = Number((1.0 * q_W_push).toFixed(2));
-    const q_TH1B_vert = Number((q_DL + 1.0 * q_W_roof_suction).toFixed(2));
+    const q_TH1B_vert = Number((q_DL + 1.0 * q_W_roof_w).toFixed(2));
+    const forces_TH1B_Left = {
+        id: "CB1B_Left",
+        name: "THCB 1B (Tĩnh tải + Gió trái +X)",
+        source: "TCVN 2737:2023 Solver",
+        N: Number((dlForces.N + 1.0 * windForces.windward.N).toFixed(2)),
+        Mx: Number((dlForces.Mx + 1.0 * windForces.windward.Mx).toFixed(2)),
+        Vx: Number((dlForces.Vx + 1.0 * windForces.windward.Vx).toFixed(2)),
+        M_knee: Number((dlForces.M_knee + 1.0 * windForces.windward.M_knee).toFixed(2))
+    };
+    
+    // THCB 1B_Giophai: Tĩnh tải + 1.0 Gió phải (-X) (đối xứng)
+    const forces_TH1B_Right = {
+        id: "CB1B_Right",
+        name: "THCB 1B (Tĩnh tải + Gió phải -X)",
+        source: "TCVN 2737:2023 Solver",
+        N: Number((dlForces.N + 1.0 * windForces.leeward.N).toFixed(2)),
+        Mx: Number((dlForces.Mx + 1.0 * windForces.leeward.Mx).toFixed(2)),
+        Vx: Number((dlForces.Vx + 1.0 * windForces.leeward.Vx).toFixed(2)),
+        M_knee: Number((dlForces.M_knee + 1.0 * windForces.leeward.M_knee).toFixed(2))
+    };
+
+    // THCB 1B_Bocmai: Tĩnh tải bất lợi nhỏ (0.9 DL) + Gió bốc mái (kiểm tra nhổ neo/kéo)
+    const forces_TH1B_Uplift = {
+        id: "CB1B_Uplift",
+        name: "THCB 1B (0,9 Tĩnh tải + Gió bốc nhổ chân cột)",
+        source: "TCVN 2737:2023 Solver",
+        N: Number((0.9 * dlForces.N + 1.0 * Math.min(windForces.windward.N, windForces.leeward.N)).toFixed(2)),
+        Mx: Number((0.9 * dlForces.Mx + 1.0 * windForces.windward.Mx).toFixed(2)),
+        Vx: Number((0.9 * dlForces.Vx + 1.0 * windForces.windward.Vx).toFixed(2))
+    };
+
     steps.push(createCalculationStep(
         "CALC-COMB-002",
         "Tổ hợp cơ bản 1B (THCB 1B): Tĩnh tải + Tải trọng gió chính",
         { standard: 'TCVN 2737:2023', section: 'Điều 4.3.3' },
-        "q_{ngang} = 1,0 \\cdot q_{W,push}; \\quad q_{dung} = q_{DL} + 1,0 \\cdot q_{W,roof}",
-        `q_{ngang} = 1,0 \\times ${q_W_push.toFixed(2)} = ${q_TH1B_horiz}\\text{ kN/m}; \\quad q_{dung} = ${q_DL.toFixed(2)} + 1,0 \\times (${q_W_roof_suction.toFixed(2)}) = ${q_TH1B_vert}\\text{ kN/m}`,
-        q_TH1B_horiz,
-        "kN/m",
+        "S_{TH1B} = S_{DL} + 1,0 \\cdot S_{W}",
+        `N = ${forces_TH1B_Left.N}\\text{ kN}, M_x = ${forces_TH1B_Left.Mx}\\text{ kNm}, V_x = ${forces_TH1B_Left.Vx}\\text{ kN}`,
+        forces_TH1B_Left.Mx,
+        "kNm",
         { isPass: true },
         "Ý NGHĨA KÝ HIỆU & NGUYÊN TẮC TỔ HỢP:\n" +
-        "• q_{W,push}: Tải trọng gió đẩy tác dụng vào cột đón gió (kN/m)\n" +
-        "• q_{W,roof}: Tải trọng gió tác dụng lên dầm mái (kN/m) (dấu âm thể hiện lực bốc mái)\n" +
-        "• ψ_{t} = 1,0: Tải trọng gió là hoạt tải chính duy nhất"
+        "• ψ_t = 1,0: Tải trọng gió là hoạt tải chính duy nhất\n" +
+        `• Gió trái (+X): N = ${forces_TH1B_Left.N} kN, Mx = ${forces_TH1B_Left.Mx} kNm, Vx = ${forces_TH1B_Left.Vx} kN\n` +
+        `• Gió phải (-X): N = ${forces_TH1B_Right.N} kN, Mx = ${forces_TH1B_Right.Mx} kNm, Vx = ${forces_TH1B_Right.Vx} kN\n` +
+        `• Kiểm tra nhổ bu lông móng (0,9 DL + Wind Uplift): N = ${forces_TH1B_Uplift.N} kN`
     ));
 
     // ================= 2. TỔ HỢP CƠ BẢN 2 (THCB2): TĨNH TẢI + TỪ 2 HOẠT TẢI TRỞ LÊN =================
     // DL + 0.9 LL + 0.9 Wind
     const q_TH2_horiz = Number((0.9 * q_W_push).toFixed(2));
-    const q_TH2_vert = Number((q_DL + 0.9 * q_LL + 0.9 * q_W_roof_suction).toFixed(2));
+    const q_TH2_vert = Number((q_DL + 0.9 * q_LL + 0.9 * q_W_roof_w).toFixed(2));
+    
+    const forces_TH2_Left = {
+        id: "CB2_Left",
+        name: "THCB 2 (Tĩnh tải + 0,9 Hoạt tải mái + 0,9 Gió trái)",
+        source: "TCVN 2737:2023 Solver",
+        N: Number((dlForces.N + 0.9 * llForces.N + 0.9 * windForces.windward.N).toFixed(2)),
+        Mx: Number((dlForces.Mx + 0.9 * llForces.Mx + 0.9 * windForces.windward.Mx).toFixed(2)),
+        Vx: Number((dlForces.Vx + 0.9 * llForces.Vx + 0.9 * windForces.windward.Vx).toFixed(2)),
+        M_knee: Number((dlForces.M_knee + 0.9 * llForces.M_knee + 0.9 * windForces.windward.M_knee).toFixed(2))
+    };
+    
+    const forces_TH2_Right = {
+        id: "CB2_Right",
+        name: "THCB 2 (Tĩnh tải + 0,9 Hoạt tải mái + 0,9 Gió phải)",
+        source: "TCVN 2737:2023 Solver",
+        N: Number((dlForces.N + 0.9 * llForces.N + 0.9 * windForces.leeward.N).toFixed(2)),
+        Mx: Number((dlForces.Mx + 0.9 * llForces.Mx + 0.9 * windForces.leeward.Mx).toFixed(2)),
+        Vx: Number((dlForces.Vx + 0.9 * llForces.Vx + 0.9 * windForces.leeward.Vx).toFixed(2)),
+        M_knee: Number((dlForces.M_knee + 0.9 * llForces.M_knee + 0.9 * windForces.leeward.M_knee).toFixed(2))
+    };
+
     steps.push(createCalculationStep(
         "CALC-COMB-003",
         "Tổ hợp cơ bản 2 (THCB 2): Tĩnh tải + 0,9 Hoạt tải mái + 0,9 Tải trọng gió",
         { standard: 'TCVN 2737:2023', section: 'Điều 4.3.4' },
-        "q_{ngang} = 0,9 \\cdot q_{W,push}; \\quad q_{dung} = q_{DL} + 0,9 \\cdot q_{LL} + 0,9 \\cdot q_{W,roof}",
-        `q_{ngang} = 0,9 \\times ${q_W_push.toFixed(2)} = ${q_TH2_horiz}\\text{ kN/m}; \\quad q_{dung} = ${q_DL.toFixed(2)} + 0,9 \\times ${q_LL.toFixed(2)} + 0,9 \\times (${q_W_roof_suction.toFixed(2)}) = ${q_TH2_vert}\\text{ kN/m}`,
-        q_TH2_vert,
-        "kN/m",
+        "S_{TH2} = S_{DL} + 0,9 \\cdot S_{LL} + 0,9 \\cdot S_{W}",
+        `N = ${forces_TH2_Left.N}\\text{ kN}, M_x = ${forces_TH2_Left.Mx}\\text{ kNm}, V_x = ${forces_TH2_Left.Vx}\\text{ kN}`,
+        forces_TH2_Left.Mx,
+        "kNm",
         { isPass: true },
         "Ý NGHĨA KÝ HIỆU & HỆ SỐ TỔ HỢP:\n" +
-        "• ψ = 0,9: Hệ số giảm trừ tổ hợp khi có từ 2 hoạt tải trở lên cùng xuất hiện đồng thời (TCVN 2737:2023 Điều 4.3.4)"
+        "• ψ = 0,9: Hệ số giảm trừ tổ hợp khi có từ 2 hoạt tải trở lên cùng xuất hiện đồng thời (TCVN 2737:2023 Điều 4.3.4)\n" +
+        `• THCB 2 (Gió trái): N = ${forces_TH2_Left.N} kN, Mx = ${forces_TH2_Left.Mx} kNm, Vx = ${forces_TH2_Left.Vx} kN\n` +
+        `• THCB 2 (Gió phải): N = ${forces_TH2_Right.N} kN, Mx = ${forces_TH2_Right.Mx} kNm, Vx = ${forces_TH2_Right.Vx} kN`
     ));
+
+    const frameForces = [
+        forces_TH1A,
+        forces_TH1B_Left,
+        forces_TH1B_Right,
+        forces_TH1B_Uplift,
+        forces_TH2_Left,
+        forces_TH2_Right
+    ];
+
+    // Xác định các trường hợp bao bất lợi nhất cho chân cột
+    const maxM_case = [...frameForces].sort((a, b) => Math.abs(b.Mx) - Math.abs(a.Mx))[0];
+    const maxN_case = [...frameForces].sort((a, b) => b.N - a.N)[0];
+    const minN_case = [...frameForces].sort((a, b) => a.N - b.N)[0];
+
+    const governingForces = {
+        columnBase: {
+            maxM: maxM_case,
+            maxN: maxN_case,
+            minN: minN_case
+        }
+    };
 
     return {
         steps,
@@ -82,8 +262,13 @@ function calculateLoadCombinations(gravityResult, windResult) {
             TH1A: q_TH1A,
             TH1B: { horiz: q_TH1B_horiz, vert: q_TH1B_vert },
             TH2: { horiz: q_TH2_horiz, vert: q_TH2_vert }
-        }
+        },
+        frameAnalysis,
+        frameForces,
+        governingForces
     };
 }
 
-window.calculateLoadCombinations = calculateLoadCombinations;
+const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+globalScope.solveGablePortalFrame = solveGablePortalFrame;
+globalScope.calculateLoadCombinations = calculateLoadCombinations;

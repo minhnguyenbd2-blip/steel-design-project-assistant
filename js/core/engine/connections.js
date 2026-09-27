@@ -88,4 +88,5 @@ function calculateBasePlate(N_kN, M_kNm, V_kN, section, concreteGrade = 'B20') {
     return { steps, L_bd_chosen, success: true };
 }
 
-window.calculateBasePlate = calculateBasePlate;
+const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+globalScope.calculateBasePlate = calculateBasePlate;

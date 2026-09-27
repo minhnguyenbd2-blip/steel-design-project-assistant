@@ -88,4 +88,5 @@ function calculateGravityLoads(inputs, roofComponents) {
     };
 }
 
-window.calculateGravityLoads = calculateGravityLoads;
+const _loadsScope = typeof window !== 'undefined' ? window : global;
+_loadsScope.calculateGravityLoads = calculateGravityLoads;

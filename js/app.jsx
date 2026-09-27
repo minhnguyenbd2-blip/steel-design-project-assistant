@@ -173,6 +173,27 @@ function App() {
         markStale();
     };
 
+    const loadSolverForces = () => {
+        if (projectState.results && projectState.results.frameForces && projectState.results.frameForces.length > 0) {
+            setProjectState(prev => ({
+                ...prev,
+                forces: projectState.results.frameForces.map(f => ({
+                    id: f.id,
+                    name: f.name,
+                    source: f.source || "TCVN Solver",
+                    N: f.N,
+                    Mx: f.Mx,
+                    My: 0,
+                    Vx: f.Vx,
+                    Vy: 0
+                }))
+            }));
+            markStale();
+        } else {
+            alert("Vui lòng thực hiện 'Phân tích & Tính toán Tải trọng' tại Tab 2 trước để sinh nội lực khung ngang.");
+        }
+    };
+
     const toggleAssumptionStatus = (index) => {
         const newAssumptions = [...projectState.assumptions];
         const current = newAssumptions[index].status;
@@ -309,6 +330,8 @@ function App() {
                 purlinResult,
                 slabResult,
                 beamResult,
+                frameForces: combResult.frameForces,
+                governingForces: combResult.governingForces,
                 traces: {
                     ...prev.results.traces,
                     gravity: gravityResult.steps,
@@ -452,6 +475,9 @@ function App() {
                     </button>
                     <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'column' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('column')}>
                         <i data-lucide="box" className="w-4 h-4"></i> 6. Thiết kế Cột Thép
+                    </button>
+                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'lookup' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('lookup')}>
+                        <i data-lucide="book-open" className="w-4 h-4"></i> 7. Bảng tra Tiết diện
                     </button>
                 </div>
             </nav>
@@ -775,6 +801,7 @@ function App() {
                             <div>
                                 <label className="text-xs font-semibold text-slate-500 uppercase">Dấu áp lực trong c_i</label>
                                 <select value={rInputs.internalPressureSign} onChange={e => handleInputChange('internalPressureSign', e.target.value, 'string')} className="w-full p-2 border rounded mt-1 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-600 outline-none text-sm">
+                                    <option value="unfavorable">Bất lợi nhất (Tự động theo Mục F.12.2 TCVN 2737:2023)</option>
                                     <option value="+">Dương (+0,2) Đẩy bung ra ngoài</option>
                                     <option value="-">Âm (-0,2) Hút ngược vào trong</option>
                                 </select>
@@ -1147,6 +1174,9 @@ function App() {
                         <div className="mt-6 flex justify-between items-center print:hidden">
                             <span className="text-xs text-slate-500 italic">Tổng số tổ hợp nội lực đang xét: <strong>{projectState.forces.length}</strong></span>
                             <div className="flex gap-3">
+                                <button onClick={loadSolverForces} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium text-xs flex items-center gap-1.5 shadow transition-colors" title="Đồng bộ nội lực từ các tổ hợp tải trọng chuẩn TCVN vừa giải">
+                                    <i data-lucide="refresh-cw" className="w-3.5 h-3.5"></i> Cập nhật từ Giải khung TCVN
+                                </button>
                                 <button onClick={addForceCase} className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-4 py-2 rounded-lg font-medium text-xs flex items-center gap-1.5 transition-colors">
                                     <i data-lucide="plus" className="w-3.5 h-3.5"></i> Thêm Tổ hợp
                                 </button>
@@ -1437,6 +1467,24 @@ function App() {
                             </div>
                         </div>
                     )}
+                </div>
+
+                {/* ===================== TAB 7: BẢNG TRA TIẾT DIỆN ===================== */}
+                <div style={{ display: activeTab === 'lookup' ? 'block' : 'none' }}>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-slate-200 dark:border-slate-700 mb-6">
+                        <h2 className="font-bold text-xl mb-4 border-b dark:border-slate-700 pb-2 flex items-center gap-2 text-primary">
+                            <i data-lucide="book-open" className="w-5 h-5"></i> 7. Bảng tra Tiết diện Thép theo TCVN
+                        </h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                            Tra cứu nhanh thông số tiết diện xà gồ (C/Z), tôn lợp mái, và thép hình chữ I. Dữ liệu từ catalogue Zamil Steel, Hoa Sen và TCVN 5575:2024.
+                        </p>
+                        {typeof SectionLookup !== 'undefined' ? <SectionLookup /> : (
+                            <div className="text-center py-12 text-slate-400">
+                                <i data-lucide="loader" className="w-8 h-8 animate-spin mx-auto mb-2"></i>
+                                <p>Đang tải bảng tra...</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
             </main>

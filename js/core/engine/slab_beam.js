@@ -197,4 +197,5 @@ const SlabBeamEngine = {
     }
 };
 
-window.SlabBeamEngine = SlabBeamEngine;
+const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+globalScope.SlabBeamEngine = SlabBeamEngine;

@@ -23,7 +23,7 @@ const ProjectState = {
         windZone: "II",             // Vùng gió (I, II, III, IV, V)
         terrainCategory: "B",       // Dạng địa hình (A, B, C)
         porosityPercent: 0,         // Độ hở của tường chắn bao che μ (%) (Mục F.12)
-        internalPressureSign: "+",  // Dấu áp lực trong bất lợi (+ hoặc -)
+        internalPressureSign: "unfavorable",  // Dấu áp lực trong bất lợi nhất (unfavorable, + hoặc -)
         
         // Vật liệu chính
         steelGrade: "S235",         // Mác thép kết cấu
@@ -105,7 +105,7 @@ const TestCase01 = {
         windZone: "II",
         terrainCategory: "B",
         porosityPercent: 0,
-        internalPressureSign: "+",
+        internalPressureSign: "unfavorable",
         steelGrade: "S235",
         boltGrade: "5.8",
         weldType: "E43",
@@ -167,7 +167,8 @@ function createSectionRecord(type, name, h, b, tw, tf, category) {
     };
 }
 
-window.ProjectState = ProjectState;
-window.TestCase01 = TestCase01;
-window.createCalculationStep = createCalculationStep;
-window.createSectionRecord = createSectionRecord;
+const _modelsScope = typeof window !== 'undefined' ? window : global;
+_modelsScope.ProjectState = ProjectState;
+_modelsScope.TestCase01 = TestCase01;
+_modelsScope.createCalculationStep = createCalculationStep;
+_modelsScope.createSectionRecord = createSectionRecord;

@@ -59,7 +59,7 @@ const WindEngine = {
         
         // 1. Áp lực gió cơ sở W0 và áp lực 3s chu kỳ 10 năm W3s,10 (Mục 10.2.2)
         const W0_res = StandardData.TCVN2737_2023.Wind.BasicWind.getW0(inputs.windZone);
-        const W0 = W0_res.value || 0.83;
+        const W0 = W0_res.value || 0.95;
         const gamma_T = StandardData.TCVN2737_2023.Wind.BasicWind.gamma_T; // 0.852
         const W3s_10 = Number((gamma_T * W0).toFixed(3)); // kN/m2
         
@@ -69,7 +69,7 @@ const WindEngine = {
         
         // 3. Hệ số khí động áp lực trong ci (Mục F.12)
         const porosity = Number(inputs.porosityPercent) || 0;
-        const ci_res = StandardData.TCVN2737_2023.Wind.InternalPressure.getCpi(porosity, internalPressureSign);
+        const ci_res = StandardData.TCVN2737_2023.Wind.InternalPressure.getCpi(porosity, internalPressureSign === '-' ? '-' : '+');
         const ci = ci_res.value;
         
         // 4. Phân vùng TƯỜNG theo Hình F.5a & Bảng F.4
@@ -97,10 +97,23 @@ const WindEngine = {
             const ceRes = StandardData.TCVN2737_2023.Wind.Wall.getZoneCpe(z.zone, h, d);
             const ce = ceRes.value;
             
-            // Hệ số khí động tổng hợp c = ce - ci (hoặc cộng dồn bất lợi)
-            // Khi gió đẩy (ce > 0), ci hút (-0.2) làm tăng áp lực: c_net = ce - (-0.2) = ce + 0.2
-            // Khi gió hút (ce < 0), ci đẩy (+0.2) làm tăng lực bốc: c_net = ce - 0.2
-            const c_net = Number((ce - ci).toFixed(3));
+            // Hệ số khí động áp lực trong cục bộ theo nguyên tắc tổ hợp bất lợi nhất (Mục F.12.2)
+            let zone_ci = ci;
+            if (internalPressureSign === 'unfavorable' || !internalPressureSign || internalPressureSign === 'auto') {
+                if (ce > 0) {
+                    zone_ci = -Math.abs(ci); // Hút trong làm tăng áp lực đẩy ngoài: ce - (-ci) = ce + ci
+                } else if (ce < 0) {
+                    zone_ci = Math.abs(ci); // Đẩy trong làm tăng lực bốc/hút ngoài: ce - (+ci) = ce - ci
+                } else {
+                    zone_ci = -Math.abs(ci);
+                }
+            } else if (internalPressureSign === '+') {
+                zone_ci = Math.abs(ci);
+            } else if (internalPressureSign === '-') {
+                zone_ci = -Math.abs(ci);
+            }
+            
+            const c_net = Number((ce - zone_ci).toFixed(3));
             
             // Tải trọng tiêu chuẩn Wk (kN/m2) = W3s,10 * k(ze) * c_net * Gf
             const pressure_k = Number((W3s_10 * (kzRes.value || 1.0) * c_net * Gf).toFixed(3));
@@ -117,7 +130,7 @@ const WindEngine = {
                 ze: eqHeightRes.ze,
                 kz: kzRes.value,
                 ce,
-                ci,
+                ci: zone_ci,
                 c_net,
                 W0,
                 W3s_10,
@@ -166,7 +179,23 @@ const WindEngine = {
             const ceRes = StandardData.TCVN2737_2023.Wind.Roof.getZoneCpe(z.zone, theta, geom.alphaDeg, isPositiveRoofCase);
             const ce = ceRes.value;
             
-            const c_net = Number((ce - ci).toFixed(3));
+            // Hệ số khí động áp lực trong cục bộ theo nguyên tắc tổ hợp bất lợi nhất (Mục F.12.2)
+            let zone_ci = ci;
+            if (internalPressureSign === 'unfavorable' || !internalPressureSign || internalPressureSign === 'auto') {
+                if (ce > 0) {
+                    zone_ci = -Math.abs(ci); // Hút trong làm tăng áp lực đẩy ngoài
+                } else if (ce < 0) {
+                    zone_ci = Math.abs(ci); // Đẩy trong làm tăng lực bốc/hút mái
+                } else {
+                    zone_ci = -Math.abs(ci);
+                }
+            } else if (internalPressureSign === '+') {
+                zone_ci = Math.abs(ci);
+            } else if (internalPressureSign === '-') {
+                zone_ci = -Math.abs(ci);
+            }
+            
+            const c_net = Number((ce - zone_ci).toFixed(3));
             const pressure_k = Number((W3s_10 * (kzRes.value || 1.0) * c_net * Gf).toFixed(3));
             const pressure_d = Number((2.1 * pressure_k).toFixed(3));
             const frameLineLoad_k = Number((pressure_k * B_tributary).toFixed(2));
@@ -177,7 +206,7 @@ const WindEngine = {
                 ze: eqHeightRes.ze,
                 kz: kzRes.value,
                 ce,
-                ci,
+                ci: zone_ci,
                 c_net,
                 W0,
                 W3s_10,
@@ -197,7 +226,9 @@ const WindEngine = {
         if (!isTheta0) {
             const cf = 0.02; // Mái trơn dài
             const roofSurfaceArea = 2 * (geom.L / (2 * Math.cos(geom.alphaDeg * Math.PI / 180))) * geom.d_total;
-            const Wf_k = W3s_10 * 1.0 * cf * roofSurfaceArea; // kN
+            const kz_roof = StandardData.TCVN2737_2023.Wind.HeightCoefficient.getKze(h, terrain).value || 1.0;
+            const qp_roof = W3s_10 * kz_roof * Gf;
+            const Wf_k = qp_roof * cf * roofSurfaceArea; // kN
             const Wf_d = 2.1 * Wf_k;
             frictionData = {
                 cf,
@@ -290,12 +321,14 @@ function calculateWindLoad(inputs) {
     // -X (Gió ngang phải sang, θ = 0°)
     // +Y (Gió dọc đầu hồi 1, θ = 90°)
     // -Y (Gió dọc đầu hồi 2, θ = 90°)
+    const pressureSignMode = inputs.internalPressureSign || 'unfavorable';
     const loadCases = {
-        '+X': WindEngine.calculateDirectionBranch('+X', geom, terrain, inputs, '-', false), // Mái hút
-        '+X_DUONG': WindEngine.calculateDirectionBranch('+X', geom, terrain, inputs, '+', true), // Mái đẩy
-        '-X': WindEngine.calculateDirectionBranch('-X', geom, terrain, inputs, '-', false),
-        '+Y': WindEngine.calculateDirectionBranch('+Y', geom, terrain, inputs, '-', false),
-        '-Y': WindEngine.calculateDirectionBranch('-Y', geom, terrain, inputs, '-', false)
+        '+X': WindEngine.calculateDirectionBranch('+X', geom, terrain, inputs, pressureSignMode, false), // Mái hút
+        '+X_DUONG': WindEngine.calculateDirectionBranch('+X', geom, terrain, inputs, pressureSignMode, true), // Mái đẩy
+        '-X': WindEngine.calculateDirectionBranch('-X', geom, terrain, inputs, pressureSignMode, false),
+        '-X_DUONG': WindEngine.calculateDirectionBranch('-X', geom, terrain, inputs, pressureSignMode, true),
+        '+Y': WindEngine.calculateDirectionBranch('+Y', geom, terrain, inputs, pressureSignMode, false),
+        '-Y': WindEngine.calculateDirectionBranch('-Y', geom, terrain, inputs, pressureSignMode, false)
     };
     
     // Ghi các bước tính toán chi tiết cho trường hợp Gió +X (Gió ngang θ = 0° điển hình)
@@ -338,5 +371,6 @@ function calculateWindLoad(inputs) {
     };
 }
 
-window.WindEngine = WindEngine;
-window.calculateWindLoad = calculateWindLoad;
+const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+globalScope.WindEngine = WindEngine;
+globalScope.calculateWindLoad = calculateWindLoad;

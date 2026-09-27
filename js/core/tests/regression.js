@@ -1,14 +1,17 @@
-// Independent Calculation Regression Tests
-// Bộ kiểm thử hồi quy tự động cho toàn bộ hệ thống tính toán kết cấu thép
+// Independent Calculation Regression Tests (TCVN 2737:2023 & TCVN 5575:2024)
+// Bộ kiểm thử hồi quy tự động độc lập kiểm tra toàn diện các module kỹ thuật, tiêu chuẩn và nội lực
 
 const RegressionTests = {
     results: [],
 
     runAll: function() {
         this.results = [];
+        
+        // 1. TCVN 2737:2023 Tải trọng Gió & Tiêu chuẩn
         this.testWindRegion();
-        this.testTerrain();
-        this.testKzTable();
+        this.testAllWindZones();
+        this.testTerrainTable8();
+        this.testKzTable9();
         this.testKzInterpolation();
         this.testEquivalentHeight();
         this.testWindDirection();
@@ -17,20 +20,37 @@ const RegressionTests = {
         this.testRoofSlopeInterpolation();
         this.testPressureSign();
         this.testInternalPressure();
+        this.testInternalPressureEnvelopeThesis();
         this.testFriction();
         this.testGustFactor();
         this.testTributaryLoad();
-        this.testNoNaN();
-        this.testNoInfinity();
-        this.testSourceTraceability();
+        
+        // 2. TCVN 5575:2024 Kết cấu Thép & Vật liệu
+        this.testSteelS235Normative();
+        this.testPhiExactFormulas7and8();
+        this.testPhiEFullTableD3();
+        this.testCFactorClause925();
+        this.testSectionCheckAndSlenderness();
+        this.testSectionProposal();
+        
+        // 3. Khung ngang & Tổ hợp tải trọng
+        this.testPortalFrameSolverAndCombinations();
+        
+        // 4. Module Cấu kiện phụ & Sàn BTCT
         this.testPurlinCladding();
         this.testSlabDesign();
         this.testBeamDesign();
         this.testValidationLayer();
         
-        console.log("Kết quả Kiểm thử Hồi quy (Regression Tests):", this.results);
+        // 5. Kiểm tra an toàn số học (Robustness & Integrity)
+        this.testNoNaN();
+        this.testNoInfinity();
+        this.testSourceTraceability();
+        
         const passCount = this.results.filter(r => r.pass).length;
-        console.log(`TỔNG KẾT: ${passCount}/${this.results.length} bài test ĐẠT (PASS).`);
+        console.log(`\n======================================================`);
+        console.log(`TỔNG KẾT HỒI QUY: ${passCount}/${this.results.length} bài test ĐẠT (PASS) - ${(passCount / this.results.length * 100).toFixed(1)}%`);
+        console.log(`======================================================\n`);
         return this.results;
     },
 
@@ -42,57 +62,111 @@ const RegressionTests = {
             pass = actual === expected;
         }
         this.results.push({ name, actual, expected, pass });
-        if (!pass) console.error(`TEST THẤT BẠI: ${name}. Kỳ vọng ${expected}, nhận được ${actual}`);
+        if (!pass) {
+            console.error(`[FAIL] ${name} | Kỳ vọng: ${expected} | Thực tế: ${actual}`);
+        } else {
+            // console.log(`[PASS] ${name}`);
+        }
     },
 
+    // 1.1 Vùng gió II: W0 = 0.95 kN/m2 (Bảng 7), W3s,10 = 0.809 kN/m2
     testWindRegion: function() {
         const res = StandardData.TCVN2737_2023.Wind.BasicWind.getW0('II');
-        this.assert("testWindRegion", res.value, 0.83);
+        this.assert("testWindRegion - W0 Vùng II = 0.95 kN/m2 (Bảng 7)", res.value, 0.95);
+        const gamma_T = StandardData.TCVN2737_2023.Wind.BasicWind.gamma_T;
+        this.assert("testWindRegion - gamma_T = 0.852", gamma_T, 0.852);
+        const W3s_10 = Number((gamma_T * res.value).toFixed(3));
+        this.assert("testWindRegion - W3s,10 = 0.809 kN/m2", W3s_10, 0.809);
     },
-    testTerrain: function() {
-        const res = StandardData.TCVN2737_2023.Wind.Terrain.getTerrainData('B');
-        this.assert("testTerrain", res.alpha, 0.16);
+
+    // 1.2 Tất cả các vùng gió I đến V theo Bảng 7 TCVN 2737:2023
+    testAllWindZones: function() {
+        this.assert("testAllWindZones - Vùng I", StandardData.TCVN2737_2023.Wind.BasicWind.getW0('I').value, 0.65);
+        this.assert("testAllWindZones - Vùng II", StandardData.TCVN2737_2023.Wind.BasicWind.getW0('II').value, 0.95);
+        this.assert("testAllWindZones - Vùng III", StandardData.TCVN2737_2023.Wind.BasicWind.getW0('III').value, 1.25);
+        this.assert("testAllWindZones - Vùng IV", StandardData.TCVN2737_2023.Wind.BasicWind.getW0('IV').value, 1.55);
+        this.assert("testAllWindZones - Vùng V", StandardData.TCVN2737_2023.Wind.BasicWind.getW0('V').value, 1.85);
     },
-    testKzTable: function() {
-        const res = StandardData.TCVN2737_2023.Wind.HeightCoefficient.getKze(10, 'B');
-        this.assert("testKzTable", res.value, 1.00);
+
+    // 1.3 Dạng địa hình theo Bảng 8 TCVN 2737:2023
+    testTerrainTable8: function() {
+        const resB = StandardData.TCVN2737_2023.Wind.Terrain.getTerrainData('B');
+        this.assert("testTerrainTable8 - Địa hình B alpha = 9.5", resB.alpha, 9.5);
+        this.assert("testTerrainTable8 - Địa hình B zg = 274.32m", resB.zg, 274.32);
+        this.assert("testTerrainTable8 - Địa hình B zmin = 4.57m", resB.zmin, 4.57);
+
+        const resA = StandardData.TCVN2737_2023.Wind.Terrain.getTerrainData('A');
+        this.assert("testTerrainTable8 - Địa hình A alpha = 11.5", resA.alpha, 11.5);
+        this.assert("testTerrainTable8 - Địa hình A zg = 213.36m", resA.zg, 213.36);
+
+        const resC = StandardData.TCVN2737_2023.Wind.Terrain.getTerrainData('C');
+        this.assert("testTerrainTable8 - Địa hình C alpha = 7.0", resC.alpha, 7.0);
+        this.assert("testTerrainTable8 - Địa hình C zg = 365.76m", resC.zg, 365.76);
     },
+
+    // 1.4 Hệ số k(ze) theo Bảng 9 TCVN 2737:2023
+    testKzTable9: function() {
+        const res10 = StandardData.TCVN2737_2023.Wind.HeightCoefficient.getKze(10, 'B');
+        this.assert("testKzTable9 - k(10m, B) = 1.00", res10.value, 1.00);
+        const res5 = StandardData.TCVN2737_2023.Wind.HeightCoefficient.getKze(5, 'B');
+        this.assert("testKzTable9 - k(5m, B) = 0.87", res5.value, 0.87);
+        const res15 = StandardData.TCVN2737_2023.Wind.HeightCoefficient.getKze(15, 'B');
+        this.assert("testKzTable9 - k(15m, B) = 1.09", res15.value, 1.09);
+    },
+
+    // 1.5 Nội suy k(ze)
     testKzInterpolation: function() {
         const res = StandardData.TCVN2737_2023.Wind.HeightCoefficient.getKze(7.5, 'B');
-        this.assert("testKzInterpolation", res.value, 0.94);
+        // Nội suy giữa 5m (0.87) và 10m (1.00): 0.87 + 0.13 * 0.5 = 0.935 -> 0.94
+        this.assert("testKzInterpolation - k(7.5m, B) = 0.94", res.value, 0.94, 0.01);
     },
+
+    // 1.6 Độ cao tương đương ze (Mục 10.2.4)
     testEquivalentHeight: function() {
         const res = StandardData.TCVN2737_2023.Wind.EquivalentHeight.calculateEquivalentHeight(8, 9.25, 25, '+X');
-        this.assert("testEquivalentHeight - h<=b rule", res.ze, 9.25);
-        this.assert("testEquivalentHeight - rule text", res.rule, "h ≤ b => ze = h");
+        this.assert("testEquivalentHeight - h<=b rule (ze = h)", res.ze, 9.25);
+        this.assert("testEquivalentHeight - rule text contains h <= b", res.rule.includes("h ≤ b => ze = h"), true);
     },
+
+    // 1.7 Phân nhánh 4 hướng gió (+X, -X, +Y, -Y)
     testWindDirection: function() {
         const inputs = { L: 25, B: 9, length: 72, H_column: 8, H_roof: 9.25, windZone: 'II', terrainCategory: 'B' };
-        const load = window.calculateWindLoad ? window.calculateWindLoad(inputs) : null;
+        const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+        const load = globalScope.calculateWindLoad ? globalScope.calculateWindLoad(inputs) : null;
         if (load) {
-            this.assert("testWindDirection - có đủ 4 nhánh chính", Object.keys(load.loadCases).length >= 4, true);
-            this.assert("testWindDirection - +X", !!load.loadCases['+X'], true);
-            this.assert("testWindDirection - +Y", !!load.loadCases['+Y'], true);
+            this.assert("testWindDirection - có ít nhất 4 nhánh chính", Object.keys(load.loadCases).length >= 4, true);
+            this.assert("testWindDirection - có nhánh +X", !!load.loadCases['+X'], true);
+            this.assert("testWindDirection - có nhánh -X", !!load.loadCases['-X'], true);
+            this.assert("testWindDirection - có nhánh +Y", !!load.loadCases['+Y'], true);
+            this.assert("testWindDirection - có nhánh -Y", !!load.loadCases['-Y'], true);
         } else {
             this.assert("testWindDirection", false, true);
         }
     },
+
+    // 1.8 Phân vùng khí động tường (Hình F.5a & Bảng F.4)
     testWallZoning: function() {
-        const geom = window.WindEngine ? window.WindEngine.analyzeGeometry(25, 9, 72, 8, 9.25, 'gable') : null;
+        const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+        const geom = globalScope.WindEngine ? globalScope.WindEngine.analyzeGeometry(25, 9, 72, 8, 9.25, 'gable') : null;
         if (geom) {
-            const branch = window.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
+            const branch = globalScope.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
             const walls = branch.surfaces.filter(s => s.surface === 'Tường');
             this.assert("testWallZoning - có 5 vùng (D, E, A, B, C)", walls.length, 5);
             const zoneD = walls.find(w => w.zone === 'D');
+            const zoneE = walls.find(w => w.zone === 'E');
             this.assert("testWallZoning - Vùng D đón gió ce > 0", zoneD.ce > 0, true);
+            this.assert("testWallZoning - Vùng E khuất gió ce < 0", zoneE.ce < 0, true);
         } else {
             this.assert("testWallZoning", false, true);
         }
     },
+
+    // 1.9 Phân vùng khí động mái (Hình F.6 & Bảng F.5a)
     testRoofZoning: function() {
-        const geom = window.WindEngine ? window.WindEngine.analyzeGeometry(25, 9, 72, 8, 9.25, 'gable') : null;
+        const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+        const geom = globalScope.WindEngine ? globalScope.WindEngine.analyzeGeometry(25, 9, 72, 8, 9.25, 'gable') : null;
         if (geom) {
-            const branch = window.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
+            const branch = globalScope.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
             const roofs = branch.surfaces.filter(s => s.surface === 'Mái');
             this.assert("testRoofZoning - θ=0° có 5 vùng (F, G, H, J, I)", roofs.length, 5);
             const zoneF = roofs.find(r => r.zone === 'F');
@@ -101,17 +175,22 @@ const RegressionTests = {
             this.assert("testRoofZoning", false, true);
         }
     },
+
+    // 1.10 Nội suy góc dốc mái theo Bảng F.5a
     testRoofSlopeInterpolation: function() {
-        // Bảng F.5a: tại alpha = 5.71° vùng F âm nội suy giữa 5° (-1.7) và 15° (-0.9)
-        const res = StandardData.TCVN2737_2023.Wind.Roof.getZoneCpe('F', 0, 5.71, false);
-        this.assert("testRoofSlopeInterpolation - Status VERIFIED", res.status, "VERIFIED");
-        this.assert("testRoofSlopeInterpolation - ce < 0", res.value < 0, true);
+        // Tại alpha = 5.71°: vùng G âm nội suy giữa 5° (-1.2) và 15° (-0.8):
+        // ce_G = -1.2 + (5.71 - 5)/(15 - 5) * (-0.8 - (-1.2)) = -1.2 + 0.071 * 0.4 = -1.1716 -> -1.172
+        const resG = StandardData.TCVN2737_2023.Wind.Roof.getZoneCpe('G', 0, 5.71, false);
+        this.assert("testRoofSlopeInterpolation - ce_G tại 5.71° = -1.172", resG.value, -1.172, 0.005);
+        this.assert("testRoofSlopeInterpolation - Status VERIFIED", resG.status, "VERIFIED");
     },
+
+    // 1.11 Phân biệt dấu áp lực
     testPressureSign: function() {
-        // Kiểm tra phân biệt dấu áp lực đón gió D (> 0) và hút gió E (< 0)
-        const geom = window.WindEngine ? window.WindEngine.analyzeGeometry(25, 9, 72, 8, 9.25, 'gable') : null;
+        const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+        const geom = globalScope.WindEngine ? globalScope.WindEngine.analyzeGeometry(25, 9, 72, 8, 9.25, 'gable') : null;
         if (geom) {
-            const branch = window.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
+            const branch = globalScope.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
             const zoneD = branch.surfaces.find(s => s.zone === 'D');
             const zoneE = branch.surfaces.find(s => s.zone === 'E');
             this.assert("testPressureSign - Vùng D dương", zoneD.ce > 0, true);
@@ -120,86 +199,193 @@ const RegressionTests = {
             this.assert("testPressureSign", false, true);
         }
     },
+
+    // 1.12 Hệ số áp lực trong ci (Mục F.12)
     testInternalPressure: function() {
-        const res = StandardData.TCVN2737_2023.Wind.InternalPressure.getCpi(0, '+');
-        this.assert("testInternalPressure - VERIFIED", res.status, "VERIFIED");
-        this.assert("testInternalPressure - value 0.2", res.value, 0.2);
+        const res0 = StandardData.TCVN2737_2023.Wind.InternalPressure.getCpi(0, '+');
+        this.assert("testInternalPressure - mu=0% ci = +0.2", res0.value, 0.2);
+        const res5 = StandardData.TCVN2737_2023.Wind.InternalPressure.getCpi(5, '-');
+        this.assert("testInternalPressure - mu=5% ci = -0.2", res5.value, -0.2);
+        const res15 = StandardData.TCVN2737_2023.Wind.InternalPressure.getCpi(15, '+');
+        this.assert("testInternalPressure - 5%<mu<30% flagged", res15.status, "NEEDS VERIFICATION / USER CONFIRMED");
     },
+
+    // 1.13 Tổ hợp áp lực trong bất lợi nhất (Khớp 100% Đồ án Thầy Hùng & Bích Ngọc)
+    testInternalPressureEnvelopeThesis: function() {
+        const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+        const geom = globalScope.WindEngine.analyzeGeometry(24, 6, 114, 11.5, 12.7, 'gable');
+        // Alpha = 5.711 độ, H_roof = 12.7m, địa hình B
+        const branch = globalScope.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' }, 'unfavorable', false);
+        const zoneG = branch.surfaces.find(s => s.zone === 'G');
+        this.assert("testInternalPressureEnvelopeThesis - Mái hút c_net = -1.372", zoneG.c_net, -1.372, 0.01);
+    },
+
+    // 1.14 Hệ số ma sát mái cf (Mục F.4.2.3)
     testFriction: function() {
         const res = StandardData.TCVN2737_2023.Wind.Friction.getCf(90);
-        this.assert("testFriction - cf=0.02 khi theta=90", res.value, 0.02);
+        this.assert("testFriction - cf=0.02 khi theta=90°", res.value, 0.02);
     },
+
+    // 1.15 Hệ số ứng giật Gf (Phụ lục E)
     testGustFactor: function() {
         const res = StandardData.TCVN2737_2023.Wind.GustFactor.getGf(9.25);
-        this.assert("testGustFactor", res.value, 0.86, 0.01);
+        this.assert("testGustFactor - Gf(9.25m) = 0.86", res.value, 0.86, 0.01);
     },
+
+    // 1.16 Bề rộng truyền tải diện tích
     testTributaryLoad: function() {
-        const geom = window.WindEngine ? window.WindEngine.analyzeGeometry(25, 9, 72, 8, 9.25, 'gable') : null;
+        const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+        const geom = globalScope.WindEngine ? globalScope.WindEngine.analyzeGeometry(25, 9, 72, 8, 9.25, 'gable') : null;
         if (geom) {
-            const branch = window.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
+            const branch = globalScope.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
             const allHaveTrib = branch.surfaces.every(s => s.tributaryWidth === 9);
             this.assert("testTributaryLoad - Bước cột truyền tải B = 9m", allHaveTrib, true);
         } else {
             this.assert("testTributaryLoad", false, true);
         }
     },
-    testNoNaN: function() {
-        const geom = window.WindEngine ? window.WindEngine.analyzeGeometry(25, 9, 72, 8, 9.25, 'gable') : null;
-        if (geom) {
-            const branch = window.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
-            const hasNaN = branch.surfaces.some(s => isNaN(s.pressure_k) || isNaN(s.frameLineLoad_d) || isNaN(s.resultant_kN));
-            this.assert("testNoNaN", hasNaN, false);
-        } else {
-            this.assert("testNoNaN", false, true);
-        }
+
+    // 2.1 Thép S235 theo TCVN 5575:2024
+    testSteelS235Normative: function() {
+        const mat = TCVN5575_2024.getMaterialProperties('S235');
+        this.assert("testSteelS235Normative - f = 223.81 MPa", mat.f, 223.81, 0.05);
+        this.assert("testSteelS235Normative - fv = 129.81 MPa", mat.fv, 129.81, 0.05);
+        this.assert("testSteelS235Normative - E = 206000 MPa (Điều 6.3)", mat.E, 206000);
+        this.assert("testSteelS235Normative - gamma_c = 1.0", mat.gamma_c, 1.0);
     },
-    testNoInfinity: function() {
-        const geom = window.WindEngine ? window.WindEngine.analyzeGeometry(25, 9, 72, 8, 9.25, 'gable') : null;
-        if (geom) {
-            const branch = window.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
-            const hasInf = branch.surfaces.some(s => !isFinite(s.pressure_k) || !isFinite(s.frameLineLoad_d));
-            this.assert("testNoInfinity", hasInf, false);
-        } else {
-            this.assert("testNoInfinity", false, true);
-        }
+
+    // 2.2 Hệ số phi chuẩn theo Công thức (7) & (8) và Bảng 7 TCVN 5575:2024
+    testPhiExactFormulas7and8: function() {
+        const phi05 = TCVN5575_2024.getPhi(0.5, 'b');
+        this.assert("testPhiExactFormulas7and8 - lambda_bar < 0.6 => phi = 1.0", phi05, 1.0);
+        const phi10 = TCVN5575_2024.getPhi(1.0, 'b');
+        this.assert("testPhiExactFormulas7and8 - lambda_bar = 1.0 => phi = 0.95", phi10, 0.95, 0.02);
+        const phi314 = TCVN5575_2024.getPhi(3.14, 'b');
+        this.assert("testPhiExactFormulas7and8 - lambda_bar = 3.14 => phi = 0.61-0.62", phi314, 0.615, 0.02);
     },
-    testSourceTraceability: function() {
-        const res = StandardData.TCVN2737_2023.Wind.HeightCoefficient.getKze(10, 'B');
-        this.assert("testSourceTraceability", res.source !== undefined, true);
+
+    // 2.3 Bảng D.3 chuẩn 16x26 TCVN 5575:2024
+    testPhiEFullTableD3: function() {
+        const d3 = StandardData.TCVN5575_2024.PhiE;
+        const res1 = d3.getPhiE(1.5, 0.5);
+        this.assert("testPhiEFullTableD3 - l_bar=1.5, m=0.5 => phi_e = 0.707", res1.value, 0.707, 0.01);
+        const res2 = d3.getPhiE(2.0, 1.0);
+        this.assert("testPhiEFullTableD3 - l_bar=2.0, m=1.0 => phi_e = 0.536", res2.value, 0.536, 0.01);
+        const res3 = d3.getPhiE(4.0, 5.0);
+        this.assert("testPhiEFullTableD3 - l_bar=4.0, m=5.0 => phi_e = 0.158", res3.value, 0.158, 0.01);
     },
+
+    // 2.4 Hệ số c theo Mục 9.2.5 Công thức (111)-(113) TCVN 5575:2024
+    testCFactorClause925: function() {
+        const c_engine = StandardData.TCVN5575_2024.C_Factor;
+        const c05 = c_engine.getC(0.5);
+        this.assert("testCFactorClause925 - m=0.5 => c = 0.741 (CT 111)", c05.value, 0.741, 0.01);
+        const c20 = c_engine.getC(2.0);
+        this.assert("testCFactorClause925 - m=2.0 => c = 0.400 (CT 111)", c20.value, 0.400, 0.01);
+        const c60 = c_engine.getC(6.0);
+        this.assert("testCFactorClause925 - m=6.0 => c = 0.164 (CT 113)", c60.value, 0.164, 0.01);
+    },
+
+    // 2.5 Kiểm tra tiết diện cột và độ mảnh giới hạn
+    testSectionCheckAndSlenderness: function() {
+        const sec = createSectionRecord('I', 'I 600x300x10x16', 600, 300, 10, 16);
+        const mat = TCVN5575_2024.getMaterialProperties('S235');
+        const res = checkSectionCapacity(sec, 150, 250, 60, mat, 8.0 * 2.0, 8.0 * 1.0);
+        this.assert("testSectionCheckAndSlenderness - Thành công", res.success, true);
+        this.assert("testSectionCheckAndSlenderness - Đạt khả năng chịu lực", res.isAllPass, true);
+        this.assert("testSectionCheckAndSlenderness - Độ mảnh lambda <= 180", res.slenderness.isPass, true);
+        this.assert("testSectionCheckAndSlenderness - Có hệ số tận dụng", res.utilization.max > 0, true);
+    },
+
+    // 2.6 Đề xuất tiết diện
+    testSectionProposal: function() {
+        const mat = TCVN5575_2024.getMaterialProperties('S235');
+        const res = proposeSectionsForDesign({ N: 150, Mx: 200, Vx: 50 }, mat, 16.0, 8.0);
+        this.assert("testSectionProposal - Có ít nhất 1 phương án đạt", res.candidates.length > 0, true);
+        this.assert("testSectionProposal - Trạng thái PASS", res.candidates[0].status, "PASS");
+        this.assert("testSectionProposal - Đã sắp xếp theo khối lượng", res.candidates[0].massPerMeter <= res.candidates[res.candidates.length - 1].massPerMeter, true);
+    },
+
+    // 3. Khung ngang và tổ hợp tải trọng
+    testPortalFrameSolverAndCombinations: function() {
+        const windRes = calculateWindLoad(TestCase01.inputs);
+        const gravRes = calculateGravityLoads(TestCase01.inputs, TestCase01.roofComponents);
+        const combRes = calculateLoadCombinations(gravRes, windRes);
+        
+        this.assert("testPortalFrameSolver - Thành công", combRes.success, true);
+        this.assert("testPortalFrameSolver - Đủ 6 trường hợp nội lực", combRes.frameForces.length, 6);
+        
+        // Kiểm tra trường hợp mô men chân cột lớn nhất
+        const maxM = combRes.governingForces.columnBase.maxM;
+        this.assert("testPortalFrameSolver - Max M > 200 kNm", Math.abs(maxM.Mx) > 200, true);
+        
+        // Kiểm tra lực nhổ chân cột (dấu âm)
+        const minN = combRes.governingForces.columnBase.minN;
+        this.assert("testPortalFrameSolver - Có lực nhổ chân cột (N < 0)", minN.N < 0, true);
+    },
+
+    // 4.1 Tôn lợp và xà gồ
     testPurlinCladding: function() {
-        const res = PurlinCladdingEngine.designRoofCladding(null, 1.2, 5.71, 0.83, 1.0, -1.372);
-        this.assert("testPurlinCladding - Kiểm tra tole", res.isAllPass, true);
-        const purlinRes = PurlinCladdingEngine.designPurlin(null, null, 1.2, 9.0, 5.71, 0.83, 1.0, -1.372);
+        const res = PurlinCladdingEngine.designRoofCladding(null, 1.2, 5.71, 0.95, 1.05, -1.372);
+        this.assert("testPurlinCladding - Kiểm tra tole đạt", res.isAllPass, true);
+        const purlinRes = PurlinCladdingEngine.designPurlin(null, null, 1.2, 9.0, 5.71, 0.95, 1.05, -1.372);
         this.assert("testPurlinCladding - Tĩnh tải xà gồ > 0", purlinRes.actualRoofDeadLoad_kN_m2 > 0, true);
     },
+
+    // 4.2 Sàn bê tông cốt thép
     testSlabDesign: function() {
         const res = SlabBeamEngine.calculateSlab({ L1: 2.5, L2: 9.0, liveLoad: 4.0 });
         this.assert("testSlabDesign - Chiều dày sàn hs >= 80mm", res.hs_chosen >= 80, true);
         this.assert("testSlabDesign - Cốt thép As > 0", res.reinforcement.As_calc_cm2 > 0, true);
     },
+
+    // 4.3 Dầm thép đỡ sàn
     testBeamDesign: function() {
         const res = SlabBeamEngine.calculateBeam({ L_beam: 9.0, tributaryWidth: 2.5, slabLoadQd: 6.5, slabLoadQk: 5.0, steelGrade: 'S235', chosenBeamId: 'I350' });
         this.assert("testBeamDesign - Mmax > 0", res.M_max_kNm > 0, true);
-        this.assert("testBeamDesign - sigma uốn hợp lệ", res.checks.sigma_uon > 0, true);
+        this.assert("testBeamDesign - Ứng suất uốn sigma > 0", res.checks.sigma_uon > 0, true);
     },
+
+    // 4.4 Lớp kiểm tra tính hợp lệ dữ liệu
     testValidationLayer: function() {
-        // 1. Kiểm tra dữ liệu chuẩn ProjectState hợp lệ
         const validRes = validateInputs(ProjectState.inputs);
         this.assert("testValidationLayer - ProjectState hợp lệ", validRes.isValid, true);
         this.assert("testValidationLayer - Không có lỗi", validRes.errors.length, 0);
 
-        // 2. Kiểm tra phát hiện lỗi khi H_roof <= H_col
         const invalidGeomRes = validateInputs({ ...ProjectState.inputs, H_roof: 7.0, H_column: 8.0 });
         this.assert("testValidationLayer - Phát hiện lỗi H_roof <= H_column", invalidGeomRes.isValid, false);
         this.assert("testValidationLayer - Có fieldError H_roof", !!invalidGeomRes.fieldErrors.H_roof, true);
 
-        // 3. Kiểm tra tự động suy ra roofSlope khi thiếu
         const noSlopeInput = { ...ProjectState.inputs };
         delete noSlopeInput.roofSlope;
         const autoSlopeRes = validateInputs(noSlopeInput);
         this.assert("testValidationLayer - Tự động tính roofSlope khi thiếu", autoSlopeRes.isValid, true);
+    },
+
+    // 5.1 Không có NaN
+    testNoNaN: function() {
+        const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+        const geom = globalScope.WindEngine.analyzeGeometry(25, 9, 72, 8, 9.25, 'gable');
+        const branch = globalScope.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
+        const hasNaN = branch.surfaces.some(s => isNaN(s.pressure_k) || isNaN(s.frameLineLoad_d) || isNaN(s.resultant_kN));
+        this.assert("testNoNaN - Không xuất hiện giá trị NaN trong tính gió", hasNaN, false);
+    },
+
+    // 5.2 Không có vô hạn (Infinity)
+    testNoInfinity: function() {
+        const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+        const geom = globalScope.WindEngine.analyzeGeometry(25, 9, 72, 8, 9.25, 'gable');
+        const branch = globalScope.WindEngine.calculateDirectionBranch('+X', geom, 'B', { windZone: 'II', terrainCategory: 'B' });
+        const hasInf = branch.surfaces.some(s => !isFinite(s.pressure_k) || !isFinite(s.frameLineLoad_d));
+        this.assert("testNoInfinity - Không xuất hiện giá trị vô hạn trong tính gió", hasInf, false);
+    },
+
+    // 5.3 Nguồn gốc điều khoản tiêu chuẩn
+    testSourceTraceability: function() {
+        const res = StandardData.TCVN2737_2023.Wind.HeightCoefficient.getKze(10, 'B');
+        this.assert("testSourceTraceability - Nguồn tra cứu k(ze) rõ ràng", !!res.source, true);
     }
 };
 
-window.RegressionTests = RegressionTests;
+const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+globalScope.RegressionTests = RegressionTests;

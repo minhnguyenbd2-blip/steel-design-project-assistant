@@ -37,6 +37,8 @@ function proposeSectionsForDesign(forces, materialProps, L0x_m, L0y_m, options =
                 section: sec,
                 source: sec.category,
                 status: "PASS",
+                massPerMeter: sec.massPerMeter,
+                utilization: checkResult.utilization,
                 checkResult: checkResult
             });
         }
@@ -51,4 +53,5 @@ function proposeSectionsForDesign(forces, materialProps, L0x_m, L0y_m, options =
     };
 }
 
-window.proposeSectionsForDesign = proposeSectionsForDesign;
+const globalScope = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this);
+globalScope.proposeSectionsForDesign = proposeSectionsForDesign;
