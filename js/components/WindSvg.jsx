@@ -162,228 +162,521 @@ const WindSvg = (props) => {
     );
 
     const renderCrossSection = () => {
-        const cx = 400, cy = 350;
-        const scale = 200 / L;
-        const w = L * scale;
-        const hCol = H_col * scale;
-        const hRf = (H_rf - H_col) * scale;
+        const cx = 400, cy = 370;
+        const spanM = Math.max(Number(L) || 25, 10);
+        const scale = Math.min(20, 460 / spanM);
+        const w = spanM * scale;
+        const hCol = (Number(H_col) || 8) * scale;
+        const rawRise = H_rf > H_col ? (H_rf - H_col) : (spanM / 2) * Math.tan((alpha || 5.71) * Math.PI / 180);
+        const hRf = Math.max(38, rawRise * scale);
         
-        const pLL = {x: cx - w/2, y: cy};
-        const pLR = {x: cx + w/2, y: cy};
-        const pTL = {x: cx - w/2, y: cy - hCol};
-        const pTR = {x: cx + w/2, y: cy - hCol};
-        const pApex = {x: cx, y: cy - hCol - hRf};
+        const pLL = { x: cx - w/2, y: cy };
+        const pLR = { x: cx + w/2, y: cy };
+        const pTL = { x: cx - w/2, y: cy - hCol };
+        const pTR = { x: cx + w/2, y: cy - hCol };
+        const pApex = { x: cx, y: cy - hCol - hRf };
 
-        const roofAngleDeg = alpha;
+        const roofAngleDeg = (Math.atan2(hRf, w/2) * 180) / Math.PI;
         
         const isLeftToRight = selectedDir === '+X' || selectedDir === '+Y';
-        const windX = isLeftToRight ? cx - w/2 - 120 : cx + w/2 + 120;
+        const windX = isLeftToRight ? pTL.x - 90 : pTR.x + 90;
         const windDir = isLeftToRight ? 1 : -1;
 
         return (
             <g>
-                <text x="400" y="40" fill="#e2e8f0" fontSize="16" fontWeight="bold" textAnchor="middle">MẶT CẮT NGANG CÔNG TRÌNH</text>
+                <text x="400" y="35" fill="#e2e8f0" fontSize="15" fontWeight="bold" textAnchor="middle">
+                    MẶT CẮT NGANG KHUNG NGANG & PHÂN VÙNG ÁP LỰC
+                </text>
                 
+                {/* Wind direction main arrow */}
                 <g transform={`translate(${windX}, ${cy - hCol/2})`}>
-                    <line x1="0" y1="0" x2={windDir * 60} y2="0" stroke="#10b981" strokeWidth="4" markerEnd="url(#wind-main-arrow)" />
-                    <text x={windDir * 30} y="-10" fill="#10b981" fontSize="12" fontWeight="bold" textAnchor="middle">GIÓ {selectedDir}</text>
+                    <line x1="0" y1="0" x2={windDir * 55} y2="0" stroke="#10b981" strokeWidth="4" markerEnd="url(#wind-main-arrow)" />
+                    <text x={windDir * 28} y="-12" fill="#10b981" fontSize="11" fontWeight="bold" textAnchor="middle">GIÓ {selectedDir}</text>
                 </g>
 
-                <line x1="100" y1={cy} x2="700" y2={cy} stroke="#475569" strokeWidth="3" />
-                <path d={`M ${pLL.x} ${pLL.y} L ${pTL.x} ${pTL.y} L ${pApex.x} ${pApex.y} L ${pTR.x} ${pTR.y} L ${pLR.x} ${pLR.y}`} fill="rgba(30,41,59,0.5)" stroke="#94a3b8" strokeWidth="3" />
+                {/* Ground line */}
+                <line x1="60" y1={cy} x2="740" y2={cy} stroke="#475569" strokeWidth="2" strokeDasharray="8,4" />
+                <text x="735" y={cy - 6} fill="#64748b" fontSize="10" textAnchor="end">±0.000</text>
 
-                {/* Left Wall */}
+                {/* Foundation pedestals */}
+                <rect x={pLL.x - 14} y={cy} width="28" height="12" fill="#334155" stroke="#64748b" strokeWidth="1" rx="2" />
+                <rect x={pLR.x - 14} y={cy} width="28" height="12" fill="#334155" stroke="#64748b" strokeWidth="1" rx="2" />
+
+                {/* Main frame silhouette */}
+                <path d={`M ${pLL.x} ${pLL.y} L ${pTL.x} ${pTL.y} L ${pApex.x} ${pApex.y} L ${pTR.x} ${pTR.y} L ${pLR.x} ${pLR.y} Z`} fill="rgba(30, 41, 59, 0.45)" stroke="#64748b" strokeWidth="2.5" />
+
+                {/* Centerline */}
+                <line x1={cx} y1={pApex.y - 18} x2={cx} y2={cy} stroke="#f59e0b" strokeWidth="1" strokeDasharray="6,3" />
+                <circle cx={cx} cy={pApex.y - 18} r="8" fill="#0f172a" stroke="#f59e0b" strokeWidth="1" />
+                <text x={cx} y={pApex.y - 15} fill="#fbbf24" fontSize="8" fontWeight="bold" textAnchor="middle">CL</text>
+
+                {/* Left Wall Zone */}
                 {(() => {
                     const zoneName = isLeftToRight ? 'D' : 'E';
                     const z = getZoneData('Tường', zoneName) || getZoneData('Wall', zoneName);
                     if(!z) return null;
                     const val = getVal(z);
-                    const st = getZoneStyle(val, selectedZone?.zone === zoneName);
+                    const isSel = selectedZone?.zone === zoneName;
+                    const st = getZoneStyle(val, isSel, hoverZone?.zone === zoneName);
+                    const wallThick = 14;
                     return (
-                        <g onClick={() => handleZoneClick(z)} className="cursor-pointer group">
-                            <title>{`Vùng ${zoneName} - c_e: ${z.ce}`}</title>
-                            <rect x={pTL.x - 12} y={pTL.y} width="12" height={hCol} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth}/>
-                            {renderPressureArrow(pTL.x - 6, cy - hCol/2, val, 0, getPressureVal(z), 30)}
-                            <text x={pTL.x - 20} y={cy - hCol/2} fill={st.textColor} fontSize="14" fontWeight="bold">{zoneName}</text>
+                        <g onClick={() => handleZoneClick(z)} onMouseEnter={() => setHoverZone(z)} onMouseLeave={() => setHoverZone(null)} className="cursor-pointer group">
+                            <title>{`Vùng ${zoneName} (${isLeftToRight ? 'Đón gió' : 'Khuất gió'}) - c_e: ${z.ce}, c_net: ${val.toFixed(2)}`}</title>
+                            <rect x={pTL.x - wallThick} y={pTL.y} width={wallThick} height={hCol} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} rx="2"/>
+                            {renderPressureArrow(pTL.x - wallThick/2, cy - hCol/2, val, 0, getPressureVal(z), 25)}
+                            <text x={pTL.x - wallThick - 12} y={cy - hCol/2 + 5} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="end">{zoneName}</text>
                         </g>
-                    )
+                    );
                 })()}
 
-                {/* Right Wall */}
+                {/* Right Wall Zone */}
                 {(() => {
                     const zoneName = isLeftToRight ? 'E' : 'D';
                     const z = getZoneData('Tường', zoneName) || getZoneData('Wall', zoneName);
                     if(!z) return null;
                     const val = getVal(z);
-                    const st = getZoneStyle(val, selectedZone?.zone === zoneName);
+                    const isSel = selectedZone?.zone === zoneName;
+                    const st = getZoneStyle(val, isSel, hoverZone?.zone === zoneName);
+                    const wallThick = 14;
                     return (
-                        <g onClick={() => handleZoneClick(z)} className="cursor-pointer group">
-                            <title>{`Vùng ${zoneName} - c_e: ${z.ce}`}</title>
-                            <rect x={pTR.x} y={pTR.y} width="12" height={hCol} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth}/>
-                            {renderPressureArrow(pTR.x + 6, cy - hCol/2, val, 180, getPressureVal(z), 30)}
-                            <text x={pTR.x + 20} y={cy - hCol/2} fill={st.textColor} fontSize="14" fontWeight="bold">{zoneName}</text>
+                        <g onClick={() => handleZoneClick(z)} onMouseEnter={() => setHoverZone(z)} onMouseLeave={() => setHoverZone(null)} className="cursor-pointer group">
+                            <title>{`Vùng ${zoneName} (${!isLeftToRight ? 'Đón gió' : 'Khuất gió'}) - c_e: ${z.ce}, c_net: ${val.toFixed(2)}`}</title>
+                            <rect x={pTR.x} y={pTR.y} width={wallThick} height={hCol} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} rx="2"/>
+                            {renderPressureArrow(pTR.x + wallThick/2, cy - hCol/2, val, 180, getPressureVal(z), 25)}
+                            <text x={pTR.x + wallThick + 12} y={cy - hCol/2 + 5} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="start">{zoneName}</text>
                         </g>
-                    )
+                    );
                 })()}
 
-                {/* Left Roof */}
+                {/* Left Roof Zone */}
                 {(() => {
                     const zG = getZoneData('Mái', 'G') || getZoneData('Roof', 'G') || getZoneData('Mái', 'H');
                     if(!zG) return null;
                     const val = getVal(zG);
-                    const st = getZoneStyle(val, selectedZone?.zone === zG.zone);
-                    const midX = (pTL.x + pApex.x)/2;
-                    const midY = (pTL.y + pApex.y)/2;
+                    const isSel = selectedZone?.zone === zG.zone;
+                    const st = getZoneStyle(val, isSel, hoverZone?.zone === zG.zone);
+                    const midX = (pTL.x + pApex.x) / 2;
+                    const midY = (pTL.y + pApex.y) / 2;
+                    const thick = 14;
                     return (
-                        <g onClick={() => handleZoneClick(zG)} className="cursor-pointer group">
-                            <title>{`Vùng ${zG.zone} - c_e: ${zG.ce}`}</title>
-                            <path d={`M ${pTL.x} ${pTL.y} L ${pApex.x} ${pApex.y} L ${pApex.x} ${pApex.y-12} L ${pTL.x-5} ${pTL.y-12} Z`} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth}/>
-                            {renderPressureArrow(midX, midY-6, val, 90 - roofAngleDeg, getPressureVal(zG), 30)}
-                            <text x={midX} y={midY-25} fill={st.textColor} fontSize="14" fontWeight="bold" textAnchor="middle">{zG.zone}</text>
+                        <g onClick={() => handleZoneClick(zG)} onMouseEnter={() => setHoverZone(zG)} onMouseLeave={() => setHoverZone(null)} className="cursor-pointer group">
+                            <title>{`Vùng mái ${zG.zone} - c_e: ${zG.ce}, c_net: ${val.toFixed(2)}`}</title>
+                            <path d={`M ${pTL.x} ${pTL.y} L ${pApex.x} ${pApex.y} L ${pApex.x} ${pApex.y - thick} L ${pTL.x - 4} ${pTL.y - thick} Z`} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth}/>
+                            {renderPressureArrow(midX, midY - thick/2, val, 90 - roofAngleDeg, getPressureVal(zG), 25)}
+                            <text x={midX} y={midY - 22} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="middle" stroke="#090d16" strokeWidth="3" paintOrder="stroke">{zG.zone} ({val.toFixed(2)})</text>
                         </g>
-                    )
+                    );
                 })()}
 
-                {/* Right Roof */}
+                {/* Right Roof Zone */}
                 {(() => {
-                    const zI = getZoneData('Mái', 'I') || getZoneData('Roof', 'I');
+                    const zI = getZoneData('Mái', 'I') || getZoneData('Roof', 'I') || getZoneData('Mái', 'J');
                     if(!zI) return null;
                     const val = getVal(zI);
-                    const st = getZoneStyle(val, selectedZone?.zone === 'I');
-                    const midX = (pTR.x + pApex.x)/2;
-                    const midY = (pTR.y + pApex.y)/2;
+                    const isSel = selectedZone?.zone === zI.zone;
+                    const st = getZoneStyle(val, isSel, hoverZone?.zone === zI.zone);
+                    const midX = (pTR.x + pApex.x) / 2;
+                    const midY = (pTR.y + pApex.y) / 2;
+                    const thick = 14;
                     return (
-                        <g onClick={() => handleZoneClick(zI)} className="cursor-pointer group">
-                            <title>{`Vùng ${zI.zone} - c_e: ${zI.ce}`}</title>
-                            <path d={`M ${pApex.x} ${pApex.y} L ${pTR.x} ${pTR.y} L ${pTR.x+5} ${pTR.y-12} L ${pApex.x} ${pApex.y-12} Z`} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth}/>
-                            {renderPressureArrow(midX, midY-6, val, 90 + roofAngleDeg, getPressureVal(zI), 30)}
-                            <text x={midX} y={midY-25} fill={st.textColor} fontSize="14" fontWeight="bold" textAnchor="middle">{zI.zone}</text>
+                        <g onClick={() => handleZoneClick(zI)} onMouseEnter={() => setHoverZone(zI)} onMouseLeave={() => setHoverZone(null)} className="cursor-pointer group">
+                            <title>{`Vùng mái ${zI.zone} - c_e: ${zI.ce}, c_net: ${val.toFixed(2)}`}</title>
+                            <path d={`M ${pApex.x} ${pApex.y} L ${pTR.x} ${pTR.y} L ${pTR.x + 4} ${pTR.y - thick} L ${pApex.x} ${pApex.y - thick} Z`} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth}/>
+                            {renderPressureArrow(midX, midY - thick/2, val, 90 + roofAngleDeg, getPressureVal(zI), 25)}
+                            <text x={midX} y={midY - 22} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="middle" stroke="#090d16" strokeWidth="3" paintOrder="stroke">{zI.zone} ({val.toFixed(2)})</text>
                         </g>
-                    )
+                    );
                 })()}
 
-                {renderDimension(pLL.x, cy, pLR.x, cy, `L = ${L}m`, 40)}
-                {renderDimension(pLL.x, cy, pTL.x, pTL.y, `H_col = ${H_col}m`, -50, true)}
-                {renderDimension(pApex.x, cy, pApex.x, pApex.y, `H_roof = ${H_rf}m`, 50, true)}
+                {/* Grid Bubbles A and B */}
+                <g transform={`translate(${pLL.x}, ${cy + 24})`}>
+                    <circle cx="0" cy="0" r="13" fill="#0f172a" stroke="#ef4444" strokeWidth="1.5" />
+                    <text x="0" y="4" fill="#f87171" fontSize="11" fontWeight="bold" textAnchor="middle">A</text>
+                    <line x1="0" y1="-13" x2="0" y2="-24" stroke="#64748b" strokeWidth="1" strokeDasharray="2,2"/>
+                </g>
+                <g transform={`translate(${pLR.x}, ${cy + 24})`}>
+                    <circle cx="0" cy="0" r="13" fill="#0f172a" stroke="#ef4444" strokeWidth="1.5" />
+                    <text x="0" y="4" fill="#f87171" fontSize="11" fontWeight="bold" textAnchor="middle">B</text>
+                    <line x1="0" y1="-13" x2="0" y2="-24" stroke="#64748b" strokeWidth="1" strokeDasharray="2,2"/>
+                </g>
 
-                <path d={`M ${pTL.x + 40} ${pTL.y} A 40 40 0 0 0 ${pTL.x + 35} ${pTL.y - 15}`} fill="none" stroke="#94a3b8" strokeWidth="1" />
-                <text x={pTL.x + 50} y={pTL.y - 10} fill="#cbd5e1" fontSize="10">α={alpha}°</text>
+                {/* Dimension Lines */}
+                {renderDimension(pLL.x, cy, pLR.x, cy, `Nhịp L = ${L} m`, 55)}
+                {renderDimension(pLL.x, cy, pTL.x, pTL.y, `H_cột = ${H_col} m`, -65, true)}
+                {renderDimension(pLR.x, cy, pLR.x, pApex.y, `H_đỉnh = ${H_rf} m`, 65, true)}
+
+                {/* Roof Slope Indicator */}
+                <path d={`M ${pTL.x + 36} ${pTL.y} A 36 36 0 0 0 ${pTL.x + 32} ${pTL.y - 12}`} fill="none" stroke="#94a3b8" strokeWidth="1.5" />
+                <text x={pTL.x + 42} y={pTL.y - 8} fill="#cbd5e1" fontSize="11" fontWeight="bold">α = {alpha}°</text>
             </g>
         );
     };
 
     const renderRoofPlan = () => {
-        const cx = 400, cy = 250;
-        const scale = 300 / Math.max(L, B);
-        const w = b * scale;
-        const h_dim = d * scale;
-        const e_scaled = e * scale;
+        const cx = 400, cy = 230;
+        const b_dim = Math.max(Number(b) || 72, 5);
+        const d_dim = Math.max(Number(d) || 25, 5);
+        const maxW = 540;
+        const maxH = 260;
+        const scale = Math.min(maxW / b_dim, maxH / d_dim);
+        const w = b_dim * scale;
+        const h_dim = d_dim * scale;
+        const e_scaled = Math.min(e * scale, h_dim * 0.95);
         
         return (
             <g>
-                <text x="400" y="40" fill="#e2e8f0" fontSize="16" fontWeight="bold" textAnchor="middle">SƠ ĐỒ PHÂN VÙNG MÁI</text>
-                {renderNorthArrow(700, 60)}
+                <text x="400" y="35" fill="#e2e8f0" fontSize="15" fontWeight="bold" textAnchor="middle">
+                    SƠ ĐỒ PHÂN VÙNG MÁI THEO TCVN 2737:2023 (MẶT BẰNG)
+                </text>
+                {renderNorthArrow(730, 50)}
                 
-                <g transform={`translate(400, ${cy + h_dim/2 + 60})`}>
+                {/* Wind direction indicator */}
+                <g transform={`translate(${cx}, ${cy + h_dim/2 + 55})`}>
                     <line x1="0" y1="30" x2="0" y2="0" stroke="#10b981" strokeWidth="4" markerEnd="url(#wind-main-arrow)" />
-                    <text x="0" y="45" fill="#10b981" fontSize="12" fontWeight="bold" textAnchor="middle">GIÓ {selectedDir}</text>
+                    <text x="0" y="44" fill="#10b981" fontSize="12" fontWeight="bold" textAnchor="middle">HƯỚNG GIÓ {selectedDir}</text>
                 </g>
 
                 <g transform={`translate(${cx - w/2}, ${cy - h_dim/2})`}>
+                    {/* Roof Boundary */}
                     <rect x="0" y="0" width={w} height={h_dim} fill="#0f172a" stroke="#64748b" strokeWidth="2" />
                     
+                    {/* Ridge Line */}
                     {isTheta0 ? (
-                        <line x1="0" y1={h_dim/2} x2={w} y2={h_dim/2} stroke="#f59e0b" strokeWidth="2" strokeDasharray="5,3" />
+                        <>
+                            <line x1="0" y1={h_dim/2} x2={w} y2={h_dim/2} stroke="#f59e0b" strokeWidth="2" strokeDasharray="6,3" />
+                            <text x={w - 10} y={h_dim/2 - 6} fill="#fbbf24" fontSize="10" textAnchor="end">Đỉnh mái (Ridge)</text>
+                        </>
                     ) : (
-                        <line x1={w/2} y1="0" x2={w/2} y2={h_dim} stroke="#f59e0b" strokeWidth="2" strokeDasharray="5,3" />
+                        <>
+                            <line x1={w/2} y1="0" x2={w/2} y2={h_dim} stroke="#f59e0b" strokeWidth="2" strokeDasharray="6,3" />
+                            <text x={w/2 + 6} y={15} fill="#fbbf24" fontSize="10">Đỉnh mái</text>
+                        </>
                     )}
 
-                    {isTheta0 && (
+                    {isTheta0 ? (
+                        /* Gió 0 độ */
                         <>
+                            {/* Vùng F (Góc mép đón gió) */}
                             {['F'].map(zn => {
                                 const z = getZoneData('Mái', zn) || getZoneData('Roof', zn);
                                 if(!z) return null;
                                 const val = getVal(z);
-                                const st = getZoneStyle(val, selectedZone?.zone === zn, hoverZone?.zone === zn);
+                                const isSel = selectedZone?.zone === zn;
+                                const st = getZoneStyle(val, isSel, hoverZone?.zone === zn);
+                                const fWidth = Math.min(e_scaled/4, w/4);
+                                const fHeight = Math.min(e_scaled/10, h_dim/4);
                                 return (
                                     <g key={zn} onClick={() => handleZoneClick(z)} onMouseEnter={()=>setHoverZone(z)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
                                         <title>{`Vùng ${zn}: ${val.toFixed(2)}`}</title>
-                                        <rect x="0" y={h_dim - e_scaled/10} width={e_scaled/4} height={e_scaled/10} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
-                                        <text x={e_scaled/8} y={h_dim - e_scaled/20 + 4} fill={st.textColor} fontSize="12" fontWeight="bold" textAnchor="middle">{zn}</text>
+                                        <rect x="0" y={h_dim - fHeight} width={fWidth} height={fHeight} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                        <text x={fWidth/2} y={h_dim - fHeight/2 + 4} fill={st.textColor} fontSize="12" fontWeight="bold" textAnchor="middle">{zn}</text>
                                         
-                                        <rect x={w - e_scaled/4} y={h_dim - e_scaled/10} width={e_scaled/4} height={e_scaled/10} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
-                                        <text x={w - e_scaled/8} y={h_dim - e_scaled/20 + 4} fill={st.textColor} fontSize="12" fontWeight="bold" textAnchor="middle">{zn}</text>
+                                        <rect x={w - fWidth} y={h_dim - fHeight} width={fWidth} height={fHeight} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                        <text x={w - fWidth/2} y={h_dim - fHeight/2 + 4} fill={st.textColor} fontSize="12" fontWeight="bold" textAnchor="middle">{zn}</text>
                                     </g>
-                                )
+                                );
                             })}
                             
+                            {/* Vùng G (Dải giữa mép đón gió) */}
                             {['G'].map(zn => {
                                 const z = getZoneData('Mái', zn) || getZoneData('Roof', zn);
                                 if(!z) return null;
                                 const val = getVal(z);
-                                const st = getZoneStyle(val, selectedZone?.zone === zn, hoverZone?.zone === zn);
+                                const isSel = selectedZone?.zone === zn;
+                                const st = getZoneStyle(val, isSel, hoverZone?.zone === zn);
+                                const fWidth = Math.min(e_scaled/4, w/4);
+                                const fHeight = Math.min(e_scaled/10, h_dim/4);
                                 return (
                                     <g key={zn} onClick={() => handleZoneClick(z)} onMouseEnter={()=>setHoverZone(z)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
                                         <title>{`Vùng ${zn}: ${val.toFixed(2)}`}</title>
-                                        <rect x={e_scaled/4} y={h_dim - e_scaled/10} width={w - e_scaled/2} height={e_scaled/10} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
-                                        <text x={w/2} y={h_dim - e_scaled/20 + 4} fill={st.textColor} fontSize="14" fontWeight="bold" textAnchor="middle">{zn} ({val})</text>
+                                        <rect x={fWidth} y={h_dim - fHeight} width={w - 2*fWidth} height={fHeight} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                        <text x={w/2} y={h_dim - fHeight/2 + 4} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="middle">{zn} ({val.toFixed(2)})</text>
                                     </g>
-                                )
+                                );
                             })}
 
+                            {/* Vùng H (Mái đón gió còn lại) */}
                             {['H'].map(zn => {
                                 const z = getZoneData('Mái', zn) || getZoneData('Roof', zn);
                                 if(!z) return null;
                                 const val = getVal(z);
-                                const st = getZoneStyle(val, selectedZone?.zone === zn, hoverZone?.zone === zn);
+                                const isSel = selectedZone?.zone === zn;
+                                const st = getZoneStyle(val, isSel, hoverZone?.zone === zn);
+                                const fHeight = Math.min(e_scaled/10, h_dim/4);
+                                const hHeight = Math.max(0, h_dim/2 - fHeight);
                                 return (
                                     <g key={zn} onClick={() => handleZoneClick(z)} onMouseEnter={()=>setHoverZone(z)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
                                         <title>{`Vùng ${zn}: ${val.toFixed(2)}`}</title>
-                                        <rect x="0" y={h_dim/2} width={w} height={h_dim/2 - e_scaled/10} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
-                                        <text x={w/2} y={h_dim/2 + (h_dim/2 - e_scaled/10)/2} fill={st.textColor} fontSize="14" fontWeight="bold" textAnchor="middle">{zn} ({val})</text>
+                                        <rect x="0" y={h_dim/2} width={w} height={hHeight} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                        <text x={w/2} y={h_dim/2 + hHeight/2 + 4} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="middle">{zn} ({val.toFixed(2)})</text>
                                     </g>
-                                )
+                                );
                             })}
 
+                            {/* Vùng J (Mái khuất gió - dải nóc) */}
                             {['J'].map(zn => {
                                 const z = getZoneData('Mái', zn) || getZoneData('Roof', zn);
                                 if(!z) return null;
                                 const val = getVal(z);
-                                const st = getZoneStyle(val, selectedZone?.zone === zn, hoverZone?.zone === zn);
+                                const isSel = selectedZone?.zone === zn;
+                                const st = getZoneStyle(val, isSel, hoverZone?.zone === zn);
+                                const jHeight = Math.min(e_scaled/10, h_dim/4);
                                 return (
                                     <g key={zn} onClick={() => handleZoneClick(z)} onMouseEnter={()=>setHoverZone(z)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
                                         <title>{`Vùng ${zn}: ${val.toFixed(2)}`}</title>
-                                        <rect x="0" y={h_dim/2 - e_scaled/10} width={w} height={e_scaled/10} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
-                                        <text x={w/2} y={h_dim/2 - e_scaled/20 + 4} fill={st.textColor} fontSize="14" fontWeight="bold" textAnchor="middle">{zn} ({val})</text>
+                                        <rect x="0" y={h_dim/2 - jHeight} width={w} height={jHeight} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                        <text x={w/2} y={h_dim/2 - jHeight/2 + 4} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="middle">{zn} ({val.toFixed(2)})</text>
                                     </g>
-                                )
+                                );
                             })}
 
+                            {/* Vùng I (Mái khuất gió còn lại) */}
                             {['I'].map(zn => {
                                 const z = getZoneData('Mái', zn) || getZoneData('Roof', zn);
                                 if(!z) return null;
                                 const val = getVal(z);
-                                const st = getZoneStyle(val, selectedZone?.zone === zn, hoverZone?.zone === zn);
+                                const isSel = selectedZone?.zone === zn;
+                                const st = getZoneStyle(val, isSel, hoverZone?.zone === zn);
+                                const jHeight = Math.min(e_scaled/10, h_dim/4);
+                                const iHeight = Math.max(0, h_dim/2 - jHeight);
                                 return (
                                     <g key={zn} onClick={() => handleZoneClick(z)} onMouseEnter={()=>setHoverZone(z)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
                                         <title>{`Vùng ${zn}: ${val.toFixed(2)}`}</title>
-                                        <rect x="0" y="0" width={w} height={h_dim/2 - e_scaled/10} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
-                                        <text x={w/2} y={(h_dim/2 - e_scaled/10)/2} fill={st.textColor} fontSize="14" fontWeight="bold" textAnchor="middle">{zn} ({val})</text>
+                                        <rect x="0" y="0" width={w} height={iHeight} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                        <text x={w/2} y={iHeight/2 + 4} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="middle">{zn} ({val.toFixed(2)})</text>
                                     </g>
-                                )
+                                );
+                            })}
+                        </>
+                    ) : (
+                        /* Gió 90 độ */
+                        <>
+                            {/* Vùng F (Góc mép hồi đón gió) */}
+                            {['F'].map(zn => {
+                                const z = getZoneData('Mái', zn) || getZoneData('Roof', zn);
+                                if(!z) return null;
+                                const val = getVal(z);
+                                const isSel = selectedZone?.zone === zn;
+                                const st = getZoneStyle(val, isSel, hoverZone?.zone === zn);
+                                const fWidth = Math.min(e_scaled/4, w/3);
+                                const fHeight = Math.min(e_scaled/10, h_dim/4);
+                                return (
+                                    <g key={zn} onClick={() => handleZoneClick(z)} onMouseEnter={()=>setHoverZone(z)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
+                                        <title>{`Vùng ${zn}: ${val.toFixed(2)}`}</title>
+                                        <rect x="0" y={h_dim - fHeight} width={fWidth} height={fHeight} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                        <text x={fWidth/2} y={h_dim - fHeight/2 + 4} fill={st.textColor} fontSize="11" fontWeight="bold" textAnchor="middle">{zn}</text>
+                                        
+                                        <rect x={w - fWidth} y={h_dim - fHeight} width={fWidth} height={fHeight} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                        <text x={w - fWidth/2} y={h_dim - fHeight/2 + 4} fill={st.textColor} fontSize="11" fontWeight="bold" textAnchor="middle">{zn}</text>
+                                    </g>
+                                );
+                            })}
+
+                            {/* Vùng G (Giữa mép hồi đón gió) */}
+                            {['G'].map(zn => {
+                                const z = getZoneData('Mái', zn) || getZoneData('Roof', zn);
+                                if(!z) return null;
+                                const val = getVal(z);
+                                const isSel = selectedZone?.zone === zn;
+                                const st = getZoneStyle(val, isSel, hoverZone?.zone === zn);
+                                const fWidth = Math.min(e_scaled/4, w/3);
+                                const fHeight = Math.min(e_scaled/10, h_dim/4);
+                                return (
+                                    <g key={zn} onClick={() => handleZoneClick(z)} onMouseEnter={()=>setHoverZone(z)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
+                                        <title>{`Vùng ${zn}: ${val.toFixed(2)}`}</title>
+                                        <rect x={fWidth} y={h_dim - fHeight} width={w - 2*fWidth} height={fHeight} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                        <text x={w/2} y={h_dim - fHeight/2 + 4} fill={st.textColor} fontSize="12" fontWeight="bold" textAnchor="middle">{zn} ({val.toFixed(2)})</text>
+                                    </g>
+                                );
+                            })}
+
+                            {/* Vùng H (Dải giữa) */}
+                            {['H'].map(zn => {
+                                const z = getZoneData('Mái', zn) || getZoneData('Roof', zn);
+                                if(!z) return null;
+                                const val = getVal(z);
+                                const isSel = selectedZone?.zone === zn;
+                                const st = getZoneStyle(val, isSel, hoverZone?.zone === zn);
+                                const fHeight = Math.min(e_scaled/10, h_dim/4);
+                                const hEnd = Math.min(e_scaled/2, h_dim * 0.7);
+                                const hHeight = Math.max(0, hEnd - fHeight);
+                                return (
+                                    <g key={zn} onClick={() => handleZoneClick(z)} onMouseEnter={()=>setHoverZone(z)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
+                                        <title>{`Vùng ${zn}: ${val.toFixed(2)}`}</title>
+                                        <rect x="0" y={h_dim - hEnd} width={w} height={hHeight} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                        <text x={w/2} y={h_dim - hEnd + hHeight/2 + 4} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="middle">{zn} ({val.toFixed(2)})</text>
+                                    </g>
+                                );
+                            })}
+
+                            {/* Vùng I (Phần còn lại) */}
+                            {['I'].map(zn => {
+                                const z = getZoneData('Mái', zn) || getZoneData('Roof', zn);
+                                if(!z) return null;
+                                const val = getVal(z);
+                                const isSel = selectedZone?.zone === zn;
+                                const st = getZoneStyle(val, isSel, hoverZone?.zone === zn);
+                                const hEnd = Math.min(e_scaled/2, h_dim * 0.7);
+                                const iHeight = Math.max(0, h_dim - hEnd);
+                                return (
+                                    <g key={zn} onClick={() => handleZoneClick(z)} onMouseEnter={()=>setHoverZone(z)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
+                                        <title>{`Vùng ${zn}: ${val.toFixed(2)}`}</title>
+                                        <rect x="0" y="0" width={w} height={iHeight} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                        <text x={w/2} y={iHeight/2 + 4} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="middle">{zn} ({val.toFixed(2)})</text>
+                                    </g>
+                                );
                             })}
                         </>
                     )}
                 </g>
+
+                {/* Dimensions for plan */}
+                {renderDimension(cx - w/2, cy + h_dim/2, cx + w/2, cy + h_dim/2, `b = ${b_dim.toFixed(1)} m`, 30)}
+                {renderDimension(cx + w/2, cy - h_dim/2, cx + w/2, cy + h_dim/2, `d = ${d_dim.toFixed(1)} m`, 30, true)}
             </g>
         );
     };
 
     const renderWallPlan = () => {
+        const cx = 400, cy = 230;
+        const b_dim = Math.max(Number(b) || 72, 5);
+        const d_dim = Math.max(Number(d) || 25, 5);
+        const maxW = 540;
+        const maxH = 260;
+        const scale = Math.min(maxW / b_dim, maxH / d_dim);
+        const w = b_dim * scale;
+        const h_dim = d_dim * scale;
+        const wallT = 16;
+        
+        const aLen = Math.min(e / 5, d_dim) * scale;
+        const bLen = Math.max(0, Math.min(e, d_dim) * scale - aLen);
+        const cLen = Math.max(0, h_dim - (aLen + bLen));
+
+        const zD = getZoneData('Tường', 'D') || getZoneData('Wall', 'D');
+        const zE = getZoneData('Tường', 'E') || getZoneData('Wall', 'E');
+        const zA = getZoneData('Tường', 'A') || getZoneData('Wall', 'A');
+        const zB = getZoneData('Tường', 'B') || getZoneData('Wall', 'B');
+        const zC = getZoneData('Tường', 'C') || getZoneData('Wall', 'C');
+
         return (
             <g>
-                <text x="400" y="40" fill="#e2e8f0" fontSize="16" fontWeight="bold" textAnchor="middle">SƠ ĐỒ PHÂN VÙNG TƯỜNG (MẶT BẰNG)</text>
-                <text x="400" y="250" fill="#94a3b8" fontSize="14" fontStyle="italic" textAnchor="middle">Sử dụng Mặt cắt ngang hoặc xem bảng chi tiết</text>
+                <text x="400" y="35" fill="#e2e8f0" fontSize="15" fontWeight="bold" textAnchor="middle">
+                    SƠ ĐỒ PHÂN VÙNG TƯỜNG THEO TCVN 2737:2023 (MẶT BẰNG)
+                </text>
+                {renderNorthArrow(730, 50)}
+
+                {/* Wind direction indicator */}
+                <g transform={`translate(${cx}, ${cy + h_dim/2 + 55})`}>
+                    <line x1="0" y1="30" x2="0" y2="0" stroke="#10b981" strokeWidth="4" markerEnd="url(#wind-main-arrow)" />
+                    <text x="0" y="44" fill="#10b981" fontSize="12" fontWeight="bold" textAnchor="middle">HƯỚNG GIÓ {selectedDir}</text>
+                </g>
+
+                <g transform={`translate(${cx - w/2}, ${cy - h_dim/2})`}>
+                    {/* Building floor interior */}
+                    <rect x="0" y="0" width={w} height={h_dim} fill="#0b1329" stroke="#334155" strokeWidth="1" />
+                    <text x={w/2} y={h_dim/2} fill="#475569" fontSize="12" fontStyle="italic" textAnchor="middle">Mặt bằng sàn nhà</text>
+
+                    {/* Windward Wall: Zone D (Bottom) */}
+                    {zD && (() => {
+                        const val = getVal(zD);
+                        const st = getZoneStyle(val, selectedZone?.zone === 'D', hoverZone?.zone === 'D');
+                        return (
+                            <g onClick={() => handleZoneClick(zD)} onMouseEnter={()=>setHoverZone(zD)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
+                                <title>{`Vùng D (Tường đón gió): ${val.toFixed(2)}`}</title>
+                                <rect x="0" y={h_dim - wallT} width={w} height={wallT} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                <text x={w/2} y={h_dim - wallT/2 + 4} fill={st.textColor} fontSize="12" fontWeight="bold" textAnchor="middle">VÙNG D ({val.toFixed(2)})</text>
+                            </g>
+                        );
+                    })()}
+
+                    {/* Leeward Wall: Zone E (Top) */}
+                    {zE && (() => {
+                        const val = getVal(zE);
+                        const st = getZoneStyle(val, selectedZone?.zone === 'E', hoverZone?.zone === 'E');
+                        return (
+                            <g onClick={() => handleZoneClick(zE)} onMouseEnter={()=>setHoverZone(zE)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
+                                <title>{`Vùng E (Tường khuất gió): ${val.toFixed(2)}`}</title>
+                                <rect x="0" y="0" width={w} height={wallT} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                <text x={w/2} y={wallT/2 + 4} fill={st.textColor} fontSize="12" fontWeight="bold" textAnchor="middle">VÙNG E ({val.toFixed(2)})</text>
+                            </g>
+                        );
+                    })()}
+
+                    {/* Left Side Wall Zones A, B, C */}
+                    {zA && (() => {
+                        const val = getVal(zA);
+                        const st = getZoneStyle(val, selectedZone?.zone === 'A', hoverZone?.zone === 'A');
+                        return (
+                            <g onClick={() => handleZoneClick(zA)} onMouseEnter={()=>setHoverZone(zA)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
+                                <title>{`Vùng A (Tường bên): ${val.toFixed(2)}`}</title>
+                                <rect x="0" y={h_dim - wallT - aLen} width={wallT} height={aLen} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                <text x={wallT + 8} y={h_dim - wallT - aLen/2 + 4} fill={st.textColor} fontSize="10" fontWeight="bold">A</text>
+                            </g>
+                        );
+                    })()}
+
+                    {zB && bLen > 0 && (() => {
+                        const val = getVal(zB);
+                        const st = getZoneStyle(val, selectedZone?.zone === 'B', hoverZone?.zone === 'B');
+                        return (
+                            <g onClick={() => handleZoneClick(zB)} onMouseEnter={()=>setHoverZone(zB)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
+                                <title>{`Vùng B (Tường bên): ${val.toFixed(2)}`}</title>
+                                <rect x="0" y={h_dim - wallT - aLen - bLen} width={wallT} height={bLen} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                <text x={wallT + 8} y={h_dim - wallT - aLen - bLen/2 + 4} fill={st.textColor} fontSize="10" fontWeight="bold">B</text>
+                            </g>
+                        );
+                    })()}
+
+                    {zC && cLen > 0 && (() => {
+                        const val = getVal(zC);
+                        const st = getZoneStyle(val, selectedZone?.zone === 'C', hoverZone?.zone === 'C');
+                        return (
+                            <g onClick={() => handleZoneClick(zC)} onMouseEnter={()=>setHoverZone(zC)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
+                                <title>{`Vùng C (Tường bên): ${val.toFixed(2)}`}</title>
+                                <rect x="0" y={wallT} width={wallT} height={cLen} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                <text x={wallT + 8} y={wallT + cLen/2 + 4} fill={st.textColor} fontSize="10" fontWeight="bold">C</text>
+                            </g>
+                        );
+                    })()}
+
+                    {/* Right Side Wall Zones A, B, C */}
+                    {zA && (() => {
+                        const val = getVal(zA);
+                        const st = getZoneStyle(val, selectedZone?.zone === 'A', hoverZone?.zone === 'A');
+                        return (
+                            <g onClick={() => handleZoneClick(zA)} onMouseEnter={()=>setHoverZone(zA)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
+                                <rect x={w - wallT} y={h_dim - wallT - aLen} width={wallT} height={aLen} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                <text x={w - wallT - 8} y={h_dim - wallT - aLen/2 + 4} fill={st.textColor} fontSize="10" fontWeight="bold" textAnchor="end">A</text>
+                            </g>
+                        );
+                    })()}
+
+                    {zB && bLen > 0 && (() => {
+                        const val = getVal(zB);
+                        const st = getZoneStyle(val, selectedZone?.zone === 'B', hoverZone?.zone === 'B');
+                        return (
+                            <g onClick={() => handleZoneClick(zB)} onMouseEnter={()=>setHoverZone(zB)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
+                                <rect x={w - wallT} y={h_dim - wallT - aLen - bLen} width={wallT} height={bLen} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                <text x={w - wallT - 8} y={h_dim - wallT - aLen - bLen/2 + 4} fill={st.textColor} fontSize="10" fontWeight="bold" textAnchor="end">B</text>
+                            </g>
+                        );
+                    })()}
+
+                    {zC && cLen > 0 && (() => {
+                        const val = getVal(zC);
+                        const st = getZoneStyle(val, selectedZone?.zone === 'C', hoverZone?.zone === 'C');
+                        return (
+                            <g onClick={() => handleZoneClick(zC)} onMouseEnter={()=>setHoverZone(zC)} onMouseLeave={()=>setHoverZone(null)} className="cursor-pointer">
+                                <rect x={w - wallT} y={wallT} width={wallT} height={cLen} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} />
+                                <text x={w - wallT - 8} y={wallT + cLen/2 + 4} fill={st.textColor} fontSize="10" fontWeight="bold" textAnchor="end">C</text>
+                            </g>
+                        );
+                    })()}
+                </g>
+
+                {/* Dimensions */}
+                {renderDimension(cx - w/2, cy + h_dim/2, cx + w/2, cy + h_dim/2, `b = ${b_dim.toFixed(1)} m`, 30)}
+                {renderDimension(cx + w/2, cy - h_dim/2, cx + w/2, cy + h_dim/2, `d = ${d_dim.toFixed(1)} m`, 30, true)}
             </g>
         );
     };
@@ -449,41 +742,46 @@ const WindSvg = (props) => {
                             ))}
                         </div>
                         <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
-                            <button onClick={() => setCoeffMode('net')} className={`px-2 py-1 text-xs rounded ${coeffMode === 'net' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}>c_net</button>
-                            <button onClick={() => setCoeffMode('ce')} className={`px-2 py-1 text-xs rounded ${coeffMode === 'ce' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>c_e</button>
+                            <button onClick={() => setCoeffMode('net')} className={`px-2 py-1 text-xs rounded ${coeffMode === 'net' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}>c_net</button>
+                            <button onClick={() => setCoeffMode('ce')} className={`px-2 py-1 text-xs rounded ${coeffMode === 'ce' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}>c_e</button>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                <div className="lg:col-span-8 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden relative flex justify-center items-center p-2" style={{ minHeight: '400px' }}>
-                    <svg width="100%" height="100%" viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} className="max-w-full">
-                        {drawDefs()}
-                        <rect width="100%" height="100%" fill="url(#grid)" />
+                <div className="lg:col-span-8 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden flex flex-col justify-between" style={{ minHeight: '420px' }}>
+                    <div className="flex-1 flex justify-center items-center p-2">
+                        <svg width="100%" height="100%" viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} className="max-w-full">
+                            {drawDefs()}
+                            <rect width="100%" height="100%" fill="url(#grid)" />
 
-                        {viewMode === 'cross_section' && renderCrossSection()}
-                        {viewMode === 'roof_plan' && renderRoofPlan()}
-                        {viewMode === 'wall_plan' && renderWallPlan()}
-                    </svg>
+                            {viewMode === 'cross_section' && renderCrossSection()}
+                            {viewMode === 'roof_plan' && renderRoofPlan()}
+                            {viewMode === 'wall_plan' && renderWallPlan()}
+                        </svg>
+                    </div>
 
-                    <div className="absolute bottom-4 left-4 bg-slate-900/90 p-3 rounded-lg border border-slate-700 text-xs backdrop-blur-sm pointer-events-none">
-                        <div className="font-bold mb-2 text-white border-b border-slate-700 pb-1">CHÚ GIẢI</div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="w-4 h-1 bg-red-500 block"></span>
-                            <span className="text-slate-300">Áp lực dương (+) (Đẩy)</span>
-                        </div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="w-4 h-1 bg-blue-500 block"></span>
-                            <span className="text-slate-300">Áp lực âm (-) (Hút)</span>
-                        </div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="text-emerald-500 font-bold">→</span>
-                            <span className="text-slate-300">Hướng gió</span>
+                    {/* Integrated Horizontal Legend Bar */}
+                    <div className="flex flex-wrap items-center justify-center gap-6 py-2.5 px-4 bg-slate-900/90 border-t border-slate-800 text-xs text-slate-300">
+                        <div className="flex items-center gap-2">
+                            <span className="w-4 h-1.5 bg-red-500 block rounded-full"></span>
+                            <span>Áp lực dương (+) (Đẩy)</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="w-4 h-4" style={{background: 'url(#hatch-sel)'}}></span>
-                            <span className="text-slate-300">Vùng đang chọn</span>
+                            <span className="w-4 h-1.5 bg-blue-500 block rounded-full"></span>
+                            <span>Áp lực âm (-) (Hút)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-emerald-400 font-bold text-sm leading-none">→</span>
+                            <span>Hướng gió</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="w-3.5 h-3.5 border border-amber-400 rounded-sm" style={{background: 'url(#hatch-sel)'}}></span>
+                            <span>Vùng đang chọn</span>
+                        </div>
+                        <div className="text-[11px] text-slate-400 italic">
+                            * Nhấp vào vùng để xem chi tiết
                         </div>
                     </div>
                 </div>
