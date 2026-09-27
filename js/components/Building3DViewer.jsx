@@ -102,8 +102,8 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         const steelMat = new THREE.MeshStandardMaterial({ color: steelColor, metalness: 0.7, roughness: 0.2 });
         const purlinMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.4, roughness: 0.5 });
         const jointMat = new THREE.MeshStandardMaterial({ color: isDark ? 0x475569 : 0x334155, metalness: 0.8, roughness: 0.2 });
-        const wallMat = new THREE.MeshPhysicalMaterial({ color: isDark ? 0x1e293b : 0x94a3b8, transparent: true, opacity: 0.25, side: THREE.DoubleSide, clearcoat: 0.5, roughness: 0.4, wireframe: isGeometry });
-        const roofMat = new THREE.MeshPhysicalMaterial({ color: isDark ? 0x334155 : 0x64748b, transparent: true, opacity: 0.35, side: THREE.DoubleSide, clearcoat: 0.8, roughness: 0.3, wireframe: isGeometry });
+        const wallMat = new THREE.MeshPhysicalMaterial({ color: isDark ? 0x334155 : 0x94a3b8, transparent: true, opacity: isGeometry ? 0.15 : 0.8, side: THREE.DoubleSide, roughness: 0.2, metalness: 0.1 });
+        const roofMat = new THREE.MeshPhysicalMaterial({ color: isDark ? 0x475569 : 0xcbd5e1, transparent: true, opacity: isGeometry ? 0.25 : 0.85, side: THREE.DoubleSide, roughness: 0.3, metalness: 0.1 });
         const wireMat = new THREE.LineBasicMaterial({ color: isDark ? 0x38bdf8 : 0x0284c7, linewidth: 1, transparent: true, opacity: 0.5 });
         const interactableMeshes = [];
 
@@ -203,10 +203,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             if (mesh) { 
         placeBeam(mesh, p1, p2, member.up); 
         mesh.castShadow = true; mesh.receiveShadow = true; 
-        if (member.type === 'purlin' && !showCladding) {
-            // Hide purlins when cladding is hidden to isolate the main frame
-            mesh.visible = false;
-        }
+        
         skeletonGroup.add(mesh); 
     }
         });
@@ -253,7 +250,6 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                     const cleat = new THREE.Mesh(purlinCleatGeom, jointMat);
                     cleat.position.set(px, py_top + 0.075, z - 0.02); // 0.075 is half height of cleat (0.15)
                     cleat.rotation.z = -sign * rafterAngle;
-                    if (!showCladding) cleat.visible = false;
                     skeletonGroup.add(cleat);
                 }
             }
@@ -294,7 +290,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                 
                 const edgesGeom = new THREE.EdgesGeometry(geometry);
                 edges = new THREE.LineSegments(edgesGeom, new THREE.LineBasicMaterial({ color: isDark ? 0xffffff : 0x000000, opacity: 0.3, transparent: true }));
-            } else if (isGeometry) mat.opacity = 0.05;
+            } else if (isGeometry) { mat.opacity = 0.15; mat.color.setHex(type === 'wall' ? (isDark ? 0x38bdf8 : 0x0ea5e9) : (isDark ? 0x818cf8 : 0x6366f1)); }
             
             const mesh = new THREE.Mesh(geometry, mat);
             if (zoneData) { mesh.userData = zoneData; interactableMeshes.push(mesh); }
