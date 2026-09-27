@@ -31,6 +31,7 @@ function usePersistentState(key, defaultValue) {
 
 function App() {
     const [activeTab, setActiveTab] = usePersistentState(`${STORAGE_KEY}_tab`, 'input');
+    const [windViewMode, setWindViewMode] = useState('2D');
     const [theme, setTheme] = usePersistentState(`${STORAGE_KEY}_theme`, 'light');
     
     const [projectState, setProjectState] = usePersistentState(STORAGE_KEY, {
@@ -1044,10 +1045,35 @@ function App() {
                         ) : (
                             <div className="space-y-6">
                                 {/* Bản vẽ 2D Gió */}
-                                <WindSvg 
-                                    geom={rResults.geom || WindEngine.analyzeGeometry(rInputs.L, rInputs.B, rInputs.length, rInputs.H_column, rInputs.H_roof)} 
-                                    loadCases={rResults.traces.windCases} 
-                                />
+                                {/* Tùy chọn hiển thị 2D/3D */}
+                                <div className="flex justify-end mb-2 print:hidden">
+                                    <div className="inline-flex bg-slate-200 dark:bg-slate-800 p-1 rounded-lg shadow-inner">
+                                        <button 
+                                            onClick={() => setWindViewMode("2D")} 
+                                            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${windViewMode === "2D" ? "bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400"}`}
+                                        >
+                                            Bản vẽ 2D (Analytical)
+                                        </button>
+                                        <button 
+                                            onClick={() => setWindViewMode("3D")} 
+                                            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${windViewMode === "3D" ? "bg-white dark:bg-slate-700 shadow text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400"}`}
+                                        >
+                                            Mô hình 3D (Visualizer)
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {windViewMode === "2D" ? (
+                                    <WindSvg 
+                                        geom={rResults.geom || WindEngine.analyzeGeometry(rInputs.L, rInputs.B, rInputs.length, rInputs.H_column, rInputs.H_roof)} 
+                                        loadCases={rResults.traces.windCases} 
+                                    />
+                                ) : (
+                                    <Wind3DViewer 
+                                        geom={rResults.geom || WindEngine.analyzeGeometry(rInputs.L, rInputs.B, rInputs.length, rInputs.H_column, rInputs.H_roof)} 
+                                        loadCases={rResults.traces.windCases} 
+                                    />
+                                )}
 
                                 {/* Bảng tổng hợp kết quả gió */}
                                 <div>
