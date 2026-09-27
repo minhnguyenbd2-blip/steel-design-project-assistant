@@ -91,12 +91,15 @@ function createDimensionText(message, size=1.5) {
 
 function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '+X' }) {
     const mountRef = useRef(null);
+    const containerRef = useRef(null);
     const [selectedZone, setSelectedZone] = useState(null);
     const [currentDir, setCurrentDir] = useState(defaultDir);
     const [showCladding, setShowCladding] = useState(mode === 'wind');
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [theme, setTheme] = useState('light');
-    const containerRef = useRef(null);
+    
+    // PERSIST CAMERA STATE ACROSS RERENDERS
+    const cameraStateRef = useRef({ position: null, target: null });
 
     const L = Number(inputs.L) || 25;
     const B_step = Number(inputs.B) || 6;
@@ -119,24 +122,36 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         
         const bgColor = isDark ? (isGeometry ? 0x0b1121 : 0x0f172a) : 0xf8fafc;
         scene.background = new THREE.Color(bgColor);
-        scene.fog = new THREE.Fog(bgColor, 50, 400);
+        scene.fog = new THREE.FogExp2(bgColor, 0.004); // Smooth horizon fade
 
         const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true, powerPreference: "high-performance" });
         renderer.setSize(width, height);
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // WOW shadows
         mountRef.current.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.01; // Prevent going strictly below ground
+
+        // Restore Camera State OR Initialize
+        const maxDim = Math.max(L, B_total, H_roof);
+        if (cameraStateRef.current.position) {
+            camera.position.copy(cameraStateRef.current.position);
+            controls.target.copy(cameraStateRef.current.target);
+        } else {
+            camera.position.set(maxDim * 0.9, maxDim * 0.6, maxDim * 1.1);
+            controls.target.set(0, H_col/2, 0);
+        }
+        controls.update();
 
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 0.7 : 0.9);
+        const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 0.7 : 1.1);
         scene.add(ambientLight);
         
-        const dirLight = new THREE.DirectionalLight(0xffffff, isDark ? 1.2 : 1.0);
+        const dirLight = new THREE.DirectionalLight(0xffffff, isDark ? 1.2 : 1.2);
         dirLight.position.set(50, 150, 100);
         dirLight.castShadow = true;
         dirLight.shadow.mapSize.width = 4096;
@@ -157,10 +172,12 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
 
         // Materials
         const steelColor = isDark ? 0x2563eb : 0x1d4ed8; 
-        const steelMat = new THREE.MeshStandardMaterial({ color: steelColor, metalness: 0.5, roughness: 0.4 });
+        const steelMat = new THREE.MeshStandardMaterial({ color: steelColor, metalness: 0.6, roughness: 0.3 });
         
         const purlinColor = 0xf59e0b;
-        const purlinMat = new THREE.MeshStandardMaterial({ color: purlinColor, metalness: 0.3, roughness: 0.6 });
+        const purlinMat = new THREE.MeshStandardMaterial({ color: purlinColor, metalness: 0.4, roughness: 0.5 });
+        
+        const boltMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.1 });
         
         const wallMat = new THREE.MeshPhysicalMaterial({ 
             color: isDark ? 0x1e293b : 0x94a3b8, transparent: true, opacity: 0.3, side: THREE.DoubleSide, 
@@ -194,6 +211,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         const foundationMat = new THREE.MeshStandardMaterial({ color: isDark ? 0x475569 : 0xcbd5e1, roughness: 0.9 }); 
 
         const apexGeom = new THREE.BoxGeometry(rWidth, rDepth + 0.05, 0.04);
+        const boltGeom = new THREE.CylinderGeometry(0.015, 0.015, 0.1, 6); // Hexagonal bolt
 
         const skeletonGroup = new THREE.Group();
         const numFrames = Math.max(2, Math.round(B_total / B_step) + 1);
@@ -204,6 +222,25 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         const haunchLength = Math.min(L * 0.1, 3.0);
         const haunchDepth = rDepth * 0.8;
         const tw = 0.01, tf = 0.014;
+
+        // Bolts setup helpers
+        const addBaseBolts = (baseMesh) => {
+            const positions = [[-0.25, 0.25], [0.25, 0.25], [-0.25, -0.25], [0.25, -0.25]];
+            positions.forEach(pos => {
+                const bolt = new THREE.Mesh(boltGeom, boltMat);
+                bolt.position.set(pos[0], 0.04, pos[1]);
+                baseMesh.add(bolt);
+            });
+        };
+        const addApexBolts = (apexMesh) => {
+            const positions = [[-0.08, 0.15], [0.08, 0.15], [-0.08, -0.15], [0.08, -0.15], [-0.08, 0], [0.08, 0]];
+            positions.forEach(pos => {
+                const bolt = new THREE.Mesh(boltGeom, boltMat);
+                bolt.rotation.x = Math.PI/2; 
+                bolt.position.set(pos[0], pos[1], 0);
+                apexMesh.add(bolt);
+            });
+        };
 
         for (let i = 0; i < numFrames; i++) {
             const zPos = -B_total/2 + i * actualStep;
@@ -230,11 +267,11 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             // Base plates
             const baseL = new THREE.Mesh(basePlateGeom, basePlateMat);
             baseL.position.set(-L/2, 0.02, zPos);
-            baseL.castShadow = true; baseL.receiveShadow = true; skeletonGroup.add(baseL);
+            baseL.castShadow = true; baseL.receiveShadow = true; addBaseBolts(baseL); skeletonGroup.add(baseL);
 
             const baseR = new THREE.Mesh(basePlateGeom, basePlateMat);
             baseR.position.set(L/2, 0.02, zPos);
-            baseR.castShadow = true; baseR.receiveShadow = true; skeletonGroup.add(baseR);
+            baseR.castShadow = true; baseR.receiveShadow = true; addBaseBolts(baseR); skeletonGroup.add(baseR);
 
             // Columns
             const colL = new THREE.Mesh(colGeom, steelMat);
@@ -262,7 +299,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             // Apex Splice
             const apex = new THREE.Mesh(apexGeom, basePlateMat);
             apex.position.set(0, H_roof + dy - rDepth/2, zPos);
-            apex.castShadow = true; apex.receiveShadow = true; skeletonGroup.add(apex);
+            apex.castShadow = true; apex.receiveShadow = true; addApexBolts(apex); skeletonGroup.add(apex);
 
             // Knee Haunches (Vút nách)
             const buildHaunch = (isLeft) => {
@@ -336,17 +373,17 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             dimTextH.position.set(-L/2 - 3, H_col/2, B_total/2); scene.add(dimTextH);
         }
 
-        // Purlins
+        // Purlins & Wall Girts (Hệ Xà gồ mái & vách)
+        const dy = rDepth/2 / Math.cos(rafterAngle);
         for(let j=0; j<2; j++) {
             const sign = j===0 ? -1 : 1;
+            // Roof purlins
             for(let p=0; p<numPurlins; p++) {
                 const ratio = p / (numPurlins - 1);
                 const px = sign * L/2 * (1 - ratio);
                 const py = H_col + roofRise * ratio;
                 
                 const purlin = new THREE.Mesh(purlinGeom, purlinMat);
-                // Shift up to sit on top of the rafter
-                const dy = rDepth/2 / Math.cos(rafterAngle);
                 const p1P = new THREE.Vector3(px, py + dy + 0.1, -B_total/2);
                 const p2P = new THREE.Vector3(px, py + dy + 0.1, B_total/2);
                 
@@ -356,6 +393,21 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                 
                 purlin.castShadow = true; purlin.receiveShadow = true;
                 skeletonGroup.add(purlin);
+            }
+            
+            // Wall Girts (Xà gồ vách) - WOW Detail Upgrade
+            const numGirts = Math.floor(H_col / purlinSpacing);
+            const gx = sign * (L/2 + cDepth/2 + 0.1); // Outside column face + half purlin depth
+            for(let g=1; g<=numGirts; g++) {
+                const gy = g * purlinSpacing;
+                if (gy >= H_col - 0.2) continue; // Avoid clashing with eaves
+                const girt = new THREE.Mesh(purlinGeom, purlinMat);
+                const p1G = new THREE.Vector3(gx, gy, -B_total/2);
+                const p2G = new THREE.Vector3(gx, gy, B_total/2);
+                // Normal points outward horizontally
+                placeBeam(girt, p1G, p2G, new THREE.Vector3(sign, 0, 0));
+                girt.castShadow = true; girt.receiveShadow = true;
+                skeletonGroup.add(girt);
             }
         }
         buildingGroup.add(skeletonGroup);
@@ -397,16 +449,15 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             return mesh;
         }
 
-        // Offset cladding to wrap outside the columns (cDepth = 0.6)
-        const cladExtX = cDepth/2 + 0.05;
+        // Offset cladding to wrap outside the columns and girts (cDepth = 0.6, purlin = 0.2)
+        const cladExtX = cDepth/2 + 0.25;
         const xMin = -L/2 - cladExtX, xMax = L/2 + cladExtX;
         const cladExtZ = 0.2;
         const zMin = -B_total/2 - cladExtZ, zMax = B_total/2 + cladExtZ;
         const y0 = 0;
         
-        // Cladding points wrapping over purlins
-        const dy = rDepth/2 / Math.cos(rafterAngle);
-        const yColTop = H_col + dy + 0.25; // added purlin depth
+        // Cladding points wrapping over roof purlins
+        const yColTop = H_col + dy + 0.25; 
         const yRoofTop = H_roof + dy + 0.25;
 
         const N0 = [xMin, y0, zMax], N1 = [xMax, y0, zMax], N2 = [xMax, y0, zMin], N3 = [xMin, y0, zMin];
@@ -437,9 +488,9 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         createQuad(C0, R0, R1, C3, 'roof', currentDir==='+X'?roofWindward:roofLeeward); 
         createQuad(R0, C1, C2, R1, 'roof', currentDir==='+X'?roofLeeward:roofWindward); 
 
-        // WIND VISUALIZATION
+        // WIND VISUALIZATION (WOW Animated Flow Update)
+        const windArrows = [];
         if (mode === 'wind') {
-            const maxDim = Math.max(L, B_total, H_roof);
             const arrowDir = new THREE.Vector3(
                 currentDir.includes('X') ? (currentDir.includes('+') ? 1 : -1) : 0, 
                 0, 
@@ -453,27 +504,25 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                     const ratio = (i + 0.5) / numArrows;
                     let ax, az;
                     if(currentDir.includes('X')) {
-                        ax = arrowDir.x * -(L/2 + 12); 
+                        ax = arrowDir.x * -(L/2 + 25); 
                         az = -B_total/2 + B_total * ratio;
                     } else {
-                        az = arrowDir.z * -(B_total/2 + 12);
+                        az = arrowDir.z * -(B_total/2 + 25);
                         ax = -L/2 + L * ratio;
                     }
                     const pos = new THREE.Vector3(ax, H_col * (0.2 + j*0.35), az);
-                    const ah = new THREE.ArrowHelper(arrowDir, pos, 12, isDark ? 0x38bdf8 : 0x0284c7, 2, 1);
+                    const ah = new THREE.ArrowHelper(arrowDir, pos, 12, isDark ? 0x38bdf8 : 0x0284c7, 3, 1.5);
+                    ah.userData = { originalPos: pos.clone(), offset: Math.random() * 40 };
                     arrowGroup.add(ah);
+                    windArrows.push(ah);
                 }
             }
             scene.add(arrowGroup);
         }
 
-        const maxDim = Math.max(L, B_total, H_roof);
-        camera.position.set(maxDim * 0.9, maxDim * 0.6, maxDim * 1.1);
-        camera.lookAt(0, H_col/2, 0);
-
         const gridColor = isDark ? 0x1e293b : 0xe2e8f0;
         const gridCenterColor = isDark ? 0x334155 : 0xcbd5e1;
-        const grid = new THREE.GridHelper(maxDim * 3, 60, gridCenterColor, gridColor);
+        const grid = new THREE.GridHelper(maxDim * 4, 80, gridCenterColor, gridColor);
         grid.position.y = -0.01;
         scene.add(grid);
         
@@ -502,6 +551,17 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         let animationFrameId;
         const renderLoop = () => {
             controls.update();
+            
+            // Animate Wind Flow
+            if (windArrows.length > 0) {
+                const time = Date.now() * 0.02; // Speed
+                windArrows.forEach(ah => {
+                    const travelDist = 30; // Distance to travel
+                    const progress = (time + ah.userData.offset) % travelDist;
+                    ah.position.copy(ah.userData.originalPos).addScaledVector(ah.dir, progress);
+                });
+            }
+
             renderer.render(scene, camera);
             animationFrameId = requestAnimationFrame(renderLoop);
         };
@@ -523,6 +583,10 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             if (renderer && renderer.domElement) renderer.domElement.removeEventListener('click', onMouseClick);
             cancelAnimationFrame(animationFrameId);
             renderer.dispose();
+            
+            // SAVE CAMERA STATE FOR PERSISTENCE
+            cameraStateRef.current.position = camera.position.clone();
+            cameraStateRef.current.target = controls.target.clone();
         };
     }, [inputs, caseData, currentDir, showCladding, mode, theme]);
 
