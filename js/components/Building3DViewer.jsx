@@ -512,7 +512,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                     }
                     const pos = new THREE.Vector3(ax, H_col * (0.2 + j*0.35), az);
                     const ah = new THREE.ArrowHelper(arrowDir, pos, 12, isDark ? 0x38bdf8 : 0x0284c7, 3, 1.5);
-                    ah.userData = { originalPos: pos.clone(), offset: Math.random() * 40 };
+                    ah.userData = { originalPos: pos.clone(), dir: arrowDir.clone(), offset: Math.random() * 40 };
                     arrowGroup.add(ah);
                     windArrows.push(ah);
                 }
@@ -558,7 +558,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                 windArrows.forEach(ah => {
                     const travelDist = 30; // Distance to travel
                     const progress = (time + ah.userData.offset) % travelDist;
-                    ah.position.copy(ah.userData.originalPos).addScaledVector(ah.dir, progress);
+                    ah.position.copy(ah.userData.originalPos).addScaledVector(ah.userData.dir, progress);
                 });
             }
 
