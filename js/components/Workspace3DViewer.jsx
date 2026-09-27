@@ -154,7 +154,7 @@ function Workspace3DViewer({ workspaceState }) {
     }, [workspaceState]);
 
     return (
-        <div className="flex border border-slate-200" style={{ height: 'calc(100vh - 10rem)', minHeight: '600px' }} dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900 relative shadow-sm">
+        <div className="flex border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900 relative shadow-sm" style={{ height: 'calc(100vh - 10rem)', minHeight: '600px' }}>
             <div className="flex-1 relative" ref={mountRef}>
                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur dark:bg-slate-800/90 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm z-10">
                     <h3 className="font-bold text-sm mb-1">{window.t('model')} 3D</h3>

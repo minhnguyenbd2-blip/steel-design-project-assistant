@@ -155,21 +155,22 @@ window.EngineAdapter = {
         };
 
         const engineOutput = window.SlabBeamEngine.calculateBeam(params);
-        const er = engineOutput.results;
+        // The return object is engineOutput directly, and results are inside engineOutput.checks
+        const chk = engineOutput.checks;
 
         dr.analysisStatus = 'ANALYZED';
-        dr.designStatus = er.isAllPass ? 'PASS' : 'FAIL';
-        dr.internalForces.M = er.Mmax;
-        dr.internalForces.V = er.Vmax;
+        dr.designStatus = chk.isAllPass ? 'PASS' : 'FAIL';
+        dr.internalForces.M = engineOutput.M_max_kNm;
+        dr.internalForces.V = engineOutput.V_max_kN;
         
-        const momentUtil = er.sigma / er.sigma_allow;
-        const shearUtil = er.tau / er.tau_allow;
+        const momentUtil = chk.sigma_uon / chk.f_allow;
+        const shearUtil = chk.tau_MPa / chk.fv_allow_MPa;
         let deflUtil = 0;
-        if (er.defl_limit) {
-            const limitParts = er.defl_limit.split('/');
+        if (chk.defl_limit) {
+            const limitParts = chk.defl_limit.split('/');
             if (limitParts.length === 2) {
                 const limitRatio = 1 / parseFloat(limitParts[1]);
-                const actualRatio = 1 / parseFloat(er.defl_ratio.split('/')[1]);
+                const actualRatio = 1 / parseFloat(chk.defl_ratio.split('/')[1]);
                 deflUtil = actualRatio / limitRatio;
             }
         }
@@ -181,13 +182,13 @@ window.EngineAdapter = {
         
         dr.utilization = maxU;
         dr.governingCheck = gov;
-        dr.calculationTrace = engineOutput.trace;
-        dr.deflection = { value: er.defl_cm, limit: er.defl_limit, utilization: deflUtil };
+        dr.calculationTrace = engineOutput.steps ? engineOutput.steps.map(s => s.html).join('') : '';
+        dr.deflection = { value: chk.defl_cm, limit: chk.defl_limit, utilization: deflUtil };
 
         dr.checks = [
-            { name: 'Uốn (Bending)', utilization: momentUtil, status: er.isStrengthPass ? 'PASS' : 'FAIL' },
-            { name: 'Cắt (Shear)', utilization: shearUtil, status: er.isShearPass ? 'PASS' : 'FAIL' },
-            { name: 'Độ võng (Deflection)', utilization: deflUtil, status: er.isDeflectionPass ? 'PASS' : 'FAIL' }
+            { name: 'Uốn (Bending)', utilization: momentUtil, status: chk.isBendingPass ? 'PASS' : 'FAIL' },
+            { name: 'Cắt (Shear)', utilization: shearUtil, status: chk.isShearPass ? 'PASS' : 'FAIL' },
+            { name: 'Độ võng (Deflection)', utilization: deflUtil, status: chk.isDeflectionPass ? 'PASS' : 'FAIL' }
         ];
 
         return dr;
