@@ -1026,41 +1026,55 @@ function App() {
                         </div>
 
                         {/* Kết quả kiểm tra Tôn & Xà gồ */}
-                        {rResults.claddingResult && rResults.purlinResult && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t dark:border-slate-700">
-                                {/* Thẻ Tôn */}
-                                <div className="p-4 bg-blue-50 dark:bg-slate-900/80 rounded-lg border border-blue-200 dark:border-slate-700">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h4 className="font-bold text-sm text-slate-800 dark:text-white">Kiểm tra Tôn lợp: {rResults.claddingResult.profile.name}</h4>
-                                        <span className={`text-xs px-2 py-0.5 rounded font-bold ${rResults.claddingResult.isAllPass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                            {rResults.claddingResult.isAllPass ? 'ĐẠT YÊU CẦU' : 'KHÔNG ĐẠT'}
-                                        </span>
-                                    </div>
-                                    <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
-                                        <div>• <strong>Tổ hợp 1 (TT tôn + Gió hút):</strong> M = {rResults.claddingResult.combo1.M.toFixed(3)} kNm | σ = {rResults.claddingResult.combo1.sigma.toFixed(2)} kN/cm² ≤ [f]={rResults.claddingResult.combo1.f_allow} kN/cm² ({rResults.claddingResult.combo1.isStrengthPass ? 'Đạt bền' : 'Kém bền'})</div>
-                                        <div>• Độ võng gió: f/a = 1/{Math.round(1/rResults.claddingResult.combo1.deflRatio)} ≤ [f/a]=1/150 ({rResults.claddingResult.combo1.isDeflPass ? 'Đạt võng' : 'Võng lớn'})</div>
-                                        <div className="pt-1 text-[11px] text-slate-500 italic">Ghi chú: Tổ hợp tính toán tôn không cộng trọng lượng xà gồ (đúng thực tế).</div>
-                                    </div>
-                                </div>
+                        
+                        {/* Kết quả kiểm tra Tôn & Xà gồ (Tính toán trực tiếp - Live) */}
+                        {(() => {
+                            const liveCladdingProfile = StandardData.TCVN2737_2023.PurlinAndCladding.sheetProfiles.find(s => s.id === rInputs.selectedCladdingId) || StandardData.TCVN2737_2023.PurlinAndCladding.sheetProfiles[4];
+                            const livePurlinProfile = StandardData.TCVN2737_2023.PurlinAndCladding.purlinProfiles.find(p => p.id === rInputs.selectedPurlinId) || StandardData.TCVN2737_2023.PurlinAndCladding.purlinProfiles[9];
+                            const W0_val = StandardData.TCVN2737_2023.Wind.BasicWind.getW0(rInputs.windZone).value;
+                            const kz_roof = StandardData.TCVN2737_2023.Wind.HeightCoefficient.getKze(rInputs.H_roof, rInputs.terrainCategory).value;
+                            const alphaDeg = Math.atan((rInputs.H_roof - rInputs.H_column) / (rInputs.L / 2)) * 180 / Math.PI;
+                            let minCnet = -1.372;
+                            if (rResults.traces && rResults.traces.windCases && rResults.traces.windCases['+X']) {
+                                const roofZones = rResults.traces.windCases['+X'].surfaces.filter(s => s.surface === 'Mái');
+                                if(roofZones.length > 0) minCnet = Math.min(...roofZones.map(r => r.c_net));
+                            }
+                            const liveCladdingResult = PurlinCladdingEngine.designRoofCladding(liveCladdingProfile, rInputs.purlinSpacing, alphaDeg, W0_val, kz_roof, minCnet);
+                            const livePurlinResult = PurlinCladdingEngine.designPurlin(livePurlinProfile, liveCladdingProfile, rInputs.purlinSpacing, rInputs.B, alphaDeg, W0_val, kz_roof, minCnet);
 
-                                {/* Thẻ Xà gồ */}
-                                <div className="p-4 bg-emerald-50 dark:bg-slate-900/80 rounded-lg border border-emerald-200 dark:border-slate-700">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h4 className="font-bold text-sm text-slate-800 dark:text-white">Kiểm tra Xà gồ: {rResults.purlinResult.purlin.name}</h4>
-                                        <span className={`text-xs px-2 py-0.5 rounded font-bold ${rResults.purlinResult.isAllPass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                            {rResults.purlinResult.isAllPass ? 'ĐẠT YÊU CẦU' : 'KHÔNG ĐẠT'}
-                                        </span>
+                            return (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t dark:border-slate-700">
+                                    <div className="p-4 bg-blue-50 dark:bg-slate-900/80 rounded-lg border border-blue-200 dark:border-slate-700">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h4 className="font-bold text-sm text-slate-800 dark:text-white">Kiểm tra Tôn lợp: {liveCladdingResult.profile.name}</h4>
+                                            <span className={`text-xs px-2 py-0.5 rounded font-bold ${liveCladdingResult.isAllPass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {liveCladdingResult.isAllPass ? 'ĐẠT YÊU CẦU' : 'KHÔNG ĐẠT'}
+                                            </span>
+                                        </div>
+                                        <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+                                            <div>• <strong>Tổ hợp 1 (TT tôn + Gió hút):</strong> M = {liveCladdingResult.combo1.M.toFixed(3)} kNm | σ = {liveCladdingResult.combo1.sigma.toFixed(2)} kN/cm² ≤ [f]={liveCladdingResult.profile.Ma} kN/cm² ({liveCladdingResult.combo1.isStrengthPass ? 'Đạt' : 'Kém bền'})</div>
+                                            <div>• Độ võng gió: f/a = 1/{Math.round(1/liveCladdingResult.combo1.deflRatio)} ≤ [f/a]=1/150 ({liveCladdingResult.combo1.isDeflPass ? 'Đạt võng' : 'Võng lớn'})</div>
+                                            <div className="text-[10px] italic pt-1">Ghi chú: Tổ hợp tính toán tôn không cộng trọng lượng xà gồ (đúng thực tế).</div>
+                                        </div>
                                     </div>
-                                    <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
-                                        <div>• <strong>Tổ hợp 1 (Gió hút nhổ):</strong> Mx = {rResults.purlinResult.combo1.Mx.toFixed(2)} kNm | σ = {rResults.purlinResult.combo1.sigma.toFixed(2)} kN/cm² ≤ {rResults.purlinResult.combo1.f_allow} kN/cm² ({rResults.purlinResult.combo1.isStrengthPass ? 'Đạt' : 'Vượt'})</div>
-                                        <div>• <strong>Tổ hợp 2 (TT + HT mái):</strong> Mx = {rResults.purlinResult.combo2.Mx.toFixed(2)} kNm | σ = {rResults.purlinResult.combo2.sigma.toFixed(2)} kN/cm² ({rResults.purlinResult.combo2.isStrengthPass ? 'Đạt' : 'Vượt'})</div>
-                                        <div>• Độ võng tổng hợp: f/B = 1/{Math.round(1/rResults.purlinResult.combo2.deflRatio)} ≤ [f/B]=1/200 ({rResults.purlinResult.combo2.isDeflPass ? 'Đạt võng' : 'Võng lớn'})</div>
+                                    <div className="p-4 bg-emerald-50 dark:bg-slate-900/80 rounded-lg border border-emerald-200 dark:border-slate-700">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h4 className="font-bold text-sm text-slate-800 dark:text-white">Kiểm tra Xà gồ: {livePurlinResult.purlin.name}</h4>
+                                            <span className={`text-xs px-2 py-0.5 rounded font-bold ${livePurlinResult.isAllPass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {livePurlinResult.isAllPass ? 'ĐẠT YÊU CẦU' : 'KHÔNG ĐẠT'}
+                                            </span>
+                                        </div>
+                                        <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+                                            <div>• <strong>Tổ hợp 1 (Gió hút nhổ):</strong> Mx = {livePurlinResult.combo1.Mx.toFixed(2)} kNm | σ = {livePurlinResult.combo1.sigma.toFixed(2)} kN/cm² ≤ {livePurlinResult.combo1.f_allow} kN/cm² ({livePurlinResult.combo1.isStrengthPass ? 'Đạt' : 'Vượt'})</div>
+                                            <div>• <strong>Tổ hợp 2 (TT + HT mái):</strong> Mx = {livePurlinResult.combo2.Mx.toFixed(2)} kNm | σ = {livePurlinResult.combo2.sigma.toFixed(2)} kN/cm² ({livePurlinResult.combo2.isStrengthPass ? 'Đạt' : 'Vượt'})</div>
+                                            <div>• Độ võng tổng hợp: f/B = 1/{Math.round(1/livePurlinResult.combo2.deflRatio)} ≤ [f/B]=1/200 ({livePurlinResult.combo2.isDeflPass ? 'Đạt võng' : 'Võng lớn'})</div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
                     </div>
-
+                    
                     {/* 2.2 Tải trọng Gió TCVN 2737:2023 */}
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-slate-200 dark:border-slate-700">
                         <h2 className="font-bold text-xl mb-4 border-b dark:border-slate-700 pb-2 flex items-center gap-2 text-primary">
@@ -1443,7 +1457,12 @@ function App() {
                     </div>
                           {projectState.slabResult && projectState.slabResult.steps && (
                               <div className="mt-8">
-                                  <CalculationTraceViewer steps={projectState.slabResult.steps} title="DIỄN GIẢI CHI TIẾT CÔNG THỨC & Ý NGHĨA KÝ HIỆU TOÁN HỌC" />
+                                  <div>
+        <h3 className="font-bold text-lg mb-4 text-primary border-b pb-2">DIỄN GIẢI CHI TIẾT CÔNG THỨC & Ý NGHĨA KÝ HIỆU TOÁN HỌC</h3>
+        <div className="space-y-4">
+            {projectState.slabResult.steps.map(step => <CalculationBlock key={step.stepId} step={step} />)}
+        </div>
+    </div>
                               </div>
                           )}
                 </div>
@@ -1541,7 +1560,12 @@ function App() {
                     </div>
                           {projectState.beamResult && projectState.beamResult.steps && (
                               <div className="mt-8">
-                                  <CalculationTraceViewer steps={projectState.beamResult.steps} title="DIỄN GIẢI CHI TIẾT CÔNG THỨC & Ý NGHĨA KÝ HIỆU TOÁN HỌC" />
+                                  <div>
+        <h3 className="font-bold text-lg mb-4 text-primary border-b pb-2">DIỄN GIẢI CHI TIẾT CÔNG THỨC & Ý NGHĨA KÝ HIỆU TOÁN HỌC</h3>
+        <div className="space-y-4">
+            {projectState.beamResult.steps.map(step => <CalculationBlock key={step.stepId} step={step} />)}
+        </div>
+    </div>
                               </div>
                           )}
                 </div>

@@ -157,7 +157,9 @@ const PurlinCladdingEngine = {
         const Px1 = gd_x; // kN/m
         const Mx1 = Math.abs(Py1) * Math.pow(B, 2) / 8; // kNm
         // Khi có thanh ty giằng xà gồ tại giữa nhịp (L_giang = B/2)
-        const My1 = Math.abs(Px1) * Math.pow(B / 2, 2) / 8; // kNm
+        const numSagRods = B >= 8 ? 2 : 1;
+        const L_giang = B / (numSagRods + 1);
+        const My1 = Math.abs(Px1) * Math.pow(L_giang, 2) / 8; // kNm
         
         // Wx, Wy trong catalogue là mm3 -> đổi ra cm3 (/1000)
         const Wx_cm3 = purlin.Wx / 1000;
@@ -172,7 +174,7 @@ const PurlinCladdingEngine = {
         const Py1_k = (-qk_wind_purlin + gk_y);
         const Px1_k = gk_x;
         const B_cm = B * 100;
-        const B_half_cm = (B / 2) * 100;
+        const B_half_cm = L_giang * 100;
         const defl1_y_cm = (5 / 384) * (Math.abs(Py1_k) * Math.pow(B_cm, 4)) / (E_steel * Ix_cm4 * 100);
         const defl1_x_cm = (5 / 384) * (Math.abs(Px1_k) * Math.pow(B_half_cm, 4)) / (E_steel * Iy_cm4 * 100);
         const defl1_total_cm = Math.sqrt(Math.pow(defl1_y_cm, 2) + Math.pow(defl1_x_cm, 2));
@@ -184,7 +186,7 @@ const PurlinCladdingEngine = {
         const Py2 = (gd_y + qd_live_purlin_y);
         const Px2 = (gd_x + qd_live_purlin_x);
         const Mx2 = Math.abs(Py2) * Math.pow(B, 2) / 8;
-        const My2 = Math.abs(Px2) * Math.pow(B / 2, 2) / 8;
+        const My2 = Math.abs(Px2) * Math.pow(L_giang, 2) / 8;
         
         const sigma2 = (Mx2 * 100) / Wx_cm3 + (My2 * 100) / Wy_cm3;
         const isStrength2Pass = sigma2 <= f_allow;
