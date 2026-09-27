@@ -47,7 +47,7 @@ const PurlinCladdingEngine = {
         const M1_kNm = Math.abs(Py1_design) * Math.pow(a, 2) / 8; // kNm
         const M1_kNcm = M1_kNm * 100;
         
-        const sigma1 = M1_kNcm / purlin.Wx; // kN/cm2
+        const sigma1 = M1_kNcm / profile.Wx; // kN/cm2
         const isStrength1Pass = sigma1 <= f_allow;
         
         // Độ võng Tổ hợp 1 (dùng tải tiêu chuẩn)
@@ -55,7 +55,7 @@ const PurlinCladdingEngine = {
         // f = 5/384 * P * a^4 / (E * J) -> chuyển đơn vị sang cm
         const P_ser1_N_per_cm = Math.abs(Py1_service) * 10; // kN/m = 10 N/cm
         const a_cm = a * 100;
-        const defl1_cm = (5 / 384) * (Math.abs(Py1_service) * Math.pow(a_cm, 4)) / (E_steel * purlin.Ix * 100);
+        const defl1_cm = (5 / 384) * (Math.abs(Py1_service) * Math.pow(a_cm, 4)) / (E_steel * profile.Ix * 100);
         const defl1_ratio = defl1_cm / a_cm;
         const defl1_limit = 1 / 150;
         const isDefl1Pass = defl1_ratio <= defl1_limit;
@@ -66,13 +66,13 @@ const PurlinCladdingEngine = {
         const Mx2_kNm = Math.abs(Py2_design) * Math.pow(a, 2) / 8;
         const My2_kNm = Math.abs(Px2_design) * Math.pow(a, 2) / 8;
         
-        const sigma2 = (Mx2_kNm * 100) / purlin.Wx + (My2_kNm * 100) / (purlin.Wx * 1.2);
+        const sigma2 = (Mx2_kNm * 100) / profile.Wx + (My2_kNm * 100) / (profile.Wx * 1.2);
         const isStrength2Pass = sigma2 <= f_allow;
         
         const Py2_service = (gk_y + qk_live_y) * 1.0;
         const Px2_service = (gk_x + qk_live_x) * 1.0;
-        const defl2_y_cm = (5 / 384) * (Math.abs(Py2_service) * Math.pow(a_cm, 4)) / (E_steel * purlin.Ix * 100);
-        const defl2_x_cm = (5 / 384) * (Math.abs(Px2_service) * Math.pow(a_cm, 4)) / (E_steel * purlin.Ix * 100);
+        const defl2_y_cm = (5 / 384) * (Math.abs(Py2_service) * Math.pow(a_cm, 4)) / (E_steel * profile.Ix * 100);
+        const defl2_x_cm = (5 / 384) * (Math.abs(Px2_service) * Math.pow(a_cm, 4)) / (E_steel * profile.Ix * 100);
         const defl2_cm = Math.sqrt(Math.pow(defl2_y_cm, 2) + Math.pow(defl2_x_cm, 2));
         const defl2_ratio = defl2_cm / a_cm;
         const isDefl2Pass = defl2_ratio <= defl1_limit;
