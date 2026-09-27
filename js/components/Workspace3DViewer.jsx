@@ -13,7 +13,7 @@ function Workspace3DViewer({ workspaceState }) {
         scene.background = new THREE.Color(0xf8fafc);
 
         const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-        camera.position.set(40, 30, 50);
+        camera.position.set(50, 40, 50);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(width, height);
@@ -22,7 +22,7 @@ function Workspace3DViewer({ workspaceState }) {
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-        controls.target.set(12.5, 5, 0);
+        controls.target.set(12.5, 5, -30);
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.6));
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -126,6 +126,17 @@ function Workspace3DViewer({ workspaceState }) {
 
         renderer.domElement.addEventListener('click', onClick);
 
+        
+        const onWindowResize = () => {
+            if (!mountRef.current || !renderer) return;
+            const w = mountRef.current.clientWidth;
+            const h = mountRef.current.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        };
+        window.addEventListener('resize', onWindowResize);
+
         const animate = function () {
             requestAnimationFrame(animate);
             controls.update();
@@ -138,11 +149,12 @@ function Workspace3DViewer({ workspaceState }) {
                 mountRef.current.removeChild(renderer.domElement);
             }
             renderer.dispose();
+            window.removeEventListener('resize', onWindowResize);
         };
     }, [workspaceState]);
 
     return (
-        <div className="flex h-[600px] border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900 relative shadow-sm">
+        <div className="flex border border-slate-200" style={{ height: 'calc(100vh - 10rem)', minHeight: '600px' }} dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900 relative shadow-sm">
             <div className="flex-1 relative" ref={mountRef}>
                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur dark:bg-slate-800/90 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm z-10">
                     <h3 className="font-bold text-sm mb-1">{window.t('model')} 3D</h3>
