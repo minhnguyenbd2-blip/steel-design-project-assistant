@@ -509,6 +509,10 @@ function App() {
                     <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'lookup' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('lookup')}>
                         <i data-lucide="book-open" className="w-4 h-4"></i> 7. Bảng tra Tiết diện
                     </button>
+                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'report' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('report')}>
+                        <i data-lucide="printer" className="w-4 h-4 text-emerald-600"></i> 8. Xuất Thuyết Minh
+                    </button>
+
                 </div>
             </nav>
 
@@ -1242,8 +1246,8 @@ function App() {
                                       <h3 className="font-bold text-blue-800 dark:text-blue-300 text-xs mb-1">Hướng dẫn trích xuất từ ETABS/SAP2000:</h3>
                                       <ul className="text-xs text-blue-700 dark:text-blue-400 list-disc list-inside space-y-0.5">
                                           <li>Chạy phân tích mô hình (Run Analysis).</li>
-                                          <li>Vào <b>Display > Show Tables</b> (hoặc Ctrl+T).</li>
-                                          <li>Chọn bảng <b>Analysis Results > Element Output > Frame Output > Element Forces - Frames</b>.</li>
+                                          <li>Vào <b>Display &gt; Show Tables</b> (hoặc Ctrl+T).</li>
+                                          <li>Chọn bảng <b>Analysis Results &gt; Element Output &gt; Frame Output &gt; Element Forces - Frames</b>.</li>
                                           <li>Lọc theo <b>Combo</b> tải trọng muốn thiết kế (VD: BAO). Chọn xuất ra Excel.</li>
                                           <li>Nhập các giá trị nội lực khống chế (N, V, M) vào bảng bên dưới.</li>
                                           <li><span className="font-semibold text-red-600 dark:text-red-400">Lưu ý:</span> App dùng quy ước ETABS: Moment uốn chính là <b>M3</b> (trục 3), Lực cắt chính là <b>V2</b> (trục 2).</li>
@@ -1641,6 +1645,12 @@ function App() {
                             </div>
                         </div>
                     )}
+                </div>
+
+                
+                {/* ===================== TAB 8: REPORT VIEWER ===================== */}
+                <div style={{ display: activeTab === 'report' ? 'block' : 'none' }}>
+                    <ReportViewer projectState={projectState} />
                 </div>
 
                 {/* ===================== TAB 7: BẢNG TRA TIẾT DIỆN ===================== */}
