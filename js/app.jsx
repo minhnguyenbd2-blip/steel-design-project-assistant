@@ -1782,6 +1782,25 @@ function App() {
             </main>
         </div>
     );
+
+    const WorkspaceLayout = window.WorkspaceLayout || (({children}) => <div>{children}</div>);
+    const Dashboard = window.Dashboard || (() => <div>Loading Dashboard...</div>);
+
+    return (
+        <WorkspaceLayout 
+            activeModule={activeModule} 
+            onModuleChange={handleModuleChange}
+            aiPanelOpen={aiPanelOpen}
+            toggleAiPanel={() => setAiPanelOpen(!aiPanelOpen)}
+            projectTitle={rMeta.projectName || "Steel Design Project"}
+        >
+            {activeModule === 'dashboard' ? (
+                workspaceState ? <Dashboard workspaceState={workspaceState} /> : <div>Initializing Workspace...</div>
+            ) : (
+                legacyUI
+            )}
+        </WorkspaceLayout>
+    );
 }
 
 class ErrorBoundary extends React.Component {
