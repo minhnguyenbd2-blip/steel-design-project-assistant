@@ -137,6 +137,11 @@ window.WorkspaceModel = {
             });
         }
 
+        // 5. RUN DESIGN CALCULATIONS (Phase 3 Integration)
+        if (window.EngineAdapter) {
+            p.designResults = window.EngineAdapter.runAllCalculations(p);
+        }
+        
         // Run initial validation
         p.validationResults = this.validateProject(p);
 

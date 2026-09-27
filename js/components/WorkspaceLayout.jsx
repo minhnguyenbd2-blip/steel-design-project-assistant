@@ -100,6 +100,14 @@ const WorkspaceLayout = ({ children, activeModule, onModuleChange, aiPanelOpen, 
                                 <div className="flex justify-between"><span>Members:</span> <span>{workspaceState?.members?.length || 0}</span></div>
                                 <div className="flex justify-between"><span>Combinations:</span> <span>{workspaceState?.loadCombinations?.length || 0}</span></div>
                                 <div className="flex justify-between"><span>Issues:</span> <span className={workspaceState?.validationResults?.issues?.length > 0 ? 'text-red-500 font-bold' : ''}>{workspaceState?.validationResults?.issues?.length || 0}</span></div>
+                                <div className="flex justify-between mt-1 pt-1 border-t border-blue-200/30 dark:border-blue-800/30">
+                                    <span>Analyzed:</span> 
+                                    <span>{workspaceState?.designResults ? Object.values(workspaceState.designResults).filter(r => r.analysisStatus === 'ANALYZED').length : 0}</span>
+                                </div>
+                                <div className="flex justify-between text-red-500">
+                                    <span>Failed:</span> 
+                                    <span className="font-bold">{workspaceState?.designResults ? Object.values(workspaceState.designResults).filter(r => r.designStatus === 'FAIL').length : 0}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
