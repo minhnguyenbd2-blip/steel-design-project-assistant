@@ -32,6 +32,7 @@ function usePersistentState(key, defaultValue) {
 function App() {
     const [activeTab, setActiveTab] = usePersistentState(`${STORAGE_KEY}_tab`, 'input');
     const [windViewMode, setWindViewMode] = useState('2D');
+    const [projectViewMode, setProjectViewMode] = useState('3D');
     const [theme, setTheme] = usePersistentState(`${STORAGE_KEY}_theme`, 'light');
     
     const [projectState, setProjectState] = usePersistentState(STORAGE_KEY, {
@@ -839,7 +840,29 @@ function App() {
                     </div>
 
                     {/* 1.3 Bản vẽ 2D Công trình */}
-                    <ProjectSvg inputs={rInputs} />
+                    
+                    <div className="flex justify-end mb-2 print:hidden">
+                        <div className="inline-flex bg-slate-200 dark:bg-slate-800 p-1 rounded-lg shadow-inner">
+                            <button 
+                                onClick={() => setProjectViewMode("2D")} 
+                                className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${projectViewMode === "2D" ? "bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400"}`}
+                            >
+                                Bản vẽ 2D
+                            </button>
+                            <button 
+                                onClick={() => setProjectViewMode("3D")} 
+                                className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${projectViewMode === "3D" ? "bg-white dark:bg-slate-700 shadow text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400"}`}
+                            >
+                                Mô hình 3D
+                            </button>
+                        </div>
+                    </div>
+                    {projectViewMode === "2D" ? (
+                        <ProjectSvg inputs={rInputs} />
+                    ) : (
+                        <Building3DViewer inputs={rInputs} mode="geometry" />
+                    )}
+
 
                     {/* 1.4 Bảng giả định & Cơ sở Tiêu chuẩn */}
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-slate-200 dark:border-slate-700">
@@ -1069,8 +1092,9 @@ function App() {
                                         loadCases={rResults.traces.windCases} 
                                     />
                                 ) : (
-                                    <Wind3DViewer 
-                                        geom={rResults.geom || WindEngine.analyzeGeometry(rInputs.L, rInputs.B, rInputs.length, rInputs.H_column, rInputs.H_roof)} 
+                                    <Building3DViewer 
+                                        inputs={rInputs}
+                                        mode="wind"
                                         loadCases={rResults.traces.windCases} 
                                     />
                                 )}
