@@ -31,6 +31,29 @@ function usePersistentState(key, defaultValue) {
 
 function App() {
     const [activeTab, setActiveTab] = usePersistentState(`${STORAGE_KEY}_tab`, 'input');
+
+    // WORKSPACE MIGRATION STATES
+    const [activeModule, setActiveModule] = useState('dashboard');
+    const [aiPanelOpen, setAiPanelOpen] = useState(false);
+    const [workspaceState, setWorkspaceState] = useState(() => (window.WorkspaceModel ? window.WorkspaceModel.fromLegacyState(ProjectState) : null));
+
+    // Update workspaceState whenever projectState changes (migration bridge)
+    useEffect(() => {
+        if (window.WorkspaceModel) {
+            setWorkspaceState(window.WorkspaceModel.fromLegacyState(projectState));
+        }
+    }, [projectState]);
+
+    const handleModuleChange = (modId) => {
+        setActiveModule(modId);
+        // Sync legacy tabs
+        if (modId === 'project' || modId === 'model') setActiveTab('input');
+        if (modId === 'loads') setActiveTab('loads');
+        if (modId === 'combinations' || modId === 'analysis') setActiveTab('forces');
+        if (modId === 'design') setActiveTab('slab'); // Default to slab
+        if (modId === 'report') setActiveTab('report');
+    };
+
     const [windViewMode, setWindViewMode] = useState('2D');
     const [projectViewMode, setProjectViewMode] = useState('3D');
     const [theme, setTheme] = usePersistentState(`${STORAGE_KEY}_theme`, 'light');
@@ -461,10 +484,12 @@ function App() {
     const rResults = projectState.results;
     const rRoofComps = projectState.roofComponents;
 
-    return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200 text-slate-800 dark:text-slate-200 font-sans">
+    
+    const legacyUI = (
+        <div className="w-full bg-slate-50 dark:bg-slate-900 transition-colors duration-200 text-slate-800 dark:text-slate-200 font-sans">
+
             {/* Header điều hướng */}
-            <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 sticky top-0 z-20 print:hidden shadow-sm">
+            <header className="hidden bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 sticky top-0 z-20 print:hidden shadow-sm">
                 <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
                     <div className="flex items-center gap-2 text-primary">
                         <i data-lucide="layout-template" className="w-6 h-6"></i>
