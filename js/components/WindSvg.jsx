@@ -385,13 +385,28 @@ const WindSvg = (props) => {
         );
     };
 
+    const downloadWindSVG = () => {
+        const svgEl = document.querySelector('.wind-svg-card svg');
+        if (!svgEl) return;
+        const svgData = new XMLSerializer().serializeToString(svgEl);
+        const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `so_do_gio_${selectedDir}_${viewMode}.svg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <div className="wind-svg-card bg-slate-900 rounded-xl p-5 border border-slate-700 shadow-2xl text-slate-200">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 pb-4 border-b border-slate-700">
                 <div>
                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
                         <i data-lucide="wind" className="w-5 h-5 text-primary"></i>
-                        PHÂN VÙNG ÁP LỰC GIÓ
+                        PHÂN VÙNG ÁP LỰC GIÓ THEO TCVN 2737:2023
                     </h3>
                     <p className="text-xs text-slate-400 mt-1 flex gap-3">
                         <span>L = {L}m</span>
@@ -402,10 +417,19 @@ const WindSvg = (props) => {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
-                        <button onClick={() => setViewMode('cross_section')} className={`px-3 py-1 text-xs rounded transition-all ${viewMode === 'cross_section' ? 'bg-primary text-white font-bold' : 'text-slate-400 hover:text-white'}`}>Mặt cắt ngang</button>
-                        <button onClick={() => setViewMode('roof_plan')} className={`px-3 py-1 text-xs rounded transition-all ${viewMode === 'roof_plan' ? 'bg-primary text-white font-bold' : 'text-slate-400 hover:text-white'}`}>Sơ đồ vùng mái</button>
-                        <button onClick={() => setViewMode('wall_plan')} className={`px-3 py-1 text-xs rounded transition-all ${viewMode === 'wall_plan' ? 'bg-primary text-white font-bold' : 'text-slate-400 hover:text-white'}`}>Sơ đồ vùng tường</button>
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                        <button 
+                            onClick={downloadWindSVG}
+                            className="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 flex items-center gap-1 transition-all"
+                            title="Tải tệp vector sơ đồ gió"
+                        >
+                            <i data-lucide="download" className="w-3.5 h-3.5 text-blue-400"></i> Xuất SVG
+                        </button>
+                        <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
+                            <button onClick={() => setViewMode('cross_section')} className={`px-3 py-1 text-xs rounded transition-all ${viewMode === 'cross_section' ? 'bg-primary text-white font-bold' : 'text-slate-400 hover:text-white'}`}>Mặt cắt ngang</button>
+                            <button onClick={() => setViewMode('roof_plan')} className={`px-3 py-1 text-xs rounded transition-all ${viewMode === 'roof_plan' ? 'bg-primary text-white font-bold' : 'text-slate-400 hover:text-white'}`}>Sơ đồ vùng mái</button>
+                            <button onClick={() => setViewMode('wall_plan')} className={`px-3 py-1 text-xs rounded transition-all ${viewMode === 'wall_plan' ? 'bg-primary text-white font-bold' : 'text-slate-400 hover:text-white'}`}>Sơ đồ vùng tường</button>
+                        </div>
                     </div>
                     <div className="flex gap-2 justify-end">
                         <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">

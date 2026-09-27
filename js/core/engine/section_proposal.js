@@ -24,6 +24,13 @@ function proposeSectionsForDesign(forces, materialProps, L0x_m, L0y_m, options =
             }
         }
     }
+
+    // Thêm các tiết diện I từ Thư viện TCVN 5575:2024
+    const beamLib = (typeof StandardData !== 'undefined' && StandardData.TCVN5575_2024?.BeamLibrary) || [];
+    for (let b of beamLib) {
+        const sec = createSectionRecord("I", b.name, b.h, b.b, b.tw, b.tf, "Thép định hình TCVN");
+        candidates.push(sec);
+    }
     
     const validSections = [];
     

@@ -910,18 +910,48 @@ function App() {
                                 </div>
                             </div>
 
-                            {/* Bước xà gồ */}
+                            {/* Bước xà gồ với Trợ lý Tính toán Thông minh */}
                             <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-lg border dark:border-slate-700">
                                 <label className="font-bold text-xs uppercase text-slate-500">2. Khoảng cách bước xà gồ a (m)</label>
                                 <input 
-                                    type="number" step="0.1" 
+                                    type="number" step="0.01" 
                                     value={rInputs.purlinSpacing} 
                                     onChange={e => handleInputChange('purlinSpacing', e.target.value, 'number')}
                                     className="w-full p-2 border rounded mt-1 bg-white dark:bg-slate-800 font-bold font-mono text-primary text-sm outline-none" 
                                 />
-                                <p className="text-[11px] text-slate-500 mt-2">
-                                    Thông thường bước xà gồ chọn a = 1,0 m ÷ 1,5 m tùy theo nhịp sóng tole và tải trọng gió bốc mái.
-                                </p>
+                                
+                                {/* Trợ lý hình học chia chẵn xà gồ */}
+                                {(() => {
+                                    const L = Number(rInputs.L) || 25;
+                                    const H_col = Number(rInputs.H_column) || 8;
+                                    const H_rf = Number(rInputs.H_roof) || 9.25;
+                                    const roofRise = Math.max(0.1, H_rf - H_col);
+                                    const L_rafter = Math.sqrt(Math.pow(L / 2, 2) + Math.pow(roofRise, 2));
+                                    const curA = Number(rInputs.purlinSpacing) || 1.2;
+                                    const nSpaces = Math.max(2, Math.round(L_rafter / curA));
+                                    const exactA = Number((L_rafter / nSpaces).toFixed(3));
+                                    return (
+                                        <div className="mt-2.5 p-2 bg-blue-50/70 dark:bg-blue-950/40 rounded border border-blue-200 dark:border-blue-900/50 text-[11px] space-y-1">
+                                            <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
+                                                <span>Chiều dài cánh kèo Lk:</span>
+                                                <strong className="font-mono text-primary">{L_rafter.toFixed(2)} m</strong>
+                                            </div>
+                                            <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
+                                                <span>Chia chẵn {nSpaces} khoảng:</span>
+                                                <strong className="font-mono text-emerald-600 dark:text-emerald-400">a = {exactA} m</strong>
+                                            </div>
+                                            {Math.abs(exactA - curA) > 0.005 && (
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleInputChange('purlinSpacing', exactA, 'number')}
+                                                    className="w-full mt-1.5 py-1 px-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-bold transition-colors flex items-center justify-center gap-1 shadow-xs"
+                                                >
+                                                    <i data-lucide="sparkles" className="w-3.5 h-3.5"></i> Áp dụng bước chẵn: {exactA} m
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             {/* Chọn Xà gồ thép */}
@@ -1439,12 +1469,19 @@ function App() {
                                     <tbody>
                                         {rResults.proposedSections.column.map((cand, idx) => (
                                             <tr key={idx} className={`border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors ${rResults.selectedSections.column === cand.section ? 'bg-blue-50 dark:bg-blue-900/30 font-bold' : ''}`}>
-                                                <td className="p-3 font-mono font-bold text-primary">{cand.section.name}</td>
+                                                <td className="p-3 font-mono font-bold text-primary">
+                                                    <span>{cand.section.name}</span>
+                                                    {idx === 0 && (
+                                                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                                                            ⭐ Khuyến nghị kinh tế
+                                                        </span>
+                                                    )}
+                                                </td>
                                                 <td className="p-3 font-mono">{cand.section.h} × {cand.section.b} × {cand.section.tw} × {cand.section.tf} mm</td>
                                                 <td className="p-3 font-mono">{cand.section.massPerMeter.toFixed(1)}</td>
                                                 <td className="p-3 font-mono">{(cand.section.A / 100).toFixed(1)} cm²</td>
                                                 <td className="p-3 text-center font-mono font-bold">
-                                                    <span className={`px-2 py-0.5 rounded text-xs ${(cand.utilization?.max || 0) > 0.85 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'}`}>
+                                                    <span className={`px-2 py-0.5 rounded text-xs ${(cand.utilization?.max || 0) > 0.85 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : ((cand.utilization?.max || 0) < 0.5 ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300')}`}>
                                                         {((cand.utilization?.max || 0) * 100).toFixed(1)}%
                                                     </span>
                                                 </td>
@@ -1454,8 +1491,8 @@ function App() {
                                                     (cand.utilization?.slenderness >= cand.utilization?.strength ? 'Độ mảnh ([λ]=180)' : 'Bền nén uốn (σ)'))}
                                                 </td>
                                                 <td className="p-3 text-center">
-                                                    <span className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 px-2.5 py-1 rounded text-xs font-bold">
-                                                        {cand.status}
+                                                    <span className={`px-2.5 py-1 rounded text-xs font-bold ${(cand.utilization?.max || 0) > 0.85 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : ((cand.utilization?.max || 0) < 0.5 ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' : 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300')}`}>
+                                                        {(cand.utilization?.max || 0) < 0.5 ? 'Dư thừa' : ((cand.utilization?.max || 0) <= 0.85 ? 'Tối ưu' : 'Sát tải')}
                                                     </span>
                                                 </td>
                                                 <td className="p-3 text-center">
@@ -1505,7 +1542,39 @@ function App() {
                         <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
                             Tra cứu nhanh thông số tiết diện xà gồ (C/Z), tôn lợp mái, và thép hình chữ I. Dữ liệu từ catalogue Zamil Steel, Hoa Sen và TCVN 5575:2024.
                         </p>
-                        {typeof SectionLookup !== 'undefined' ? <SectionLookup /> : (
+                        {typeof SectionLookup !== 'undefined' ? (
+                            <SectionLookup 
+                                onSelectPurlin={(purlin) => {
+                                    handleInputChange('selectedPurlinId', purlin.id);
+                                    alert(`Đã chọn xà gồ ${purlin.name} làm xà gồ mái cho Dự án. Vui lòng bấm 'Cập nhật tính toán' để chạy lại bài toán kiểm tra!`);
+                                }}
+                                onSelectCladding={(sheet) => {
+                                    handleInputChange('selectedCladdingId', sheet.id);
+                                    alert(`Đã chọn tôn lợp ${sheet.name} cho Dự án. Vui lòng bấm 'Cập nhật tính toán' để chạy lại bài toán kiểm tra!`);
+                                }}
+                                onSelectIBeam={(colSec) => {
+                                    selectSection(colSec);
+                                    setActiveTab('column');
+                                    alert(`Đã chọn tiết diện ${colSec.name} làm Cột Thép và chuyển tới Tab Kiểm tra Cột!`);
+                                }}
+                                onSelectBeam={(beam) => {
+                                    setProjectState(prev => ({
+                                        ...prev,
+                                        inputs: {
+                                            ...prev.inputs,
+                                            beamParams: { ...prev.inputs.beamParams, chosenBeamId: beam.id }
+                                        }
+                                    }));
+                                    markStale();
+                                    setActiveTab('beam');
+                                    alert(`Đã chọn dầm ${beam.name} cho Sàn BTCT và chuyển tới Tab Thiết kế Dầm!`);
+                                }}
+                                currentPurlinId={projectState.inputs.selectedPurlinId}
+                                currentCladdingId={projectState.inputs.selectedCladdingId}
+                                currentColumnSection={rResults.selectedSections?.column}
+                                currentBeamId={projectState.inputs.beamParams?.chosenBeamId}
+                            />
+                        ) : (
                             <div className="text-center py-12 text-slate-400">
                                 <i data-lucide="loader" className="w-8 h-8 animate-spin mx-auto mb-2"></i>
                                 <p>Đang tải bảng tra...</p>

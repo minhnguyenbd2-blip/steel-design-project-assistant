@@ -1,6 +1,15 @@
 const { useState, useMemo, useEffect } = React;
 
-function SectionLookup() {
+function SectionLookup({
+  onSelectPurlin,
+  onSelectCladding,
+  onSelectIBeam,
+  onSelectBeam,
+  currentPurlinId,
+  currentCladdingId,
+  currentColumnSection,
+  currentBeamId
+} = {}) {
   const [subTab, setSubTab] = useState('purlin'); // purlin, sheet, ibeam
   const [searchText, setSearchText] = useState('');
   const [filterType, setFilterType] = useState('all'); // all, C, Z for purlin
@@ -285,7 +294,14 @@ function SectionLookup() {
                       
                       {subTab === 'purlin' && (
                         <>
-                          <Td right={false} className="font-semibold text-gray-900 dark:text-gray-100 text-left">{row.name}</Td>
+                          <Td right={false} className="font-semibold text-gray-900 dark:text-gray-100 text-left">
+                            <span>{row.name}</span>
+                            {currentPurlinId === row.id && (
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 border border-green-300 dark:border-green-800">
+                                Đang dùng
+                              </span>
+                            )}
+                          </Td>
                           <Td right={false}>
                             <span className={`px-2 py-1 text-xs font-bold rounded-md ${row.type === 'C' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' : 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200'}`}>{row.type}</span>
                           </Td>
@@ -303,7 +319,14 @@ function SectionLookup() {
 
                       {subTab === 'sheet' && (
                         <>
-                          <Td right={false} className="font-semibold text-gray-900 dark:text-gray-100 text-left">{row.name}</Td>
+                          <Td right={false} className="font-semibold text-gray-900 dark:text-gray-100 text-left">
+                            <span>{row.name}</span>
+                            {currentCladdingId === row.id && (
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 border border-green-300 dark:border-green-800">
+                                Đang dùng
+                              </span>
+                            )}
+                          </Td>
                           <Td>{formatNumber(row.thickness, 2)}</Td>
                           <Td>{formatNumber(row.weightKgM2, 2)}</Td>
                           <Td>{formatNumber(row.weightKNM2, 4)}</Td>
@@ -316,7 +339,19 @@ function SectionLookup() {
 
                       {subTab === 'ibeam' && (
                         <>
-                          <Td right={false} className="font-semibold text-gray-900 dark:text-gray-100 text-left">{row.name}</Td>
+                          <Td right={false} className="font-semibold text-gray-900 dark:text-gray-100 text-left">
+                            <span>{row.name}</span>
+                            {(currentColumnSection?.id === row.id || currentColumnSection?.name === row.name) && (
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 border border-green-300 dark:border-green-800">
+                                Cột hiện tại
+                              </span>
+                            )}
+                            {currentBeamId === row.id && (
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800">
+                                Dầm hiện tại
+                              </span>
+                            )}
+                          </Td>
                           <Td>{formatNumber(row.h, 0)}</Td>
                           <Td>{formatNumber(row.b, 0)}</Td>
                           <Td>{formatNumber(row.tw, 1)}</Td>
@@ -355,9 +390,58 @@ function SectionLookup() {
               {subTab === 'sheet' && renderSheetSVG()}
             </div>
             
-            <div className="w-full md:w-2/3">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{selectedRow.name}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Chi tiết thông số kỹ thuật</p>
+            <div className="w-full md:w-2/3 flex flex-col justify-between">
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">{selectedRow.name}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Chi tiết thông số kỹ thuật hình học & cơ lý</p>
+                  </div>
+                  
+                  {/* Các nút bấm thao tác trực tiếp vào Đồ án */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {subTab === 'purlin' && onSelectPurlin && (
+                      <button 
+                        onClick={() => onSelectPurlin(selectedRow)}
+                        className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+                        title="Đặt làm loại xà gồ chính cho mái công trình"
+                      >
+                        <i data-lucide="check-circle" className="w-4 h-4"></i> Chọn làm Xà gồ Mái
+                      </button>
+                    )}
+                    {subTab === 'sheet' && onSelectCladding && (
+                      <button 
+                        onClick={() => onSelectCladding(selectedRow)}
+                        className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+                        title="Đặt làm loại tôn lợp chính cho mái công trình"
+                      >
+                        <i data-lucide="check-circle" className="w-4 h-4"></i> Chọn làm Tôn lợp Mái
+                      </button>
+                    )}
+                    {subTab === 'ibeam' && (
+                      <div className="flex items-center gap-2">
+                        {onSelectIBeam && (
+                          <button 
+                            onClick={() => onSelectIBeam(selectedRow)}
+                            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+                            title="Chọn tiết diện này cho cột thép và chạy kiểm tra khả năng chịu lực"
+                          >
+                            <i data-lucide="box" className="w-4 h-4"></i> Chọn làm Cột Thép
+                          </button>
+                        )}
+                        {onSelectBeam && (
+                          <button 
+                            onClick={() => onSelectBeam(selectedRow)}
+                            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+                            title="Chọn tiết diện này cho dầm thép đỡ sàn BTCT"
+                          >
+                            <i data-lucide="minus" className="w-4 h-4"></i> Chọn làm Dầm Sàn
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {subTab === 'purlin' && (

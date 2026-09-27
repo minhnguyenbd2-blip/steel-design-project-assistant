@@ -407,6 +407,21 @@ const ProjectSvg = ({ inputs = {}, results = {} }) => {
         );
     };
 
+    const downloadSVG = () => {
+        const svgEl = document.querySelector('#project-svg-container svg');
+        if (!svgEl) return;
+        const svgData = new XMLSerializer().serializeToString(svgEl);
+        const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `ban_ve_2d_${activeTab}_Nhip_${L}m.svg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     const tabs = [
         { id: 'cross_section', label: 'Mặt cắt ngang', icon: 'ruler' },
         { id: 'elevation', label: 'Mặt đứng dọc', icon: 'align-vertical-space-around' },
@@ -429,25 +444,35 @@ const ProjectSvg = ({ inputs = {}, results = {} }) => {
                     </p>
                 </div>
                 
-                <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700 w-full md:w-auto overflow-x-auto">
-                    {tabs.map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors flex items-center gap-2 ${
-                                activeTab === tab.id 
-                                    ? 'bg-blue-600 text-white shadow-md' 
-                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
-                            }`}
-                        >
-                            <i data-lucide={tab.icon} className="w-4 h-4"></i>
-                            {tab.label}
-                        </button>
-                    ))}
+                <div className="flex items-center gap-2 flex-wrap">
+                    <button 
+                        onClick={downloadSVG}
+                        className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition-colors shadow-xs"
+                        title="Tải tệp vector SVG của bản vẽ hiện tại"
+                    >
+                        <i data-lucide="download" className="w-3.5 h-3.5 text-blue-400"></i> Xuất bản vẽ (.SVG)
+                    </button>
+
+                    <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700 overflow-x-auto">
+                        {tabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`px-3.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                                    activeTab === tab.id 
+                                        ? 'bg-blue-600 text-white shadow-md font-bold' 
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                                }`}
+                            >
+                                <i data-lucide={tab.icon} className="w-3.5 h-3.5"></i>
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
-            <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden relative">
+            <div id="project-svg-container" className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden relative">
                 {/* Scale Bar Hint */}
                 <div className="absolute bottom-2 left-2 px-2 py-1 bg-slate-900/80 rounded border border-slate-700 text-[10px] text-slate-400 font-mono pointer-events-none z-10">
                     Bản vẽ CAD/BIM 2D - TL: Tùy biến
