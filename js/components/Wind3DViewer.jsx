@@ -1,4 +1,4 @@
-﻿const { useRef, useEffect, useState, useMemo } = React;
+const { useRef, useEffect, useState, useMemo } = React;
 
 function Wind3DViewer({ geom, loadCases, defaultDir = '+X' }) {
     const mountRef = useRef(null);
@@ -318,7 +318,7 @@ function Wind3DViewer({ geom, loadCases, defaultDir = '+X' }) {
                             <button 
                                 key={d}
                                 onClick={() => setCurrentDir(d)}
-                                className={\px-3 py-1 text-sm rounded transition-colors \\}
+                                className={`px-3 py-1 text-sm rounded transition-colors ${currentDir === d ? 'bg-white shadow text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'}`}
                             >
                                 {d}
                             </button>
@@ -329,7 +329,7 @@ function Wind3DViewer({ geom, loadCases, defaultDir = '+X' }) {
                 <div className="flex items-center gap-2">
                     <button 
                         onClick={() => setShowCladding(!showCladding)}
-                        className={\px-3 py-1.5 text-sm rounded border transition-colors \\}
+                        className={`px-3 py-1.5 text-sm rounded border transition-colors ${showCladding ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
                     >
                         {showCladding ? 'Ẩn lớp Tôn (Hiện khung)' : 'Hiện lớp Tôn & Vùng gió'}
                     </button>
@@ -364,7 +364,7 @@ function Wind3DViewer({ geom, loadCases, defaultDir = '+X' }) {
                         </div>
                         <div className="flex justify-between py-1 border-b border-slate-50">
                             <span className="text-slate-500">Áp lực (w_d):</span>
-                            <span className={\ont-mono font-bold \\}>
+                            <span className={`font-mono font-bold ${selectedZone.pressure_d > 0 ? 'text-red-600' : 'text-blue-600'}`}>
                                 {selectedZone.pressure_d.toFixed(2)} kN/m²
                             </span>
                         </div>
