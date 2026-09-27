@@ -97,6 +97,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
     const [showCladding, setShowCladding] = useState(mode === 'wind');
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [theme, setTheme] = useState('light');
+    const [windAnimMode, setWindAnimMode] = useState('dynamic'); // 'static' or 'dynamic'
     
     // PERSIST CAMERA STATE ACROSS RERENDERS
     const cameraStateRef = useRef({ position: null, target: null });
@@ -196,8 +197,6 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         const rafterAngle = Math.atan(roofRise / halfSpan);
         const rDepth = 0.5, rWidth = 0.25;
         
-        // Fix overlap: subtract apex splice thickness (0.04m) -> half is 0.02m horizontally
-        // Real length of rafter mesh = rafterLength - (0.02 / cosA)
         const rafterMeshLength = rafterLength - (0.02 / Math.cos(rafterAngle));
         const rafterGeom = createIBeamGeometry(rDepth, rWidth, 0.01, 0.014, rafterMeshLength);
         
@@ -222,7 +221,6 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         const haunchDepth = rDepth * 0.8;
         const tw = 0.01, tf = 0.014;
 
-        // Bolts setup helpers
         const addBaseBolts = (baseMesh) => {
             const positions = [[-0.25, 0.25], [0.25, 0.25], [-0.25, -0.25], [0.25, -0.25]];
             positions.forEach(pos => {
@@ -241,165 +239,97 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             });
         };
 
-        // ==========================================
-        // ENGINEERING MASTER OVERHAUL: NODE-BASED ARCHITECTURE
-        // Generate a Canonical Model first, then render it!
-        // ==========================================
+        // NODE-BASED ARCHITECTURE
         const nodes = {};
         const members = [];
-        
         const addNode = (id, x, y, z) => { nodes[id] = new THREE.Vector3(x, y, z); };
         
-        const dy = rDepth / 2 / Math.cos(rafterAngle); // Offset to make rafter bottom sit precisely on column top
-        const dx_splice = 0.02; // Gap for apex splice
+        const dy = rDepth / 2 / Math.cos(rafterAngle); 
+        const dx_splice = 0.02; 
         const dy_splice = dx_splice * Math.tan(rafterAngle);
 
         for (let i = 0; i < numFrames; i++) {
             const z = -B_total/2 + i * actualStep;
             const pf = `F${i}`;
             
-            // Nodes (Mọi tọa độ giao cắt đều được định nghĩa rõ ràng)
-            addNode(`${pf}_BaseL`, -L/2, 0, z);
-            addNode(`${pf}_BaseR`, L/2, 0, z);
-            
-            addNode(`${pf}_ColTopL`, -L/2, H_col, z);
-            addNode(`${pf}_ColTopR`, L/2, H_col, z);
-            
-            addNode(`${pf}_RafStartL`, -L/2, H_col + dy, z);
-            addNode(`${pf}_RafEndL`, -dx_splice, H_roof + dy - dy_splice, z);
-            
-            addNode(`${pf}_RafStartR`, L/2, H_col + dy, z);
-            addNode(`${pf}_RafEndR`, dx_splice, H_roof + dy - dy_splice, z);
-            
+            addNode(`${pf}_BaseL`, -L/2, 0, z); addNode(`${pf}_BaseR`, L/2, 0, z);
+            addNode(`${pf}_ColTopL`, -L/2, H_col, z); addNode(`${pf}_ColTopR`, L/2, H_col, z);
+            addNode(`${pf}_RafStartL`, -L/2, H_col + dy, z); addNode(`${pf}_RafEndL`, -dx_splice, H_roof + dy - dy_splice, z);
+            addNode(`${pf}_RafStartR`, L/2, H_col + dy, z); addNode(`${pf}_RafEndR`, dx_splice, H_roof + dy - dy_splice, z);
             addNode(`${pf}_Apex`, 0, H_roof + dy - rDepth/2, z);
             
-            // Members
             members.push({ id: `${pf}_ColL`, type: 'column', start: `${pf}_BaseL`, end: `${pf}_ColTopL`, up: new THREE.Vector3(-1,0,0) });
             members.push({ id: `${pf}_ColR`, type: 'column', start: `${pf}_BaseR`, end: `${pf}_ColTopR`, up: new THREE.Vector3(1,0,0) });
-            
             members.push({ id: `${pf}_RafL`, type: 'rafter', start: `${pf}_RafStartL`, end: `${pf}_RafEndL`, up: new THREE.Vector3(0,1,0) });
             members.push({ id: `${pf}_RafR`, type: 'rafter', start: `${pf}_RafStartR`, end: `${pf}_RafEndR`, up: new THREE.Vector3(0,1,0) });
         }
 
-        // Purlin Nodes
         for(let j=0; j<2; j++) {
             const sign = j===0 ? -1 : 1;
             const side = j===0 ? 'L' : 'R';
-            
-            // Roof Purlins
             for(let p=0; p<numPurlins; p++) {
                 const ratio = p / (numPurlins - 1);
                 const px = sign * L/2 * (1 - ratio);
                 const py = H_col + roofRise * ratio;
-                
                 addNode(`Purlin_Roof_${side}_${p}_Start`, px, py + dy + 0.1, -B_total/2);
                 addNode(`Purlin_Roof_${side}_${p}_End`, px, py + dy + 0.1, B_total/2);
-                
-                const nx = sign * Math.sin(rafterAngle);
-                const ny = Math.cos(rafterAngle);
-                members.push({ 
-                    id: `Purlin_Roof_${side}_${p}`, type: 'purlin', 
-                    start: `Purlin_Roof_${side}_${p}_Start`, end: `Purlin_Roof_${side}_${p}_End`, 
-                    up: new THREE.Vector3(nx, ny, 0) 
-                });
+                const nx = sign * Math.sin(rafterAngle); const ny = Math.cos(rafterAngle);
+                members.push({ id: `Purlin_Roof_${side}_${p}`, type: 'purlin', start: `Purlin_Roof_${side}_${p}_Start`, end: `Purlin_Roof_${side}_${p}_End`, up: new THREE.Vector3(nx, ny, 0) });
             }
-            
-            // Wall Girts (Xà gồ vách)
             const numGirts = Math.floor(H_col / purlinSpacing);
             const gx = sign * (L/2 + cDepth/2 + 0.1); 
             for(let g=1; g<=numGirts; g++) {
                 const gy = g * purlinSpacing;
-                if (gy >= H_col - 0.2) continue; // Avoid clashing with eaves
-                
+                if (gy >= H_col - 0.2) continue; 
                 addNode(`Purlin_Wall_${side}_${g}_Start`, gx, gy, -B_total/2);
                 addNode(`Purlin_Wall_${side}_${g}_End`, gx, gy, B_total/2);
-                members.push({ 
-                    id: `Purlin_Wall_${side}_${g}`, type: 'purlin', 
-                    start: `Purlin_Wall_${side}_${g}_Start`, end: `Purlin_Wall_${side}_${g}_End`, 
-                    up: new THREE.Vector3(sign, 0, 0) 
-                });
+                members.push({ id: `Purlin_Wall_${side}_${g}`, type: 'purlin', start: `Purlin_Wall_${side}_${g}_Start`, end: `Purlin_Wall_${side}_${g}_End`, up: new THREE.Vector3(sign, 0, 0) });
             }
         }
 
-        // X Bracing Nodes
-        const numBraces = 2; // at start and end
+        const numBraces = 2;
         for (let idx=0; idx<numBraces; idx++) {
             const i = idx === 0 ? 0 : numFrames - 2;
-            const pf1 = `F${i}`;
-            const pf2 = `F${i+1}`;
-            
+            const pf1 = `F${i}`; const pf2 = `F${i+1}`;
             members.push({ id: `Brace_${pf1}_L_Up`, type: 'brace', start: `${pf1}_BaseL`, end: `${pf2}_ColTopL`, up: new THREE.Vector3(1,0,0) });
             members.push({ id: `Brace_${pf1}_L_Dn`, type: 'brace', start: `${pf1}_ColTopL`, end: `${pf2}_BaseL`, up: new THREE.Vector3(1,0,0) });
             members.push({ id: `Brace_${pf1}_R_Up`, type: 'brace', start: `${pf1}_BaseR`, end: `${pf2}_ColTopR`, up: new THREE.Vector3(1,0,0) });
             members.push({ id: `Brace_${pf1}_R_Dn`, type: 'brace', start: `${pf1}_ColTopR`, end: `${pf2}_BaseR`, up: new THREE.Vector3(1,0,0) });
         }
 
-        // ==========================================
-        // RENDER CANONICAL MODEL
-        // ==========================================
-        
-        // Render Members
         const braceGeom = new THREE.CylinderGeometry(0.015, 0.015, Math.sqrt(actualStep*actualStep + H_col*H_col));
-        braceGeom.rotateX(Math.PI/2); // Align with Z for placeBeam
+        braceGeom.rotateX(Math.PI/2); 
         const braceMat = new THREE.MeshStandardMaterial({ color: isDark ? 0x94a3b8 : 0x64748b });
 
         members.forEach(member => {
-            const p1 = nodes[member.start];
-            const p2 = nodes[member.end];
-            if (!p1 || !p2) return; // Defensive
-            
+            const p1 = nodes[member.start]; const p2 = nodes[member.end];
+            if (!p1 || !p2) return;
             let mesh;
             if (member.type === 'column') mesh = new THREE.Mesh(colGeom, steelMat);
             else if (member.type === 'rafter') mesh = new THREE.Mesh(rafterGeom, steelMat);
             else if (member.type === 'purlin') mesh = new THREE.Mesh(purlinGeom, purlinMat);
             else if (member.type === 'brace') mesh = new THREE.Mesh(braceGeom, braceMat);
-            
-            if (mesh) {
-                placeBeam(mesh, p1, p2, member.up);
-                mesh.castShadow = true; mesh.receiveShadow = true;
-                skeletonGroup.add(mesh);
-            }
+            if (mesh) { placeBeam(mesh, p1, p2, member.up); mesh.castShadow = true; mesh.receiveShadow = true; skeletonGroup.add(mesh); }
         });
 
-        // Render Joints, Splices, Haunches, Foundations (using Nodes)
         for (let i = 0; i < numFrames; i++) {
             const pf = `F${i}`;
             const z = nodes[`${pf}_BaseL`].z;
             
             if (isGeometry) {
-                const axisGeo = new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(-L/2 - 2, 0, z), new THREE.Vector3(L/2 + 2, 0, z)
-                ]);
-                const axisLine = new THREE.Line(axisGeo, gridMat);
-                axisLine.computeLineDistances(); scene.add(axisLine);
-                const label1 = createTextSprite(`${i+1}`);
-                label1.position.set(-L/2 - 3, 0.1, z); scene.add(label1);
+                const axisGeo = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(-L/2 - 2, 0, z), new THREE.Vector3(L/2 + 2, 0, z) ]);
+                const axisLine = new THREE.Line(axisGeo, gridMat); axisLine.computeLineDistances(); scene.add(axisLine);
+                const label1 = createTextSprite(`${i+1}`); label1.position.set(-L/2 - 3, 0.1, z); scene.add(label1);
             }
 
-            // Foundations
-            const fL = new THREE.Mesh(foundationGeom, foundationMat);
-            fL.position.copy(nodes[`${pf}_BaseL`]).add(new THREE.Vector3(0, -0.6, 0));
-            fL.receiveShadow = true; skeletonGroup.add(fL);
+            const fL = new THREE.Mesh(foundationGeom, foundationMat); fL.position.copy(nodes[`${pf}_BaseL`]).add(new THREE.Vector3(0, -0.6, 0)); fL.receiveShadow = true; skeletonGroup.add(fL);
+            const fR = new THREE.Mesh(foundationGeom, foundationMat); fR.position.copy(nodes[`${pf}_BaseR`]).add(new THREE.Vector3(0, -0.6, 0)); fR.receiveShadow = true; skeletonGroup.add(fR);
 
-            const fR = new THREE.Mesh(foundationGeom, foundationMat);
-            fR.position.copy(nodes[`${pf}_BaseR`]).add(new THREE.Vector3(0, -0.6, 0));
-            fR.receiveShadow = true; skeletonGroup.add(fR);
+            const baseL = new THREE.Mesh(basePlateGeom, basePlateMat); baseL.position.copy(nodes[`${pf}_BaseL`]).add(new THREE.Vector3(0, 0.02, 0)); baseL.castShadow = true; baseL.receiveShadow = true; addBaseBolts(baseL); skeletonGroup.add(baseL);
+            const baseR = new THREE.Mesh(basePlateGeom, basePlateMat); baseR.position.copy(nodes[`${pf}_BaseR`]).add(new THREE.Vector3(0, 0.02, 0)); baseR.castShadow = true; baseR.receiveShadow = true; addBaseBolts(baseR); skeletonGroup.add(baseR);
 
-            // Base plates
-            const baseL = new THREE.Mesh(basePlateGeom, basePlateMat);
-            baseL.position.copy(nodes[`${pf}_BaseL`]).add(new THREE.Vector3(0, 0.02, 0));
-            baseL.castShadow = true; baseL.receiveShadow = true; addBaseBolts(baseL); skeletonGroup.add(baseL);
+            const apex = new THREE.Mesh(apexGeom, basePlateMat); apex.position.copy(nodes[`${pf}_Apex`]); apex.castShadow = true; apex.receiveShadow = true; addApexBolts(apex); skeletonGroup.add(apex);
 
-            const baseR = new THREE.Mesh(basePlateGeom, basePlateMat);
-            baseR.position.copy(nodes[`${pf}_BaseR`]).add(new THREE.Vector3(0, 0.02, 0));
-            baseR.castShadow = true; baseR.receiveShadow = true; addBaseBolts(baseR); skeletonGroup.add(baseR);
-
-            // Apex Splice
-            const apex = new THREE.Mesh(apexGeom, basePlateMat);
-            apex.position.copy(nodes[`${pf}_Apex`]);
-            apex.castShadow = true; apex.receiveShadow = true; addApexBolts(apex); skeletonGroup.add(apex);
-
-            // Knee Haunches (Vút nách)
             const buildHaunch = (isLeft) => {
                 const sign = isLeft ? 1 : -1;
                 const startX = (isLeft ? -L/2 : L/2) + sign * cDepth/2;
@@ -408,61 +338,39 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                 const endY = H_col + (cDepth/2 + haunchLength) * Math.tan(rafterAngle);
                 const startY_bot = startY_top - haunchDepth;
 
-                const shape = new THREE.Shape();
-                shape.moveTo(startX, startY_top);
-                shape.lineTo(endX, endY);
-                shape.lineTo(startX, startY_bot);
-                shape.lineTo(startX, startY_top);
-
+                const shape = new THREE.Shape(); shape.moveTo(startX, startY_top); shape.lineTo(endX, endY); shape.lineTo(startX, startY_bot); shape.lineTo(startX, startY_top);
                 const web = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: tw, bevelEnabled: false }), steelMat);
-                web.position.set(0, 0, z - tw/2);
-                web.castShadow = true; web.receiveShadow = true; skeletonGroup.add(web);
-
+                web.position.set(0, 0, z - tw/2); web.castShadow = true; web.receiveShadow = true; skeletonGroup.add(web);
                 const flDist = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY_bot, 2));
                 const fl = new THREE.Mesh(new THREE.BoxGeometry(rWidth, tf, flDist), steelMat);
                 placeBeam(fl, new THREE.Vector3(startX, startY_bot, z), new THREE.Vector3(endX, endY, z), new THREE.Vector3(0, 1, 0));
                 fl.castShadow = true; fl.receiveShadow = true; skeletonGroup.add(fl);
             };
-            buildHaunch(true);
-            buildHaunch(false);
+            buildHaunch(true); buildHaunch(false);
         }
 
-        // Axis Line A, B
         if (isGeometry) {
             const addAxis = (x, label) => {
-                const geo = new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(x, 0, -B_total/2 - 2), new THREE.Vector3(x, 0, B_total/2 + 2)
-                ]);
+                const geo = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(x, 0, -B_total/2 - 2), new THREE.Vector3(x, 0, B_total/2 + 2) ]);
                 const line = new THREE.Line(geo, gridMat); line.computeLineDistances(); scene.add(line);
                 const txt = createTextSprite(label); txt.position.set(x, 0.1, B_total/2 + 3); scene.add(txt);
             };
             addAxis(-L/2, "A"); addAxis(L/2, "B");
             
             const dimMat = new THREE.LineBasicMaterial({ color: isDark ? 0x38bdf8 : 0x0284c7 });
-            const dimGeoL = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(-L/2, -1, B_total/2 + 1), new THREE.Vector3(L/2, -1, B_total/2 + 1)
-            ]);
+            const dimGeoL = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(-L/2, -1, B_total/2 + 1), new THREE.Vector3(L/2, -1, B_total/2 + 1) ]);
             scene.add(new THREE.Line(dimGeoL, dimMat));
-            const dimTextL = createDimensionText(`L = ${L}m`);
-            dimTextL.position.set(0, -0.5, B_total/2 + 1); scene.add(dimTextL);
-
-            const dimGeoH = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(-L/2 - 2, 0, B_total/2), new THREE.Vector3(-L/2 - 2, H_col, B_total/2)
-            ]);
+            const dimTextL = createDimensionText(`L = ${L}m`); dimTextL.position.set(0, -0.5, B_total/2 + 1); scene.add(dimTextL);
+            const dimGeoH = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(-L/2 - 2, 0, B_total/2), new THREE.Vector3(-L/2 - 2, H_col, B_total/2) ]);
             scene.add(new THREE.Line(dimGeoH, dimMat));
-            const dimTextH = createDimensionText(`H = ${H_col}m`);
-            dimTextH.position.set(-L/2 - 3, H_col/2, B_total/2); scene.add(dimTextH);
+            const dimTextH = createDimensionText(`H = ${H_col}m`); dimTextH.position.set(-L/2 - 3, H_col/2, B_total/2); scene.add(dimTextH);
         }
 
         buildingGroup.add(skeletonGroup);
 
-        // CLADDING
         function createQuad(p1, p2, p3, p4, type, zoneData) {
             const geometry = new THREE.BufferGeometry();
-            const vertices = new Float32Array([
-                p1[0], p1[1], p1[2],  p2[0], p2[1], p2[2],  p3[0], p3[1], p3[2],
-                p1[0], p1[1], p1[2],  p3[0], p3[1], p3[2],  p4[0], p4[1], p4[2]
-            ]);
+            const vertices = new Float32Array([ p1[0], p1[1], p1[2],  p2[0], p2[1], p2[2],  p3[0], p3[1], p3[2], p1[0], p1[1], p1[2],  p3[0], p3[1], p3[2],  p4[0], p4[1], p4[2] ]);
             geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
             geometry.computeVertexNormals();
 
@@ -470,25 +378,16 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             if (zoneData) {
                 if (zoneData.c_net > 0) mat.color.setHex(isDark ? 0xfca5a5 : 0xef4444); 
                 else mat.color.setHex(isDark ? 0x60a5fa : 0x3b82f6); 
-                mat.opacity = 0.85; 
-                mat.wireframe = false;
-            } else if (isGeometry) {
-                mat.opacity = 0.05; 
-            }
+                mat.opacity = 0.85; mat.wireframe = false;
+            } else if (isGeometry) { mat.opacity = 0.05; }
 
             const mesh = new THREE.Mesh(geometry, mat);
-            if (zoneData) {
-                mesh.userData = zoneData;
-                interactableMeshes.push(mesh);
-            }
-            mesh.visible = showCladding;
-            buildingGroup.add(mesh);
+            if (zoneData) { mesh.userData = zoneData; interactableMeshes.push(mesh); }
+            mesh.visible = showCladding; buildingGroup.add(mesh);
 
             const edges = new THREE.EdgesGeometry(geometry);
             const lineMat = isGeometry ? wireMat : new THREE.LineBasicMaterial({ color: isDark ? 0x94a3b8 : 0x64748b, opacity: 0.3, transparent: true });
-            const line = new THREE.LineSegments(edges, lineMat);
-            line.visible = showCladding;
-            buildingGroup.add(line);
+            const line = new THREE.LineSegments(edges, lineMat); line.visible = showCladding; buildingGroup.add(line);
             
             return mesh;
         }
@@ -530,8 +429,11 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         createQuad(C0, R0, R1, C3, 'roof', currentDir==='+X'?roofWindward:roofLeeward); 
         createQuad(R0, C1, C2, R1, 'roof', currentDir==='+X'?roofLeeward:roofWindward); 
 
-        // WIND VISUALIZATION
-        const windArrows = [];
+        // WIND VISUALIZATION ENGINE (WOW UPDATE)
+        const windElements = [];
+        let targetX = null, targetZ = null;
+        let startX = null, startZ = null;
+
         if (mode === 'wind') {
             const arrowDir = new THREE.Vector3(
                 currentDir.includes('X') ? (currentDir.includes('+') ? 1 : -1) : 0, 
@@ -539,27 +441,52 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                 currentDir.includes('Y') ? (currentDir.includes('+') ? -1 : 1) : 0
             );
             
-            const numArrows = Math.max(4, Math.floor(maxDim / 8));
-            const arrowGroup = new THREE.Group();
-            for(let i=0; i<numArrows; i++) {
-                for(let j=0; j<3; j++) { 
-                    const ratio = (i + 0.5) / numArrows;
-                    let ax, az;
-                    if(currentDir.includes('X')) {
-                        ax = arrowDir.x * -(L/2 + 30); 
-                        az = -B_total/2 + B_total * ratio;
-                    } else {
-                        az = arrowDir.z * -(B_total/2 + 30);
-                        ax = -L/2 + L * ratio;
+            const windGroup = new THREE.Group();
+            
+            if (currentDir === '+X') { targetX = xMin; startX = xMin - 35; } 
+            else if (currentDir === '-X') { targetX = xMax; startX = xMax + 35; } 
+            else if (currentDir === '+Y') { targetZ = zMin; startZ = zMin - 35; } 
+            else if (currentDir === '-Y') { targetZ = zMax; startZ = zMax + 35; }
+
+            if (windAnimMode === 'static') {
+                const numArrows = Math.max(4, Math.floor(maxDim / 8));
+                for(let i=0; i<numArrows; i++) {
+                    for(let j=0; j<3; j++) { 
+                        const ratio = (i + 0.5) / numArrows;
+                        let ax = currentDir.includes('X') ? startX + 20 * arrowDir.x : -L/2 + L * ratio;
+                        let az = currentDir.includes('Y') ? startZ + 20 * arrowDir.z : -B_total/2 + B_total * ratio;
+                        const pos = new THREE.Vector3(ax, H_col * (0.2 + j*0.35), az);
+                        const ah = new THREE.ArrowHelper(arrowDir, pos, 12, isDark ? 0x38bdf8 : 0x0284c7, 3, 1.5);
+                        windGroup.add(ah);
                     }
-                    const pos = new THREE.Vector3(ax, H_col * (0.2 + j*0.35), az);
-                    const ah = new THREE.ArrowHelper(arrowDir, pos, 12, isDark ? 0x38bdf8 : 0x0284c7, 3, 1.5);
-                    ah.userData = { originalPos: pos.clone(), dir: arrowDir.clone(), offset: Math.random() * 18 };
-                    arrowGroup.add(ah);
-                    windArrows.push(ah);
+                }
+            } else {
+                const streakCount = 150;
+                const streakLength = 3.0;
+                const streakGeom = new THREE.CylinderGeometry(0.04, 0.04, streakLength, 4);
+                streakGeom.rotateX(Math.PI/2); // Align Z
+                const streakMat = new THREE.MeshBasicMaterial({ color: isDark ? 0x38bdf8 : 0x0ea5e9, transparent: true, opacity: 0.6 });
+
+                for(let i=0; i<streakCount; i++) {
+                    const mesh = new THREE.Mesh(streakGeom, streakMat);
+                    let px, pz;
+                    if (currentDir.includes('X')) {
+                        px = startX + Math.random() * 30 * arrowDir.x;
+                        pz = -B_total/2 + Math.random() * B_total;
+                    } else {
+                        px = -L/2 + Math.random() * L;
+                        pz = startZ + Math.random() * 30 * arrowDir.z;
+                    }
+                    const py = Math.random() * H_roof;
+                    
+                    mesh.position.set(px, py, pz);
+                    mesh.lookAt(mesh.position.clone().add(arrowDir));
+                    mesh.userData = { speed: 0.3 + Math.random() * 0.4 };
+                    windGroup.add(mesh);
+                    windElements.push(mesh);
                 }
             }
-            scene.add(arrowGroup);
+            scene.add(windGroup);
         }
 
         const gridColor = isDark ? 0x1e293b : 0xe2e8f0;
@@ -569,9 +496,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         scene.add(grid);
         
         const groundGeo = new THREE.PlaneGeometry(maxDim * 5, maxDim * 5);
-        const groundMat = new THREE.MeshStandardMaterial({ 
-            color: bgColor, depthWrite: false, roughness: 1, metalness: 0
-        });
+        const groundMat = new THREE.MeshStandardMaterial({ color: bgColor, depthWrite: false, roughness: 1, metalness: 0 });
         const ground = new THREE.Mesh(groundGeo, groundMat);
         ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02; ground.receiveShadow = true;
         scene.add(ground);
@@ -593,14 +518,33 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         let animationFrameId;
         const renderLoop = () => {
             controls.update();
-            if (windArrows.length > 0) {
-                const time = Date.now() * 0.015;
-                windArrows.forEach(ah => {
-                    const travelDist = 18;
-                    const progress = (time + ah.userData.offset) % travelDist;
-                    ah.position.copy(ah.userData.originalPos).addScaledVector(ah.userData.dir, progress);
+            
+            if (windAnimMode === 'dynamic' && windElements.length > 0) {
+                const arrowDir = new THREE.Vector3(
+                    currentDir.includes('X') ? (currentDir.includes('+') ? 1 : -1) : 0, 
+                    0, 
+                    currentDir.includes('Y') ? (currentDir.includes('+') ? -1 : 1) : 0
+                );
+
+                windElements.forEach(mesh => {
+                    mesh.position.addScaledVector(arrowDir, mesh.userData.speed);
+                    
+                    let hit = false;
+                    const halfLen = 1.5; // half of streakLength
+                    
+                    if (currentDir === '+X' && mesh.position.x + halfLen > targetX) hit = true;
+                    if (currentDir === '-X' && mesh.position.x - halfLen < targetX) hit = true;
+                    if (currentDir === '+Y' && mesh.position.z + halfLen > targetZ) hit = true;
+                    if (currentDir === '-Y' && mesh.position.z - halfLen < targetZ) hit = true;
+                    
+                    if (hit) {
+                        if (currentDir.includes('X')) mesh.position.x = startX;
+                        if (currentDir.includes('Y')) mesh.position.z = startZ;
+                        mesh.position.y = Math.random() * H_roof;
+                    }
                 });
             }
+
             renderer.render(scene, camera);
             animationFrameId = requestAnimationFrame(renderLoop);
         };
@@ -626,11 +570,11 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             cameraStateRef.current.position = camera.position.clone();
             cameraStateRef.current.target = controls.target.clone();
         };
-    }, [inputs, caseData, currentDir, showCladding, mode, theme]);
+    }, [inputs, caseData, currentDir, showCladding, mode, theme, windAnimMode]);
 
     useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
-    }, [mode, currentDir, showCladding, isFullscreen, theme]);
+    }, [mode, currentDir, showCladding, isFullscreen, theme, windAnimMode]);
 
     const windDirs = ['+X', '-X', '+Y', '-Y'];
 
@@ -656,22 +600,39 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
     return (
         <div ref={containerRef} className={`flex flex-col gap-3 ${isFullscreen ? (isDark ? 'bg-[#0b1121]' : 'bg-slate-50') + ' p-6 h-screen w-screen z-50 fixed inset-0' : ''}`}>
             <div className={`flex flex-wrap items-center justify-between p-3 rounded-xl border shadow-sm z-10 ${uiBg}`}>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                     <span className={`font-bold ${textCol}`}>
                         {mode === 'wind' ? 'Phân tích Tải trọng Gió 3D' : 'Mô hình Kết cấu 3D (Node-Based)'}
                     </span>
                     
                     {mode === 'wind' && (
-                        <div className={`flex rounded-lg p-1 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
-                            {windDirs.map(d => (
+                        <>
+                            <div className={`flex rounded-lg p-1 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
+                                {windDirs.map(d => (
+                                    <button 
+                                        key={d} onClick={() => setCurrentDir(d)}
+                                        className={`px-3 py-1 text-sm rounded-md transition-all font-semibold ${currentDir === d ? 'bg-blue-600 shadow text-white' : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800')}`}
+                                    >
+                                        Hướng {d}
+                                    </button>
+                                ))}
+                            </div>
+                            
+                            <div className={`flex rounded-lg p-1 border ml-2 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
                                 <button 
-                                    key={d} onClick={() => setCurrentDir(d)}
-                                    className={`px-3 py-1 text-sm rounded-md transition-all font-semibold ${currentDir === d ? 'bg-blue-600 shadow text-white' : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800')}`}
+                                    onClick={() => setWindAnimMode('static')}
+                                    className={`px-3 py-1 text-sm rounded-md transition-all font-semibold ${windAnimMode === 'static' ? 'bg-blue-600 shadow text-white' : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800')}`}
                                 >
-                                    Hướng {d}
+                                    Gió Tĩnh
                                 </button>
-                            ))}
-                        </div>
+                                <button 
+                                    onClick={() => setWindAnimMode('dynamic')}
+                                    className={`px-3 py-1 text-sm rounded-md transition-all font-semibold ${windAnimMode === 'dynamic' ? 'bg-blue-600 shadow text-white' : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800')}`}
+                                >
+                                    Luồng Gió
+                                </button>
+                            </div>
+                        </>
                     )}
                 </div>
                 
