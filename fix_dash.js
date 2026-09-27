@@ -1,17 +1,14 @@
 ﻿const fs = require('fs');
 let c = fs.readFileSync('e:/Model antigravity/Đồ án Thép/steel-design-assistant/js/components/Dashboard.jsx', 'utf8');
 
-c = c.replace(
-    /let memberCount = workspaceState\.members \? workspaceState\.members\.length : 0;/,
-    `let memberCount = workspaceState.members ? workspaceState.members.length : 0;
-    let primaryCount = workspaceState.members ? workspaceState.members.filter(m => m.role === 'PRIMARY').length : 0;
-    let secondaryCount = workspaceState.members ? workspaceState.members.filter(m => m.role === 'SECONDARY').length : 0;
-    let bracingCount = workspaceState.members ? workspaceState.members.filter(m => m.role === 'BRACING').length : 0;`
-);
+const startStr = `<div className="grid grid-cols-2 gap-4">`;
+const endStr = `<div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 flex justify-between items-center">`;
 
-c = c.replace(
-    /<div className="grid grid-cols-2 gap-4">[\s\S]*?<\/div>\s*<\/div>\s*<div className="bg-slate-50/g,
-    `<div className="grid grid-cols-2 gap-4">
+const startIdx = c.indexOf(startStr);
+const endIdx = c.indexOf(endStr, startIdx);
+
+if (startIdx !== -1 && endIdx !== -1) {
+    const replacement = `<div className="grid grid-cols-2 gap-4">
                                 <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
                                     <div className="text-xs text-slate-500 mb-1">Kết cấu chính (Primary)</div>
                                     <div className="font-bold">{primaryCount}</div>
@@ -38,15 +35,8 @@ c = c.replace(
                                 </div>
                             </div>
                             
-                            <div className="bg-slate-50`
-);
-
-fs.writeFileSync('e:/Model antigravity/Đồ án Thép/steel-design-assistant/js/components/Dashboard.jsx', c, 'utf8');
-
-try {
-    require('@babel/parser').parse(c, {sourceType: 'module', plugins: ['jsx']});
-    console.log('Syntax OK');
-} catch(e) {
-    console.log('ERROR AT:', e.loc.line, c.split('\n')[e.loc.line - 1]);
-    console.error(e);
+                            `;
+    
+    c = c.substring(0, startIdx) + replacement + c.substring(endIdx);
+    fs.writeFileSync('e:/Model antigravity/Đồ án Thép/steel-design-assistant/js/components/Dashboard.jsx', c, 'utf8');
 }
