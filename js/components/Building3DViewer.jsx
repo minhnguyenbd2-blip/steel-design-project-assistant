@@ -397,8 +397,11 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             return mesh;
         }
 
-        const xMin = -L/2, xMax = L/2;
-        const zMin = -B_total/2, zMax = B_total/2;
+        // Offset cladding to wrap outside the columns (cDepth = 0.6)
+        const cladExtX = cDepth/2 + 0.05;
+        const xMin = -L/2 - cladExtX, xMax = L/2 + cladExtX;
+        const cladExtZ = 0.2;
+        const zMin = -B_total/2 - cladExtZ, zMax = B_total/2 + cladExtZ;
         const y0 = 0;
         
         // Cladding points wrapping over purlins
