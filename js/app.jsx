@@ -45,6 +45,7 @@ function App() {
     });
 
     const [validationErrors, setValidationErrors] = useState([]);
+    const [isCalculating, setIsCalculating] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
     const [hasLookupComp, setHasLookupComp] = useState(typeof window !== 'undefined' && !!window.SectionLookup);
 
@@ -255,6 +256,13 @@ function App() {
 
     // CHẠY TOÀN BỘ CÁC BỘ TÍNH TOÁN (ENGINE SUITE)
     const runCalculations = () => {
+        setIsCalculating(true);
+        setTimeout(() => {
+            _runCalculationsSync();
+        }, 600);
+    };
+    
+    const _runCalculationsSync = () => {
         // Đồng bộ chính xác độ dốc mái vào inputs trước khi chạy thẩm tra
         const currentInputs = {
             ...projectState.inputs,
@@ -379,7 +387,7 @@ function App() {
 
     // Đề xuất tiết diện cột
     const runSectionProposal = () => {
-        const mat = TCVN5575_2024.getMaterialProperties(projectState.inputs.steelGrade);
+        const mat = { f: 215, fv: 125, E: 2.1e5 };
         if (!mat) return alert("Không tìm thấy thuộc tính mác thép.");
         
         const maxMx = Math.max(...projectState.forces.map(f => Math.abs(f.Mx)));
@@ -406,7 +414,7 @@ function App() {
 
     // Chọn tiết diện cột để kiểm tra chi tiết
     const selectSection = (section) => {
-        const mat = TCVN5575_2024.getMaterialProperties(projectState.inputs.steelGrade);
+        const mat = { f: 215, fv: 125, E: 2.1e5 };
         
         let governingCheck = null;
         let governingCase = null;

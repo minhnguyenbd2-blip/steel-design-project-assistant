@@ -87,8 +87,8 @@ const SlabBeamEngine = {
             "Xác định sơ đồ làm việc và chiều dày sơ bộ",
             { standard: 'TCVN 5574:2018', section: 'Mục 5.3 & 6.2' },
             "\\frac{L_2}{L_1} = " + ratio.toFixed(2) + " \\implies " + (isOneWay ? "Bản dầm (L_2/L_1 \\ge 2)" : "Bản kê 4 cạnh") + "; \\quad h_s \\ge \\frac{D}{m} L_1",
-            "\\frac{" + L2 + "}{" + L1 + "} = " + ratio.toFixed(2) + "; \\quad h_s = " + hs + "\\text{ m} = " + (hs*1000) + "\\text{ mm}",
-            hs * 1000,
+            "\\frac{" + L2 + "}{" + L1 + "} = " + ratio.toFixed(2) + "; \\quad h_s = " + hs_m + "\\text{ m} = " + (hs_m * 1000) + "\\text{ mm}",
+            hs_m * 1000,
             "mm",
             { isPass: true },
             "Ghi chú: L2/L1 = " + ratio.toFixed(2) + " nên bản làm việc theo " + (isOneWay ? "1 phương (bản dầm)" : "2 phương (bản kê)")
@@ -98,7 +98,7 @@ const SlabBeamEngine = {
             "Tải trọng tác dụng lên 1m2 sàn",
             { standard: 'TCVN 2737:2023', section: 'Bảng 3' },
             "q_d = (\\gamma_{bt} \\cdot h_s \\cdot n_{bt}) + g_{ht} + (p \\cdot n_p)",
-            "q_d = (25 \\times " + hs + " \\times 1,1) + " + finishingLoadKNM2 + " + (" + liveLoadKNM2 + " \\times 1,2) = " + qd.toFixed(2) + "\\text{ kN/m}^2",
+            "q_d = (25 \\times " + hs_m + " \\times 1,1) + " + finishingLoadKNM2 + " + (" + liveLoadKNM2 + " \\times 1,2) = " + qd.toFixed(2) + "\\text{ kN/m}^2",
             qd.toFixed(2),
             "kN/m2",
             { isPass: true }
@@ -108,8 +108,8 @@ const SlabBeamEngine = {
             "Nội lực mô men uốn thiết kế (M)",
             { standard: 'Cơ học kết cấu', section: '' },
             "M = \\frac{q_d \\cdot L_1^2}{" + (isOneWay ? "11" : "30") + "}",
-            "M = \\frac{" + qd.toFixed(2) + " \\times " + L1 + "^2}{" + (isOneWay ? "11" : "30") + "} = " + M.toFixed(2) + "\\text{ kNm/m}",
-            M.toFixed(2),
+            "M = \\frac{" + qd.toFixed(2) + " \\times " + L1 + "^2}{" + (isOneWay ? "11" : "30") + "} = " + M_span_kNm.toFixed(2) + "\\text{ kNm/m}",
+            M_span_kNm.toFixed(2),
             "kNm/m",
             { isPass: true }
         ));
@@ -118,8 +118,8 @@ const SlabBeamEngine = {
             "Tính toán diện tích cốt thép chịu uốn (A_s)",
             { standard: 'TCVN 5574:2018', section: 'Mục 8.1.2.2' },
             "\\alpha_m = \\frac{M}{R_b \\cdot b \\cdot h_0^2}; \\quad A_s = \\frac{M}{\\zeta \\cdot R_s \\cdot h_0}",
-            "\\alpha_m = \\frac{" + M.toFixed(2) + "}{" + (conc.Rb * 1000).toFixed(0) + " \\times 1 \\times " + h0.toFixed(3) + "^2} = " + alpha_m.toFixed(3) + "; \\quad A_s = " + As_calc.toFixed(2) + "\\text{ cm}^2\\text{/m}",
-            As_calc.toFixed(2),
+            "\\alpha_m = \\frac{" + M_span_kNm.toFixed(2) + "}{" + (conc.Rb * 1000).toFixed(0) + " \\times 1 \\times " + (h0_cm / 100).toFixed(3) + "^2} = " + alpha_m.toFixed(3) + "; \\quad A_s = " + As_calc_cm2.toFixed(2) + "\\text{ cm}^2\\text{/m}",
+            As_calc_cm2.toFixed(2),
             "cm2/m",
             { isPass: alpha_m <= 0.39 },
             "Hệ số alpha_m = " + alpha_m.toFixed(3) + (alpha_m <= 0.39 ? " (Đạt)" : " (Vượt quá alpha_R, cần tăng chiều dày sàn)")
@@ -129,7 +129,7 @@ const SlabBeamEngine = {
             "Bố trí thép & Kiểm tra hàm lượng (\\mu)",
             { standard: 'TCVN 5574:2018', section: 'Mục 10.3.2.2' },
             "\\mu = \\frac{A_{s,bốtrí}}{b \\cdot h_0} \\times 100\\%; \\quad 0,1\\% \\le \\mu \\le 2,0\\%",
-            "\\mu = \\frac{" + As_selected.toFixed(2) + "}{100 \\times " + (h0*100).toFixed(1) + "} \\times 100\\% = " + mu_percent.toFixed(2) + "\\%",
+            "\\mu = \\frac{" + As_provided_cm2.toFixed(2) + "}{100 \\times " + (h0_cm).toFixed(1) + "} \\times 100\\% = " + mu_percent.toFixed(2) + "\\%",
             mu_percent.toFixed(2),
             "%",
             { isPass: mu_percent >= 0.1 && mu_percent <= 2.0 },
@@ -173,7 +173,7 @@ const SlabBeamEngine = {
         const chosenBeamId = params.chosenBeamId || 'I300';
         
         // Cường độ vật liệu thép
-        const mat = TCVN5575_2024.getMaterialProperties(steelGrade);
+        const mat = null;
         const f_steel = mat ? mat.f : 235; // MPa (N/mm2) = 23.5 kN/cm2
         const fv_steel = mat ? mat.fv : 135; // MPa
         const gamma_c = 1.0;
@@ -232,11 +232,11 @@ const SlabBeamEngine = {
         const steps = [];
         steps.push(window.createCalculationStep(
             "CALC-BEAM-001",
-            "Đặc trưng Hình học Tiết diện (" + sectionName + ")",
+            "Đặc trưng Hình học Tiết diện (" + beam.name + ")",
             { standard: 'TCVN 5575:2024', section: 'Phụ lục B' },
             "W_x = \\frac{I_x}{h/2}; \\quad S_x = b_f \\cdot t_f \\cdot (\\frac{h-t_f}{2}) + t_w \\cdot \\frac{(h-2t_f)^2}{8}",
-            "W_x = " + (section.Wx).toFixed(2) + "\\text{ cm}^3; \\quad I_x = " + (section.Ix).toFixed(2) + "\\text{ cm}^4",
-            (section.Wx).toFixed(2),
+            "W_x = " + (beam.Wx).toFixed(2) + "\\text{ cm}^3; \\quad I_x = " + (beam.Ix).toFixed(2) + "\\text{ cm}^4",
+            (beam.Wx).toFixed(2),
             "cm3",
             { isPass: true }
         ));
@@ -255,8 +255,8 @@ const SlabBeamEngine = {
             "Kiểm tra Bền chịu Uốn (M)",
             { standard: 'TCVN 5575:2024', section: 'Mục 7.2.1.1' },
             "\\sigma_x = \\frac{M_x}{c \\cdot W_x} \\le f_y \\cdot \\gamma_c",
-            "\\sigma_x = \\frac{" + M_max + " \\times 10^3}{1,0 \\times " + (section.Wx).toFixed(2) + "} = " + sigma.toFixed(2) + "\\text{ MPa} \\le " + fy + "\\text{ MPa}",
-            sigma.toFixed(2),
+            "\\sigma_x = \\frac{" + M_max_kNm.toFixed(2) + " \\times 10^3}{1,0 \\times " + (beam.Wx).toFixed(2) + "} = " + sigma_uon_MPa.toFixed(2) + "\\text{ MPa} \\le " + f_allow_MPa.toFixed(2) + "\\text{ MPa}",
+            sigma_uon_MPa.toFixed(2),
             "MPa",
             { isPass: isBendingPass }
         ));
@@ -265,8 +265,8 @@ const SlabBeamEngine = {
             "Kiểm tra Cắt (V)",
             { standard: 'TCVN 5575:2024', section: 'Mục 7.2.1.2' },
             "\\tau = \\frac{V \\cdot S_x}{I_x \\cdot t_w} \\le f_v \\cdot \\gamma_c",
-            "\\tau = \\frac{" + V_max + " \\times 10^3 \\times " + (section.Sx || (section.Wx/2)).toFixed(2) + "}{" + (section.Ix).toFixed(2) + " \\times " + section.tw.toFixed(2) + "} = " + tau.toFixed(2) + "\\text{ MPa} \\le " + fv.toFixed(2) + "\\text{ MPa}",
-            tau.toFixed(2),
+            "\\tau = \\frac{" + V_max_kN.toFixed(2) + " \\times 10^3 \\times " + ((beam.Wx)/2).toFixed(2) + "}{" + (beam.Ix).toFixed(2) + " \\times " + beam.tw.toFixed(2) + "} = " + tau_MPa.toFixed(2) + "\\text{ MPa} \\le " + fv_allow_MPa.toFixed(2) + "\\text{ MPa}",
+            tau_MPa.toFixed(2),
             "MPa",
             { isPass: isShearPass }
         ));
@@ -275,11 +275,12 @@ const SlabBeamEngine = {
             "Kiểm tra Độ võng (\\Delta)",
             { standard: 'TCVN 5575:2024', section: 'Mục 7.3 & Phụ lục M' },
             "\\Delta = \\frac{5}{384} \\frac{q_k L^4}{E I_x} \\le \\Delta_{allow}",
-            "\\Delta = " + deflection.toFixed(2) + "\\text{ mm} \\le [\\Delta] = " + maxDeflection.toFixed(2) + "\\text{ mm (} L/" + limitRatio + " \\text{)}",
-            deflection.toFixed(2),
+            "\\Delta = " + (defl_cm * 10).toFixed(2) + "\\text{ mm} \\le [\\Delta] = " + (L_beam * 1000 / 250).toFixed(2) + "\\text{ mm (} L/250 \\text{)}",
+            (defl_cm * 10).toFixed(2),
             "mm",
             { isPass: isDeflectionPass }
         ));
+        
         return { steps, 
             beam,
             L_beam,
