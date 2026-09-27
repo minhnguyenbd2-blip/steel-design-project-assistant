@@ -122,21 +122,20 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         
         const bgColor = isDark ? (isGeometry ? 0x0b1121 : 0x0f172a) : 0xf8fafc;
         scene.background = new THREE.Color(bgColor);
-        scene.fog = new THREE.FogExp2(bgColor, 0.004); // Smooth horizon fade
+        scene.fog = new THREE.FogExp2(bgColor, 0.004);
 
         const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true, powerPreference: "high-performance" });
         renderer.setSize(width, height);
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // WOW shadows
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         mountRef.current.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-        controls.maxPolarAngle = Math.PI / 2 - 0.01; // Prevent going strictly below ground
+        controls.maxPolarAngle = Math.PI / 2 - 0.01;
 
-        // Restore Camera State OR Initialize
         const maxDim = Math.max(L, B_total, H_roof);
         if (cameraStateRef.current.position) {
             camera.position.copy(cameraStateRef.current.position);
@@ -147,7 +146,6 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         }
         controls.update();
 
-        // Lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 0.7 : 1.1);
         scene.add(ambientLight);
         
@@ -173,10 +171,8 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         // Materials
         const steelColor = isDark ? 0x2563eb : 0x1d4ed8; 
         const steelMat = new THREE.MeshStandardMaterial({ color: steelColor, metalness: 0.6, roughness: 0.3 });
-        
         const purlinColor = 0xf59e0b;
         const purlinMat = new THREE.MeshStandardMaterial({ color: purlinColor, metalness: 0.4, roughness: 0.5 });
-        
         const boltMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.1 });
         
         const wallMat = new THREE.MeshPhysicalMaterial({ 
@@ -199,7 +195,11 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         const rafterLength = Math.sqrt(halfSpan*halfSpan + roofRise*roofRise);
         const rafterAngle = Math.atan(roofRise / halfSpan);
         const rDepth = 0.5, rWidth = 0.25;
-        const rafterGeom = createIBeamGeometry(rDepth, rWidth, 0.01, 0.014, rafterLength);
+        
+        // Fix overlap: subtract apex splice thickness (0.04m) -> half is 0.02m horizontally
+        // Real length of rafter mesh = rafterLength - (0.02 / cosA)
+        const rafterMeshLength = rafterLength - (0.02 / Math.cos(rafterAngle));
+        const rafterGeom = createIBeamGeometry(rDepth, rWidth, 0.01, 0.014, rafterMeshLength);
         
         const purlinSpacing = Number(inputs.purlinSpacing) || 1.2;
         const numPurlins = Math.floor(rafterLength / purlinSpacing) + 1;
@@ -209,9 +209,8 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         const basePlateMat = new THREE.MeshStandardMaterial({ color: isDark ? 0x94a3b8 : 0x475569, metalness: 0.8, roughness: 0.2 });
         const foundationGeom = new THREE.BoxGeometry(1.5, 1.2, 1.5);
         const foundationMat = new THREE.MeshStandardMaterial({ color: isDark ? 0x475569 : 0xcbd5e1, roughness: 0.9 }); 
-
         const apexGeom = new THREE.BoxGeometry(rWidth, rDepth + 0.05, 0.04);
-        const boltGeom = new THREE.CylinderGeometry(0.015, 0.015, 0.1, 6); // Hexagonal bolt
+        const boltGeom = new THREE.CylinderGeometry(0.015, 0.015, 0.1, 6);
 
         const skeletonGroup = new THREE.Group();
         const numFrames = Math.max(2, Math.round(B_total / B_step) + 1);
@@ -242,63 +241,162 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             });
         };
 
+        // ==========================================
+        // ENGINEERING MASTER OVERHAUL: NODE-BASED ARCHITECTURE
+        // Generate a Canonical Model first, then render it!
+        // ==========================================
+        const nodes = {};
+        const members = [];
+        
+        const addNode = (id, x, y, z) => { nodes[id] = new THREE.Vector3(x, y, z); };
+        
+        const dy = rDepth / 2 / Math.cos(rafterAngle); // Offset to make rafter bottom sit precisely on column top
+        const dx_splice = 0.02; // Gap for apex splice
+        const dy_splice = dx_splice * Math.tan(rafterAngle);
+
         for (let i = 0; i < numFrames; i++) {
-            const zPos = -B_total/2 + i * actualStep;
+            const z = -B_total/2 + i * actualStep;
+            const pf = `F${i}`;
+            
+            // Nodes (Mọi tọa độ giao cắt đều được định nghĩa rõ ràng)
+            addNode(`${pf}_BaseL`, -L/2, 0, z);
+            addNode(`${pf}_BaseR`, L/2, 0, z);
+            
+            addNode(`${pf}_ColTopL`, -L/2, H_col, z);
+            addNode(`${pf}_ColTopR`, L/2, H_col, z);
+            
+            addNode(`${pf}_RafStartL`, -L/2, H_col + dy, z);
+            addNode(`${pf}_RafEndL`, -dx_splice, H_roof + dy - dy_splice, z);
+            
+            addNode(`${pf}_RafStartR`, L/2, H_col + dy, z);
+            addNode(`${pf}_RafEndR`, dx_splice, H_roof + dy - dy_splice, z);
+            
+            addNode(`${pf}_Apex`, 0, H_roof + dy - rDepth/2, z);
+            
+            // Members
+            members.push({ id: `${pf}_ColL`, type: 'column', start: `${pf}_BaseL`, end: `${pf}_ColTopL`, up: new THREE.Vector3(-1,0,0) });
+            members.push({ id: `${pf}_ColR`, type: 'column', start: `${pf}_BaseR`, end: `${pf}_ColTopR`, up: new THREE.Vector3(1,0,0) });
+            
+            members.push({ id: `${pf}_RafL`, type: 'rafter', start: `${pf}_RafStartL`, end: `${pf}_RafEndL`, up: new THREE.Vector3(0,1,0) });
+            members.push({ id: `${pf}_RafR`, type: 'rafter', start: `${pf}_RafStartR`, end: `${pf}_RafEndR`, up: new THREE.Vector3(0,1,0) });
+        }
+
+        // Purlin Nodes
+        for(let j=0; j<2; j++) {
+            const sign = j===0 ? -1 : 1;
+            const side = j===0 ? 'L' : 'R';
+            
+            // Roof Purlins
+            for(let p=0; p<numPurlins; p++) {
+                const ratio = p / (numPurlins - 1);
+                const px = sign * L/2 * (1 - ratio);
+                const py = H_col + roofRise * ratio;
+                
+                addNode(`Purlin_Roof_${side}_${p}_Start`, px, py + dy + 0.1, -B_total/2);
+                addNode(`Purlin_Roof_${side}_${p}_End`, px, py + dy + 0.1, B_total/2);
+                
+                const nx = sign * Math.sin(rafterAngle);
+                const ny = Math.cos(rafterAngle);
+                members.push({ 
+                    id: `Purlin_Roof_${side}_${p}`, type: 'purlin', 
+                    start: `Purlin_Roof_${side}_${p}_Start`, end: `Purlin_Roof_${side}_${p}_End`, 
+                    up: new THREE.Vector3(nx, ny, 0) 
+                });
+            }
+            
+            // Wall Girts (Xà gồ vách)
+            const numGirts = Math.floor(H_col / purlinSpacing);
+            const gx = sign * (L/2 + cDepth/2 + 0.1); 
+            for(let g=1; g<=numGirts; g++) {
+                const gy = g * purlinSpacing;
+                if (gy >= H_col - 0.2) continue; // Avoid clashing with eaves
+                
+                addNode(`Purlin_Wall_${side}_${g}_Start`, gx, gy, -B_total/2);
+                addNode(`Purlin_Wall_${side}_${g}_End`, gx, gy, B_total/2);
+                members.push({ 
+                    id: `Purlin_Wall_${side}_${g}`, type: 'purlin', 
+                    start: `Purlin_Wall_${side}_${g}_Start`, end: `Purlin_Wall_${side}_${g}_End`, 
+                    up: new THREE.Vector3(sign, 0, 0) 
+                });
+            }
+        }
+
+        // X Bracing Nodes
+        const numBraces = 2; // at start and end
+        for (let idx=0; idx<numBraces; idx++) {
+            const i = idx === 0 ? 0 : numFrames - 2;
+            const pf1 = `F${i}`;
+            const pf2 = `F${i+1}`;
+            
+            members.push({ id: `Brace_${pf1}_L_Up`, type: 'brace', start: `${pf1}_BaseL`, end: `${pf2}_ColTopL`, up: new THREE.Vector3(1,0,0) });
+            members.push({ id: `Brace_${pf1}_L_Dn`, type: 'brace', start: `${pf1}_ColTopL`, end: `${pf2}_BaseL`, up: new THREE.Vector3(1,0,0) });
+            members.push({ id: `Brace_${pf1}_R_Up`, type: 'brace', start: `${pf1}_BaseR`, end: `${pf2}_ColTopR`, up: new THREE.Vector3(1,0,0) });
+            members.push({ id: `Brace_${pf1}_R_Dn`, type: 'brace', start: `${pf1}_ColTopR`, end: `${pf2}_BaseR`, up: new THREE.Vector3(1,0,0) });
+        }
+
+        // ==========================================
+        // RENDER CANONICAL MODEL
+        // ==========================================
+        
+        // Render Members
+        const braceGeom = new THREE.CylinderGeometry(0.015, 0.015, Math.sqrt(actualStep*actualStep + H_col*H_col));
+        braceGeom.rotateX(Math.PI/2); // Align with Z for placeBeam
+        const braceMat = new THREE.MeshStandardMaterial({ color: isDark ? 0x94a3b8 : 0x64748b });
+
+        members.forEach(member => {
+            const p1 = nodes[member.start];
+            const p2 = nodes[member.end];
+            if (!p1 || !p2) return; // Defensive
+            
+            let mesh;
+            if (member.type === 'column') mesh = new THREE.Mesh(colGeom, steelMat);
+            else if (member.type === 'rafter') mesh = new THREE.Mesh(rafterGeom, steelMat);
+            else if (member.type === 'purlin') mesh = new THREE.Mesh(purlinGeom, purlinMat);
+            else if (member.type === 'brace') mesh = new THREE.Mesh(braceGeom, braceMat);
+            
+            if (mesh) {
+                placeBeam(mesh, p1, p2, member.up);
+                mesh.castShadow = true; mesh.receiveShadow = true;
+                skeletonGroup.add(mesh);
+            }
+        });
+
+        // Render Joints, Splices, Haunches, Foundations (using Nodes)
+        for (let i = 0; i < numFrames; i++) {
+            const pf = `F${i}`;
+            const z = nodes[`${pf}_BaseL`].z;
             
             if (isGeometry) {
                 const axisGeo = new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(-L/2 - 2, 0, zPos), new THREE.Vector3(L/2 + 2, 0, zPos)
+                    new THREE.Vector3(-L/2 - 2, 0, z), new THREE.Vector3(L/2 + 2, 0, z)
                 ]);
                 const axisLine = new THREE.Line(axisGeo, gridMat);
                 axisLine.computeLineDistances(); scene.add(axisLine);
                 const label1 = createTextSprite(`${i+1}`);
-                label1.position.set(-L/2 - 3, 0.1, zPos); scene.add(label1);
+                label1.position.set(-L/2 - 3, 0.1, z); scene.add(label1);
             }
 
             // Foundations
             const fL = new THREE.Mesh(foundationGeom, foundationMat);
-            fL.position.set(-L/2, -0.6, zPos);
+            fL.position.copy(nodes[`${pf}_BaseL`]).add(new THREE.Vector3(0, -0.6, 0));
             fL.receiveShadow = true; skeletonGroup.add(fL);
 
             const fR = new THREE.Mesh(foundationGeom, foundationMat);
-            fR.position.set(L/2, -0.6, zPos);
+            fR.position.copy(nodes[`${pf}_BaseR`]).add(new THREE.Vector3(0, -0.6, 0));
             fR.receiveShadow = true; skeletonGroup.add(fR);
 
             // Base plates
             const baseL = new THREE.Mesh(basePlateGeom, basePlateMat);
-            baseL.position.set(-L/2, 0.02, zPos);
+            baseL.position.copy(nodes[`${pf}_BaseL`]).add(new THREE.Vector3(0, 0.02, 0));
             baseL.castShadow = true; baseL.receiveShadow = true; addBaseBolts(baseL); skeletonGroup.add(baseL);
 
             const baseR = new THREE.Mesh(basePlateGeom, basePlateMat);
-            baseR.position.set(L/2, 0.02, zPos);
+            baseR.position.copy(nodes[`${pf}_BaseR`]).add(new THREE.Vector3(0, 0.02, 0));
             baseR.castShadow = true; baseR.receiveShadow = true; addBaseBolts(baseR); skeletonGroup.add(baseR);
-
-            // Columns
-            const colL = new THREE.Mesh(colGeom, steelMat);
-            placeBeam(colL, new THREE.Vector3(-L/2, 0, zPos), new THREE.Vector3(-L/2, H_col, zPos), new THREE.Vector3(-1, 0, 0));
-            colL.castShadow = true; colL.receiveShadow = true; skeletonGroup.add(colL);
-            
-            const colR = new THREE.Mesh(colGeom, steelMat);
-            placeBeam(colR, new THREE.Vector3(L/2, 0, zPos), new THREE.Vector3(L/2, H_col, zPos), new THREE.Vector3(1, 0, 0));
-            colR.castShadow = true; colR.receiveShadow = true; skeletonGroup.add(colR);
-            
-            // Rafters
-            const dy = rDepth / 2 / Math.cos(rafterAngle);
-            const pApex = new THREE.Vector3(0, H_roof + dy, zPos);
-            
-            const rafL = new THREE.Mesh(rafterGeom, steelMat);
-            const p1L = new THREE.Vector3(-L/2, H_col + dy, zPos);
-            placeBeam(rafL, p1L, pApex, new THREE.Vector3(0, 1, 0));
-            rafL.castShadow = true; rafL.receiveShadow = true; skeletonGroup.add(rafL);
-            
-            const rafR = new THREE.Mesh(rafterGeom, steelMat);
-            const p1R = new THREE.Vector3(L/2, H_col + dy, zPos);
-            placeBeam(rafR, p1R, pApex, new THREE.Vector3(0, 1, 0));
-            rafR.castShadow = true; rafR.receiveShadow = true; skeletonGroup.add(rafR);
 
             // Apex Splice
             const apex = new THREE.Mesh(apexGeom, basePlateMat);
-            apex.position.set(0, H_roof + dy - rDepth/2, zPos);
+            apex.position.copy(nodes[`${pf}_Apex`]);
             apex.castShadow = true; apex.receiveShadow = true; addApexBolts(apex); skeletonGroup.add(apex);
 
             // Knee Haunches (Vút nách)
@@ -317,33 +415,16 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                 shape.lineTo(startX, startY_top);
 
                 const web = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: tw, bevelEnabled: false }), steelMat);
-                web.position.set(0, 0, zPos - tw/2);
+                web.position.set(0, 0, z - tw/2);
                 web.castShadow = true; web.receiveShadow = true; skeletonGroup.add(web);
 
                 const flDist = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY_bot, 2));
                 const fl = new THREE.Mesh(new THREE.BoxGeometry(rWidth, tf, flDist), steelMat);
-                placeBeam(fl, new THREE.Vector3(startX, startY_bot, zPos), new THREE.Vector3(endX, endY, zPos), new THREE.Vector3(0, 1, 0));
+                placeBeam(fl, new THREE.Vector3(startX, startY_bot, z), new THREE.Vector3(endX, endY, z), new THREE.Vector3(0, 1, 0));
                 fl.castShadow = true; fl.receiveShadow = true; skeletonGroup.add(fl);
             };
             buildHaunch(true);
             buildHaunch(false);
-
-            // X Bracing
-            if (i === 0 || i === numFrames - 2) {
-                const zBraceCenter = -B_total/2 + i * actualStep + actualStep/2;
-                const braceGeom = new THREE.CylinderGeometry(0.015, 0.015, Math.sqrt(actualStep*actualStep + H_col*H_col));
-                braceGeom.rotateX(Math.PI/2);
-                const braceMat = new THREE.MeshStandardMaterial({ color: isDark ? 0x94a3b8 : 0x64748b });
-                const addX = (xPos) => {
-                    const b1 = new THREE.Mesh(braceGeom, braceMat);
-                    placeBeam(b1, new THREE.Vector3(xPos, 0, zPos), new THREE.Vector3(xPos, H_col, zPos + actualStep), new THREE.Vector3(1,0,0));
-                    skeletonGroup.add(b1);
-                    const b2 = new THREE.Mesh(braceGeom, braceMat);
-                    placeBeam(b2, new THREE.Vector3(xPos, H_col, zPos), new THREE.Vector3(xPos, 0, zPos + actualStep), new THREE.Vector3(1,0,0));
-                    skeletonGroup.add(b2);
-                };
-                addX(-L/2); addX(L/2);
-            }
         }
 
         // Axis Line A, B
@@ -373,43 +454,6 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             dimTextH.position.set(-L/2 - 3, H_col/2, B_total/2); scene.add(dimTextH);
         }
 
-        // Purlins & Wall Girts (Hệ Xà gồ mái & vách)
-        const dy = rDepth/2 / Math.cos(rafterAngle);
-        for(let j=0; j<2; j++) {
-            const sign = j===0 ? -1 : 1;
-            // Roof purlins
-            for(let p=0; p<numPurlins; p++) {
-                const ratio = p / (numPurlins - 1);
-                const px = sign * L/2 * (1 - ratio);
-                const py = H_col + roofRise * ratio;
-                
-                const purlin = new THREE.Mesh(purlinGeom, purlinMat);
-                const p1P = new THREE.Vector3(px, py + dy + 0.1, -B_total/2);
-                const p2P = new THREE.Vector3(px, py + dy + 0.1, B_total/2);
-                
-                const nx = sign * Math.sin(rafterAngle);
-                const ny = Math.cos(rafterAngle);
-                placeBeam(purlin, p1P, p2P, new THREE.Vector3(nx, ny, 0));
-                
-                purlin.castShadow = true; purlin.receiveShadow = true;
-                skeletonGroup.add(purlin);
-            }
-            
-            // Wall Girts (Xà gồ vách) - WOW Detail Upgrade
-            const numGirts = Math.floor(H_col / purlinSpacing);
-            const gx = sign * (L/2 + cDepth/2 + 0.1); // Outside column face + half purlin depth
-            for(let g=1; g<=numGirts; g++) {
-                const gy = g * purlinSpacing;
-                if (gy >= H_col - 0.2) continue; // Avoid clashing with eaves
-                const girt = new THREE.Mesh(purlinGeom, purlinMat);
-                const p1G = new THREE.Vector3(gx, gy, -B_total/2);
-                const p2G = new THREE.Vector3(gx, gy, B_total/2);
-                // Normal points outward horizontally
-                placeBeam(girt, p1G, p2G, new THREE.Vector3(sign, 0, 0));
-                girt.castShadow = true; girt.receiveShadow = true;
-                skeletonGroup.add(girt);
-            }
-        }
         buildingGroup.add(skeletonGroup);
 
         // CLADDING
@@ -449,14 +493,12 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             return mesh;
         }
 
-        // Offset cladding to wrap outside the columns and girts (cDepth = 0.6, purlin = 0.2)
         const cladExtX = cDepth/2 + 0.25;
         const xMin = -L/2 - cladExtX, xMax = L/2 + cladExtX;
         const cladExtZ = 0.2;
         const zMin = -B_total/2 - cladExtZ, zMax = B_total/2 + cladExtZ;
         const y0 = 0;
         
-        // Cladding points wrapping over roof purlins
         const yColTop = H_col + dy + 0.25; 
         const yRoofTop = H_roof + dy + 0.25;
 
@@ -488,7 +530,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         createQuad(C0, R0, R1, C3, 'roof', currentDir==='+X'?roofWindward:roofLeeward); 
         createQuad(R0, C1, C2, R1, 'roof', currentDir==='+X'?roofLeeward:roofWindward); 
 
-        // WIND VISUALIZATION (WOW Animated Flow Update)
+        // WIND VISUALIZATION
         const windArrows = [];
         if (mode === 'wind') {
             const arrowDir = new THREE.Vector3(
@@ -551,17 +593,14 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
         let animationFrameId;
         const renderLoop = () => {
             controls.update();
-            
-            // Animate Wind Flow
             if (windArrows.length > 0) {
-                const time = Date.now() * 0.02; // Speed
+                const time = Date.now() * 0.02;
                 windArrows.forEach(ah => {
-                    const travelDist = 30; // Distance to travel
+                    const travelDist = 30;
                     const progress = (time + ah.userData.offset) % travelDist;
                     ah.position.copy(ah.userData.originalPos).addScaledVector(ah.userData.dir, progress);
                 });
             }
-
             renderer.render(scene, camera);
             animationFrameId = requestAnimationFrame(renderLoop);
         };
@@ -584,7 +623,6 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             cancelAnimationFrame(animationFrameId);
             renderer.dispose();
             
-            // SAVE CAMERA STATE FOR PERSISTENCE
             cameraStateRef.current.position = camera.position.clone();
             cameraStateRef.current.target = controls.target.clone();
         };
@@ -620,7 +658,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             <div className={`flex flex-wrap items-center justify-between p-3 rounded-xl border shadow-sm z-10 ${uiBg}`}>
                 <div className="flex items-center gap-4">
                     <span className={`font-bold ${textCol}`}>
-                        {mode === 'wind' ? 'Phân tích Tải trọng Gió 3D' : 'Mô hình Kết cấu 3D (CAD/BIM View)'}
+                        {mode === 'wind' ? 'Phân tích Tải trọng Gió 3D' : 'Mô hình Kết cấu 3D (Node-Based)'}
                     </span>
                     
                     {mode === 'wind' && (
