@@ -1,210 +1,162 @@
-// React Component to render a Calculation Step
-// Chuẩn hóa theo phong cách Thuyết minh Kỹ thuật Kết cấu Thép & TCVN 2737:2023 / TCVN 5575:2024
-// Bố cục rõ ràng: Công thức tổng quát -> Thay số tính toán -> Kết quả & Kiểm tra -> Bảng giải thích ý nghĩa từng ký hiệu
 
-function CalculationBlock({ step }) {
-    if (!step) return null;
-    const { stepId, title, source, formulaLaTeX, substitutionLaTeX, result, unit, check, notes, symbols: explicitSymbols } = step;
+function CalculationBlock({ stepId, title, source, formulaLaTeX, substitutionLaTeX, result, unit, check = null, notes = "" }) {
+    // 1. Phân tích nội dung ghi chú (Notes)
+    // Tách Ý NGHĨA KÝ HIỆU và GHI CHÚ CHUNG
+    const lines = notes.split('\n');
+    let hasSymbols = false;
+    let symbols = [];
+    let otherNotes = [];
+    let header = "";
 
-    // Định dạng nguồn trích dẫn tiêu chuẩn
-    const formatSource = (src) => {
-        if (!src) return "TCVN";
-        let text = src.standard || "TCVN";
-        if (src.section) text += `, Mục ${src.section}`;
-        if (src.table) text += `, ${src.table}`;
-        if (src.figure) text += `, ${src.figure}`;
-        if (src.appendix) text += `, Phụ lục ${src.appendix}`;
-        if (src.formulaNumber || src.formula) text += `, ${src.formulaNumber || src.formula}`;
-        return text;
-    };
-
-    // Render KaTeX an toàn với fallback văn bản
-    const renderLatex = (latex, displayMode = true) => {
-        if (!latex) return { __html: '' };
-        if (typeof window.katex === 'undefined') {
-            return { __html: `<span class="font-mono text-sm">${latex}</span>` };
-        }
-        try {
-            // Chuyển một số ký hiệu thường dùng sang dạng LaTeX chuẩn
-            let cleaned = latex
-                .replace(/γ_T/g, '\\gamma_T')
-                .replace(/γ_G/g, '\\gamma_G')
-                .replace(/γ_Q/g, '\\gamma_Q')
-                .replace(/γ_f/g, '\\gamma_f')
-                .replace(/γ_c/g, '\\gamma_c')
-                .replace(/Σ/g, '\\sum ')
-                .replace(/≤/g, '\\le ')
-                .replace(/≥/g, '\\ge ')
-                .replace(/×/g, '\\times ')
-                .replace(/·/g, '\\cdot ');
-
-            return {
-                __html: window.katex.renderToString(cleaned, {
-                    throwOnError: false,
-                    displayMode: displayMode
-                })
-            };
-        } catch (e) {
-            return { __html: `<span class="font-mono text-xs text-amber-500">${latex}</span>` };
-        }
-    };
-
-    // Phân tích ghi chú để lấy danh sách giải thích ký hiệu
-    const parseNotesToSymbols = (rawNotes) => {
-        if (explicitSymbols && Array.isArray(explicitSymbols) && explicitSymbols.length > 0) {
-            return { header: 'Ý nghĩa các ký hiệu trong công thức:', symbols: explicitSymbols, otherNotes: [] };
-        }
-        if (!rawNotes || typeof rawNotes !== 'string') {
-            return { header: '', symbols: [], otherNotes: [] };
+    let inSymbolSection = false;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        if (line.includes("Ý NGHĨA KÝ HIỆU") || line.includes("Ý NGHĨA KÝ HIỆU TOÁN HỌC") || line.includes("THÔNG SỐ")) {
+            inSymbolSection = true;
+            header = line.replace(/^[\-•*]+\s*/, '').replace(/:$/, '').trim();
+            hasSymbols = true;
+            continue;
         }
 
-        const lines = rawNotes.split('\n').map(l => l.trim()).filter(Boolean);
-        const symbolsList = [];
-        const others = [];
-        let headerText = 'Ý nghĩa các ký hiệu trong công thức:';
-
-        lines.forEach(line => {
-            if (line.startsWith('•') || line.startsWith('-')) {
-                const content = line.replace(/^[•\-]\s*/, '');
-                const colonIdx = content.indexOf(':');
-                if (colonIdx > 0) {
-                    const left = content.slice(0, colonIdx).trim();
-                    const right = content.slice(colonIdx + 1).trim();
-
-                    let sym = left;
-                    let val = '';
-                    if (left.includes('=')) {
-                        const eqIdx = left.indexOf('=');
-                        sym = left.slice(0, eqIdx).trim();
-                        val = left.slice(eqIdx + 1).trim();
-                    }
-
-                    symbolsList.push({ symbol: sym, value: val, meaning: right });
-                } else {
-                    symbolsList.push({ symbol: '', value: '', meaning: content });
-                }
-            } else if (line.toUpperCase().includes('Ý NGHĨA') || line.toUpperCase().includes('KÝ HIỆU')) {
-                headerText = line;
+        if (inSymbolSection) {
+            const symMatch = line.match(/^[\-•*]?\s*([a-zA-Z0-9_{}()\\]+)\s*(?:=\s*([0-9.,\-]+(?:\s*[a-zA-Z/%2]+)?))?\s*:\s*(.+)/);
+            if (symMatch) {
+                symbols.push({ symbol: symMatch[1].trim(), value: symMatch[2] ? symMatch[2].trim() : null, meaning: symMatch[3].trim() });
             } else {
-                others.push(line);
+                const symMatch2 = line.match(/^[\-•*]?\s*([^:]+):\s*(.+)/);
+                if (symMatch2) {
+                    let leftPart = symMatch2[1].trim();
+                    let valMatch = leftPart.match(/(.+)\s*=\s*([0-9.,\-]+(?:\s*[a-zA-Z/%2]+)?)$/);
+                    if (valMatch) {
+                        symbols.push({ symbol: valMatch[1].trim(), value: valMatch[2].trim(), meaning: symMatch2[2].trim() });
+                    } else {
+                        symbols.push({ symbol: leftPart, value: null, meaning: symMatch2[2].trim() });
+                    }
+                } else {
+                    otherNotes.push(line);
+                }
             }
-        });
+        } else {
+            otherNotes.push(line);
+        }
+    }
 
-        return { header: headerText, symbols: symbolsList, otherNotes: others };
+    const formatSource = (src) => typeof src === 'string' ? src : `${src.standard}, ${src.section}`;
+
+    const renderLatex = (latex, displayMode = false) => {
+        try {
+            return { __html: window.katex.renderToString(latex, { throwOnError: false, displayMode, strict: false }) };
+        } catch (e) {
+            return { __html: latex };
+        }
     };
-
-    const { header, symbols, otherNotes } = parseNotesToSymbols(notes);
-    const hasSymbols = symbols.length > 0;
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-blue-500 shadow-md overflow-hidden mb-8 transition-all hover:shadow-lg" id={stepId}>
-            {/* Header: Mã bước tính & Nguồn tiêu chuẩn */}
-            <div className="bg-slate-50 dark:bg-slate-900/70 px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-2">
-                <div className="flex items-center gap-2.5">
-                    <span className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 text-xs font-mono font-bold">
+        <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/70 dark:border-slate-800/80 overflow-hidden mb-8 transition-all hover:shadow-md" id={stepId}>
+            {/* Elegant Left Accent Line */}
+            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-blue-500 to-indigo-500 dark:from-blue-600 dark:to-indigo-600"></div>
+            
+            {/* Header Area */}
+            <div className="px-5 py-4 pl-6 flex flex-wrap justify-between items-center border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-900 gap-3">
+                <div className="flex items-center gap-3">
+                    <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-mono text-xs px-2.5 py-1 rounded-md font-bold tracking-wide border border-blue-100/50 dark:border-blue-800/40 shadow-sm">
                         {stepId}
                     </span>
-                    <h3 className="font-bold text-slate-800 dark:text-white text-sm md:text-base">
+                    <h3 className="text-base md:text-[17px] font-bold text-slate-800 dark:text-slate-100 tracking-tight">
                         {title}
                     </h3>
                 </div>
-                
                 {source && (
                     <div 
-                        className="text-xs bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-md flex items-center gap-1.5 cursor-pointer hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
-                        title="Viện dẫn tiêu chuẩn áp dụng"
-                        onClick={() => alert(`Nguồn viện dẫn tiêu chuẩn:\n${formatSource(source)}`)}
+                        className="text-[11px] bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-slate-200/60 dark:border-slate-700 shadow-sm"
+                        title="Tiêu chuẩn áp dụng"
                     >
-                        <i data-lucide="book-marked" className="w-3.5 h-3.5 text-primary inline"></i>
-                        <span className="font-medium font-mono">{formatSource(source)}</span>
+                        <i data-lucide="book" className="w-3.5 h-3.5 text-blue-500"></i>
+                        <span className="font-semibold">{formatSource(source)}</span>
                     </div>
                 )}
             </div>
 
-            {/* Nội dung chính: Phân bổ 2 cột (Cột Trái: Toán học | Cột Phải: Giải thích ký hiệu) */}
-            <div className={`p-4 md:p-5 grid grid-cols-1 ${hasSymbols ? 'lg:grid-cols-12' : ''} gap-5`}>
+            {/* Main Content Grid */}
+            <div className={`p-5 pl-6 grid grid-cols-1 ${hasSymbols ? 'lg:grid-cols-12' : ''} gap-6`}>
                 
-                {/* ================= CỘT TRÁI: DÒNG CHẢY TÍNH TOÁN ================= */}
-                <div className={`${hasSymbols ? 'lg:col-span-7' : 'w-full'} space-y-4`}>
+                {/* LFT COLUMN: MATH & RESULT */}
+                <div className={`${hasSymbols ? 'lg:col-span-7' : 'w-full'} flex flex-col gap-4`}>
                     
-                    {/* 1. Công thức tổng quát */}
+                    {/* Formula Block */}
                     {formulaLaTeX && (
-                        <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700/80">
-                            <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 pb-1 border-b border-slate-200 dark:border-slate-700/60">
-                                <span className="flex items-center gap-1.5 text-primary">
-                                    <i data-lucide="function-square" className="w-3.5 h-3.5"></i> 1. Công thức tổng quát:
-                                </span>
-                                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">Formula</span>
+                        <div className="bg-slate-50/50 dark:bg-slate-800/20 rounded-xl p-4 border border-slate-200/60 dark:border-slate-700/40 relative group">
+                            <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="text-[9px] uppercase tracking-widest text-slate-300 font-mono">Formula</span>
                             </div>
-                            <div className="overflow-x-auto py-1 text-slate-800 dark:text-slate-100 flex justify-center">
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="w-6 h-6 rounded bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                                    <span className="text-blue-500 text-xs font-bold block leading-none">1</span>
+                                </div>
+                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Công thức tổng quát</span>
+                            </div>
+                            <div className="flex justify-center text-slate-800 dark:text-slate-100 overflow-x-auto py-2">
                                 <div dangerouslySetInnerHTML={renderLatex(formulaLaTeX, true)} />
                             </div>
                         </div>
                     )}
 
-                    {/* 2. Thế số tính toán cụ thể */}
+                    {/* Substitution Block */}
                     {substitutionLaTeX && (
-                        <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700/80">
-                            <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 pb-1 border-b border-slate-200 dark:border-slate-700/60">
-                                <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                                    <i data-lucide="calculator" className="w-3.5 h-3.5"></i> 2. Thay số & thứ nguyên:
-                                </span>
-                                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">Substitution</span>
+                        <div className="bg-slate-50/50 dark:bg-slate-800/20 rounded-xl p-4 border border-slate-200/60 dark:border-slate-700/40 relative group">
+                            <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="text-[9px] uppercase tracking-widest text-slate-300 font-mono">Subst</span>
                             </div>
-                            <div className="overflow-x-auto py-1 text-slate-700 dark:text-slate-200 flex justify-center">
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="w-6 h-6 rounded bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                                    <span className="text-emerald-500 text-xs font-bold block leading-none">2</span>
+                                </div>
+                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Thay số & Thử nguyên</span>
+                            </div>
+                            <div className="flex justify-center text-slate-800 dark:text-slate-100 overflow-x-auto py-2">
                                 <div dangerouslySetInnerHTML={renderLatex(substitutionLaTeX, true)} />
                             </div>
                         </div>
                     )}
 
-                    {/* 3. Kết quả tính toán & Kiểm tra */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-blue-50/70 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-900/60">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                                3. Kết quả:
-                            </span>
-                            <span className="text-base md:text-lg font-extrabold text-blue-700 dark:text-blue-400 font-mono">
+                    {/* Result Block (Stunning Emerald Box) */}
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50/40 dark:from-emerald-900/20 dark:to-teal-900/10 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40 shadow-sm">
+                        <div className="flex items-baseline gap-3">
+                            <span className="text-sm font-semibold text-emerald-800/70 dark:text-emerald-400/80">Kết quả:</span>
+                            <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 font-mono tracking-tight">
                                 {typeof result === 'number' ? result.toLocaleString('vi-VN') : result}
                             </span>
                             {unit && (
-                                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-800 text-slate-600 dark:text-slate-300">
-                                    {unit}
-                                </span>
+                                <span className="text-sm font-medium text-emerald-600/80 dark:text-emerald-500/80">{unit}</span>
                             )}
                         </div>
 
-                        {/* Kiểm tra điều kiện (Check Pass / Fail) */}
+                        {/* Condition Check Badge */}
                         {check && (
-                            <div className="flex items-center gap-2">
+                            <div className="shrink-0">
                                 {check.isPass ? (
-                                    <span className="px-3 py-1 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-bold flex items-center gap-1">
-                                        <i data-lucide="check-circle-2" className="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
-                                        THỎA MÃN (PASS)
+                                    <span className="px-3 py-1.5 rounded-lg bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 shadow-sm border border-emerald-200 dark:border-emerald-800">
+                                        <i data-lucide="check-circle-2" className="w-4 h-4"></i>
+                                        THỎA MÃN
                                     </span>
                                 ) : (
-                                    <span className="px-3 py-1 rounded-md bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border border-red-300 dark:border-red-800 text-xs font-bold flex items-center gap-1">
-                                        <i data-lucide="alert-octagon" className="w-4 h-4 text-red-600 dark:text-red-400"></i>
-                                        KHÔNG THỎA MÃN (FAIL)
+                                    <span className="px-3 py-1.5 rounded-lg bg-red-100/80 dark:bg-red-900/50 text-red-800 dark:text-red-300 text-xs font-bold flex items-center gap-1.5 shadow-sm border border-red-200 dark:border-red-800">
+                                        <i data-lucide="x-circle" className="w-4 h-4"></i>
+                                        KHÔNG ĐẠT
                                     </span>
                                 )}
                             </div>
                         )}
                     </div>
-
-                    {/* Hiển thị công thức điều kiện kiểm tra (nếu có conditionLaTeX) */}
-                    {check && check.conditionLaTeX && (
-                        <div className={`p-2.5 rounded-lg border text-xs flex items-center justify-between ${check.isPass ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50 text-emerald-900 dark:text-emerald-200' : 'bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50 text-red-900 dark:text-red-200'}`}>
-                            <span className="font-semibold">Điều kiện kiểm tra:</span>
-                            <div dangerouslySetInnerHTML={renderLatex(check.conditionLaTeX, false)} />
-                        </div>
-                    )}
-
-                    {/* Ghi chú khác (nếu có) */}
+                    
+                    {/* Other Notes */}
                     {otherNotes.length > 0 && (
-                        <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/30 p-2.5 rounded border border-slate-200 dark:border-slate-800 space-y-1">
+                        <div className="mt-1 text-[11.5px] text-slate-500 dark:text-slate-400 space-y-1">
                             {otherNotes.map((n, idx) => (
                                 <p key={idx} className="flex items-start gap-1.5">
-                                    <i data-lucide="info" className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5"></i>
+                                    <i data-lucide="corner-down-right" className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 shrink-0 mt-0.5"></i>
                                     <span>{n}</span>
                                 </p>
                             ))}
@@ -212,52 +164,43 @@ function CalculationBlock({ step }) {
                     )}
                 </div>
 
-                {/* ================= CỘT PHẢI: BẢNG GIẢI THÍCH Ý NGHĨA KÝ HIỆU ================= */}
+                {/* RIGHT COLUMN: SYMBOLS LIST */}
                 {hasSymbols && (
-                    <div className="lg:col-span-5 bg-slate-50 dark:bg-slate-900/70 p-3.5 rounded-lg border border-slate-200 dark:border-slate-700/80 flex flex-col justify-start">
-                        <div className="flex items-center gap-1.5 font-bold text-xs text-slate-700 dark:text-slate-200 pb-2 mb-2 border-b border-slate-200 dark:border-slate-700">
-                            <i data-lucide="help-circle" className="w-4 h-4 text-amber-500"></i>
-                            <span>{header || "Ý nghĩa ký hiệu trong công thức:"}</span>
+                    <div className="lg:col-span-5 flex flex-col pt-1">
+                        <div className="flex items-center gap-2 font-bold text-xs text-slate-500 dark:text-slate-400 pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                            <i data-lucide="book-open" className="w-4 h-4"></i> 
+                            <span className="uppercase tracking-wider">{header || "Giải thích Ký hiệu"}</span>
                         </div>
-
-                        <div className="space-y-2 overflow-y-auto max-h-[360px] pr-1">
+                        
+                        <div className="space-y-4 overflow-y-auto max-h-[380px] pr-2 custom-scrollbar">
                             {symbols.map((item, idx) => (
-                                <div key={idx} className="p-2 rounded bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs flex flex-col gap-1 transition-all hover:border-primary/40">
-                                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                                        {/* Ký hiệu toán học */}
-                                        <div className="flex items-center gap-1.5 font-bold text-primary dark:text-blue-400">
-                                            {item.symbol ? (
-                                                <div 
-                                                    className="inline-block bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-900"
-                                                    dangerouslySetInnerHTML={renderLatex(item.symbol, false)} 
-                                                />
-                                            ) : (
-                                                <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>
-                                            )}
-                                        </div>
-
-                                        {/* Giá trị áp dụng nếu có */}
-                                        {item.value && (
-                                            <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold text-[11px] bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-900">
-                                                = {item.value}
-                                            </span>
+                                <div key={idx} className="flex items-start gap-3 group">
+                                    <div className="shrink-0 bg-slate-50 dark:bg-slate-800/60 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 font-mono text-blue-600 dark:text-blue-400 text-xs shadow-sm group-hover:border-blue-300 transition-colors">
+                                        {item.symbol ? (
+                                            <div dangerouslySetInnerHTML={renderLatex(item.symbol, false)} />
+                                        ) : (
+                                            <span>—</span>
                                         )}
                                     </div>
-
-                                    {/* Ý nghĩa diễn giải */}
-                                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11.5px]">
-                                        {item.meaning}
-                                    </p>
+                                    <div className="flex-1 pt-0.5">
+                                        <p className="text-[11.5px] text-slate-600 dark:text-slate-300 leading-snug">
+                                            {item.meaning}
+                                        </p>
+                                        {item.value && (
+                                            <div className="mt-1 flex items-center gap-1.5">
+                                                <span className="w-3 h-[1px] bg-slate-300 dark:bg-slate-600"></span>
+                                                <span className="text-[11px] font-mono text-slate-700 dark:text-slate-400 font-semibold bg-slate-100 dark:bg-slate-800 px-1.5 rounded">
+                                                    = {item.value}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
-
-                        <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-[10.5px] text-slate-400 flex items-center justify-between">
-                            <span>Quy chuẩn ký hiệu: TCVN 2737 & 5575</span>
-                            <span className="italic">Ký hiệu đồng nhất toàn đồ án</span>
-                        </div>
                     </div>
                 )}
+
             </div>
         </div>
     );
