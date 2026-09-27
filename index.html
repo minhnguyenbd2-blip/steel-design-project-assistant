@@ -27,6 +27,32 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
 
+    <!-- React DOM Reconciliation Safeguard -->
+    <script>
+        if (typeof Node === 'function' && Node.prototype) {
+            const originalRemoveChild = Node.prototype.removeChild;
+            Node.prototype.removeChild = function(child) {
+                if (child.parentNode !== this) {
+                    if (console && console.warn) {
+                        console.warn('Safeguard: Prevented React removeChild crash for element:', child);
+                    }
+                    return child;
+                }
+                return originalRemoveChild.apply(this, arguments);
+            };
+            const originalInsertBefore = Node.prototype.insertBefore;
+            Node.prototype.insertBefore = function(newNode, referenceNode) {
+                if (referenceNode && referenceNode.parentNode !== this) {
+                    if (console && console.warn) {
+                        console.warn('Safeguard: Prevented React insertBefore crash for element:', referenceNode);
+                    }
+                    return newNode;
+                }
+                return originalInsertBefore.apply(this, arguments);
+            };
+        }
+    </script>
+
     <!-- React and ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>

@@ -15,7 +15,10 @@ const WindSvg = (props) => {
     if (!geom || !loadCases) {
         return (
             <div className="p-8 bg-slate-900 text-slate-300 rounded-xl border border-slate-700 text-center italic shadow-inner">
-                <i data-lucide="wind" className="w-8 h-8 text-primary mx-auto mb-2 animate-bounce"></i>
+                <svg className="w-8 h-8 text-primary mx-auto mb-2 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.7 7.7A7.1 7.1 0 0 0 5 10.8A7.3 7.3 0 0 0 12 18h8a4 4 0 0 0 0-8c-.3 0-.7 0-1 .1"/>
+                    <path d="M8 15l-4-4 4-4"/>
+                </svg>
                 <p className="font-semibold">Chưa có kết quả phân tích khí động học.</p>
                 <p className="text-xs text-slate-400 mt-1">Vui lòng tính toán trước khi xem sơ đồ.</p>
             </div>
@@ -140,7 +143,7 @@ const WindSvg = (props) => {
         return (
             <g>
                 <line x1={x1} y1={y1} x2={x1+dx} y2={y1+dy} stroke="#64748b" strokeWidth="1" strokeDasharray="2,2"/>
-                <line x2={x2} y2={y2} x2={x2+dx} y2={y2+dy} stroke="#64748b" strokeWidth="1" strokeDasharray="2,2"/>
+                <line x1={x2} y1={y2} x2={x2+dx} y2={y2+dy} stroke="#64748b" strokeWidth="1" strokeDasharray="2,2"/>
                 <line x1={x1+dx} y1={y1+dy} x2={x2+dx} y2={y2+dy} stroke="#94a3b8" strokeWidth="1" markerStart="url(#dim-arrow)" markerEnd="url(#dim-arrow)"/>
                 <text x={(x1+x2)/2 + dx + (isVertical?5:0)} y={(y1+y2)/2 + dy - (isVertical?0:5)} fill="#cbd5e1" fontSize="10" textAnchor="middle" dominantBaseline={isVertical ? "middle" : "auto"}>
                     {label}
@@ -405,7 +408,10 @@ const WindSvg = (props) => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 pb-4 border-b border-slate-700">
                 <div>
                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <i data-lucide="wind" className="w-5 h-5 text-primary"></i>
+                        <svg className="w-5 h-5 text-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17.7 7.7A7.1 7.1 0 0 0 5 10.8A7.3 7.3 0 0 0 12 18h8a4 4 0 0 0 0-8c-.3 0-.7 0-1 .1"/>
+                            <path d="M8 15l-4-4 4-4"/>
+                        </svg>
                         PHÂN VÙNG ÁP LỰC GIÓ THEO TCVN 2737:2023
                     </h3>
                     <p className="text-xs text-slate-400 mt-1 flex gap-3">
@@ -423,7 +429,12 @@ const WindSvg = (props) => {
                             className="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 flex items-center gap-1 transition-all"
                             title="Tải tệp vector sơ đồ gió"
                         >
-                            <i data-lucide="download" className="w-3.5 h-3.5 text-blue-400"></i> Xuất SVG
+                            <svg className="w-3.5 h-3.5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            <span>Xuất SVG</span>
                         </button>
                         <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
                             <button onClick={() => setViewMode('cross_section')} className={`px-3 py-1 text-xs rounded transition-all ${viewMode === 'cross_section' ? 'bg-primary text-white font-bold' : 'text-slate-400 hover:text-white'}`}>Mặt cắt ngang</button>
@@ -479,7 +490,11 @@ const WindSvg = (props) => {
 
                 <div className="lg:col-span-4 bg-slate-800 rounded-xl p-4 border border-slate-700 shadow-lg flex flex-col">
                     <h4 className="font-bold text-white text-sm mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
-                        <i data-lucide="info" className="w-4 h-4 text-primary"></i>
+                        <svg className="w-4 h-4 text-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 16v-4"/>
+                            <path d="M12 8h.01"/>
+                        </svg>
                         CHI TIẾT TÍNH TOÁN
                     </h4>
                     
@@ -538,7 +553,13 @@ const WindSvg = (props) => {
                         </div>
                     ) : (
                         <div className="text-center text-slate-500 text-sm py-10 flex-1 flex flex-col items-center justify-center">
-                            <i data-lucide="mouse-pointer-click" className="w-8 h-8 mb-2 opacity-50"></i>
+                            <svg className="w-8 h-8 mb-2 opacity-50 mx-auto text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="m9 9 5 12 1.8-5.2L21 14Z"/>
+                                <path d="M7.2 2.2 8 5.1"/>
+                                <path d="m5.1 8-2.9-.8"/>
+                                <path d="M14 4.1 12 6"/>
+                                <path d="m6 12-1.9 2"/>
+                            </svg>
                             <p>Nhấp vào một vùng trên sơ đồ<br/>để xem chi tiết tải trọng</p>
                         </div>
                     )}

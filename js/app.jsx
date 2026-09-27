@@ -1588,5 +1588,60 @@ function App() {
     );
 }
 
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        console.error("ErrorBoundary captured an error:", error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-6 font-sans">
+                    <div className="max-w-xl w-full bg-slate-800 border border-amber-500/50 rounded-2xl p-8 shadow-2xl text-center space-y-4">
+                        <div className="w-16 h-16 bg-amber-900/40 text-amber-400 rounded-full flex items-center justify-center mx-auto text-2xl font-bold border border-amber-500/30">
+                            ⚠️
+                        </div>
+                        <h2 className="text-xl font-bold text-white">Trình xem gặp sự cố hiển thị</h2>
+                        <p className="text-slate-400 text-sm">
+                            Dữ liệu đồ án của bạn đã được bảo vệ và lưu an toàn trong trình duyệt. Bạn có thể nhấn Thử lại hoặc Tải lại trang.
+                        </p>
+                        <div className="p-3 bg-slate-950 rounded text-left text-xs font-mono text-red-300 overflow-x-auto max-h-32 border border-slate-700">
+                            {this.state.error?.toString()}
+                        </div>
+                        <div className="flex justify-center gap-3 pt-2">
+                            <button 
+                                onClick={() => this.setState({ hasError: false, error: null })} 
+                                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm transition-colors shadow-sm"
+                            >
+                                Thử lại
+                            </button>
+                            <button 
+                                onClick={() => window.location.reload()} 
+                                className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold text-sm transition-colors shadow-sm"
+                            >
+                                Tải lại trang (F5)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+root.render(
+    <ErrorBoundary>
+        <App />
+    </ErrorBoundary>
+);
