@@ -1,4 +1,4 @@
-﻿const { useRef, useEffect, useState, useMemo } = React;
+const { useRef, useEffect, useState, useMemo } = React;
 
 function Wind3DViewer({ geom, loadCases, currentDir = '+X' }) {
     const mountRef = useRef(null);
@@ -45,9 +45,9 @@ function Wind3DViewer({ geom, loadCases, currentDir = '+X' }) {
         
         // Geometry specs
         const L = geom.L;
-        const B = geom.B || geom.length; // length is length of building
-        const H_col = geom.H_column;
-        const H_roof = geom.H_roof;
+        const B = geom.d_total || geom.length || 72; // length of building
+        const H_col = geom.H_col || geom.H_column;
+        const H_roof = geom.H_rf || geom.H_roof;
 
         // Group for building
         const buildingGroup = new THREE.Group();
@@ -156,6 +156,26 @@ function Wind3DViewer({ geom, loadCases, currentDir = '+X' }) {
         const arrow = new THREE.ArrowHelper(arrowDir, arrowPos, maxDim*0.8, 0x0ea5e9, maxDim*0.2, maxDim*0.1);
         scene.add(arrow);
 
+        // Raycaster for clicking zones
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        const onMouseClick = (event) => {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(interactableMeshes);
+
+            if (intersects.length > 0) {
+                setSelectedZone(intersects[0].object.userData);
+            } else {
+                setSelectedZone(null);
+            }
+        };
+        renderer.domElement.addEventListener('click', onMouseClick);
+
         // Animation Loop
         let animationFrameId;
         const renderLoop = () => {
@@ -165,19 +185,22 @@ function Wind3DViewer({ geom, loadCases, currentDir = '+X' }) {
         };
         renderLoop();
 
-        // Handle resize
-        const handleResize = () => {
+        const resizeObserver = new ResizeObserver(() => {
             if (!mountRef.current) return;
             const w = mountRef.current.clientWidth;
             const h = mountRef.current.clientHeight;
+            if (w === 0 || h === 0) return;
             camera.aspect = w / h;
             camera.updateProjectionMatrix();
             renderer.setSize(w, h);
-        };
-        window.addEventListener('resize', handleResize);
+        });
+        resizeObserver.observe(mountRef.current);
 
         return () => {
-            window.removeEventListener('resize', handleResize);
+            resizeObserver.disconnect();
+            if (renderer && renderer.domElement) {
+                renderer.domElement.removeEventListener('click', onMouseClick);
+            }
             cancelAnimationFrame(animationFrameId);
             renderer.dispose();
             if(mountRef.current) mountRef.current.innerHTML = '';
