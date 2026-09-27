@@ -6,7 +6,7 @@ window.WorkspaceModel = {
         return {
             metadata: {
                 id: generateId(),
-                name: "New Project",
+                name: "Dự án mới (New Project)",
                 description: "",
                 author: "",
                 createdAt: new Date().toISOString(),
@@ -27,72 +27,134 @@ window.WorkspaceModel = {
             designResults: {},
             validationResults: { status: 'UNKNOWN', issues: [] },
             auditLog: [],
-            // Preserve legacy inputs to feed to the existing engine without breaking it
             legacyInputs: {} 
         };
     },
 
-    // Convert legacy ProjectState to new Canonical Data Model
     fromLegacyState: function(legacyState) {
         const p = this.createEmptyProject();
-        p.metadata.name = legacyState.meta?.projectName || "Migrated Project";
-        p.metadata.author = legacyState.meta?.studentName || "User";
+        p.metadata.name = legacyState.meta?.projectName || "Dự án mới";
+        p.metadata.author = legacyState.meta?.studentName || "Người dùng";
         
         p.legacyInputs = JSON.parse(JSON.stringify(legacyState.inputs || {}));
         
-        // Populate base materials
+        // 1. MATERIAL LIBRARY
         const steelGrade = p.legacyInputs.steelGrade || "S235";
+        let fy = 235, fu = 360;
+        if (steelGrade === 'S275') { fy = 275; fu = 430; }
+        if (steelGrade === 'S355') { fy = 355; fu = 510; }
+        
         p.materials.push({
             id: 'mat-steel-main',
             name: steelGrade,
-            type: 'steel'
+            grade: steelGrade,
+            type: 'steel',
+            fy: fy,
+            fu: fu,
+            E: 210000,
+            G: 80769,
+            density: 7850,
+            poisson: 0.3
         });
 
-        // Map Geometry to Nodes & Members
-        const L = p.legacyInputs.L || 25;
-        const H_col = p.legacyInputs.H_column || 8;
-        const H_roof = p.legacyInputs.H_roof || 9.25;
+        // 2. SECTION LIBRARY
+        // Try to get chosen sections from legacy state results if available, else placeholders
+        const legacyResults = legacyState.results || {};
+        const colSec = legacyResults.selectedSections?.column;
+        if (colSec) {
+            p.sections.push({
+                id: 'sec-col-main',
+                name: colSec.name || 'Cột thép',
+                type: 'I',
+                h: colSec.h, bf: colSec.b, tw: colSec.tw, tf: colSec.tf,
+                area: colSec.A, Ix: colSec.Ix, Iy: colSec.Iy, Wx: colSec.Wx, Wy: colSec.Wy
+            });
+        } else {
+            p.sections.push({
+                id: 'sec-col-main', name: 'Tiết diện cột chưa chọn', type: 'unknown'
+            });
+        }
 
-        // Create main frame nodes (2D X-Z plane)
-        p.nodes = [
-            { id: 'n1', x: 0, y: 0, z: 0, label: 'Base L' },
-            { id: 'n2', x: L, y: 0, z: 0, label: 'Base R' },
-            { id: 'n3', x: 0, y: 0, z: H_col, label: 'Eave L' },
-            { id: 'n4', x: L, y: 0, z: H_col, label: 'Eave R' },
-            { id: 'n5', x: L/2, y: 0, z: H_roof, label: 'Apex' }
-        ];
+        const purlinId = p.legacyInputs.selectedPurlinId || "Z25019";
+        p.sections.push({ id: 'sec-purlin', name: purlinId, type: 'Z' });
 
-        // Create Supports
-        p.supports = [
-            { id: 'sup1', nodeId: 'n1', type: 'fixed' },
-            { id: 'sup2', nodeId: 'n2', type: 'fixed' }
-        ];
+        // 3. GEOMETRY (NODES & MEMBERS in 3D)
+        const L = parseFloat(p.legacyInputs.L) || 25;
+        const B = parseFloat(p.legacyInputs.B) || 6;
+        const totalL = parseFloat(p.legacyInputs.length) || 72;
+        const H_col = parseFloat(p.legacyInputs.H_column) || 8;
+        const H_roof = parseFloat(p.legacyInputs.H_roof) || 9.25;
+        
+        const numFrames = Math.max(2, Math.floor(totalL / B) + 1);
+        const actualSpacing = totalL / (numFrames - 1);
 
-        // Create Members
-        p.members = [
-            { id: 'm-col1', label: 'Column Left', type: 'column', startNode: 'n1', endNode: 'n3', materialId: 'mat-steel-main' },
-            { id: 'm-col2', label: 'Column Right', type: 'column', startNode: 'n2', endNode: 'n4', materialId: 'mat-steel-main' },
-            { id: 'm-raf1', label: 'Rafter Left', type: 'beam', startNode: 'n3', endNode: 'n5', materialId: 'mat-steel-main' },
-            { id: 'm-raf2', label: 'Rafter Right', type: 'beam', startNode: 'n5', endNode: 'n4', materialId: 'mat-steel-main' },
-            // Disconnected conceptual members for legacy checking
-            { id: 'm-purlin', label: 'Roof Purlin', type: 'purlin', length: p.legacyInputs.B || 9 },
-            { id: 'm-beam', label: 'Floor Beam', type: 'beam', length: p.legacyInputs.beamParams?.L_beam || 9 },
-            { id: 'm-slab', label: 'Floor Slab', type: 'slab', lengthX: p.legacyInputs.slabParams?.L1, lengthY: p.legacyInputs.slabParams?.L2 }
-        ];
+        // Generate 3D Nodes and Frames
+        for (let i = 0; i < numFrames; i++) {
+            const y = i * actualSpacing;
+            const prefix = `f${i}-`;
+            
+            // Nodes
+            const n1 = { id: `${prefix}n1`, label: `Chân cột trái F${i}`, x: 0, y: y, z: 0 };
+            const n2 = { id: `${prefix}n2`, label: `Chân cột phải F${i}`, x: L, y: y, z: 0 };
+            const n3 = { id: `${prefix}n3`, label: `Đỉnh cột trái F${i}`, x: 0, y: y, z: H_col };
+            const n4 = { id: `${prefix}n4`, label: `Đỉnh cột phải F${i}`, x: L, y: y, z: H_col };
+            const n5 = { id: `${prefix}n5`, label: `Đỉnh mái F${i}`, x: L/2, y: y, z: H_roof };
+            
+            p.nodes.push(n1, n2, n3, n4, n5);
 
-        // Legacy forces mapped to combinations
+            // Supports
+            p.supports.push({ id: `sup-${n1.id}`, nodeId: n1.id, type: 'fixed' });
+            p.supports.push({ id: `sup-${n2.id}`, nodeId: n2.id, type: 'fixed' });
+
+            // Members
+            p.members.push({ id: `${prefix}col1`, label: `Cột trái (Column) F${i}`, type: 'column', startNode: n1.id, endNode: n3.id, materialId: 'mat-steel-main', sectionId: 'sec-col-main', length: H_col });
+            p.members.push({ id: `${prefix}col2`, label: `Cột phải (Column) F${i}`, type: 'column', startNode: n2.id, endNode: n4.id, materialId: 'mat-steel-main', sectionId: 'sec-col-main', length: H_col });
+            p.members.push({ id: `${prefix}raf1`, label: `Dầm mái trái (Rafter) F${i}`, type: 'beam', startNode: n3.id, endNode: n5.id, materialId: 'mat-steel-main', sectionId: 'sec-col-main', length: Math.sqrt(Math.pow(L/2,2) + Math.pow(H_roof-H_col,2)) });
+            p.members.push({ id: `${prefix}raf2`, label: `Dầm mái phải (Rafter) F${i}`, type: 'beam', startNode: n5.id, endNode: n4.id, materialId: 'mat-steel-main', sectionId: 'sec-col-main', length: Math.sqrt(Math.pow(L/2,2) + Math.pow(H_roof-H_col,2)) });
+        }
+
+        // Add disconnected logical members for legacy checkers
+        p.members.push({ id: 'm-purlin', label: 'Xà gồ mái (Purlin)', type: 'purlin', sectionId: 'sec-purlin', length: B });
+        p.members.push({ id: 'm-beam', label: 'Dầm sàn (Floor Beam)', type: 'beam', length: p.legacyInputs.beamParams?.L_beam || 9 });
+        p.members.push({ id: 'm-slab', label: 'Sàn (Floor Slab)', type: 'slab', lengthX: p.legacyInputs.slabParams?.L1, lengthY: p.legacyInputs.slabParams?.L2 });
+
+        // 4. LOAD CASES & COMBINATIONS
+        p.loadCases.push({ id: 'lc-g', name: 'Tĩnh tải (Dead Load)', category: 'DEAD', factor: 1.1 });
+        p.loadCases.push({ id: 'lc-q', name: 'Hoạt tải mái (Live Load)', category: 'LIVE', factor: 1.2 });
+        p.loadCases.push({ id: 'lc-wX', name: 'Gió X (Wind X)', category: 'WIND', factor: 1.2 });
+        p.loadCases.push({ id: 'lc-wY', name: 'Gió Y (Wind Y)', category: 'WIND', factor: 1.2 });
+        // Infer from legacy forces
         if (legacyState.forces && legacyState.forces.length > 0) {
+            // For Phase 2, we just map legacy forces to loadCombinations so UI can read them
             legacyState.forces.forEach((f, idx) => {
                 p.loadCombinations.push({
                     id: `comb-${idx+1}`,
-                    name: f.name || `Tổ hợp ${idx+1}`,
-                    type: 'ULS',
-                    legacyForce: f
+                    name: f.name || `Tổ hợp tải trọng ${idx+1}`,
+                    category: 'ULS',
+                    legacyForce: f, // Retain for calculation engines
+                    factors: []
                 });
             });
         }
 
+        // Run initial validation
+        p.validationResults = this.validateProject(p);
+
         return p;
+    },
+
+    validateProject: function(p) {
+        const issues = [];
+        if (p.materials.length === 0) issues.push({ id: 'v1', severity: 'ERROR', category: 'MODEL', message: 'Thiếu vật liệu (Missing Material)' });
+        if (p.sections.length === 0) issues.push({ id: 'v2', severity: 'WARNING', category: 'MODEL', message: 'Chưa có tiết diện (No Sections)' });
+        if (p.nodes.length === 0) issues.push({ id: 'v3', severity: 'CRITICAL', category: 'MODEL', message: 'Mô hình chưa có nút (No Nodes)' });
+        if (p.loadCombinations.length === 0) issues.push({ id: 'v4', severity: 'WARNING', category: 'LOAD', message: 'Chưa có tổ hợp tải trọng (No Load Combinations)' });
+
+        const errorCount = issues.filter(i => i.severity === 'ERROR' || i.severity === 'CRITICAL').length;
+        return {
+            status: errorCount > 0 ? 'LỖI (ERROR)' : (issues.length > 0 ? 'CẢNH BÁO (WARNING)' : 'ĐẠT (PASS)'),
+            issues: issues
+        };
     },
 
     logAudit: function(project, action, object, oldValue, newValue, user = "System") {

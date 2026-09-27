@@ -44,7 +44,7 @@ function createDimensionText(message, size=1.5) {
     sprite.scale.set(size * 4, size, 1); return sprite;
 }
 
-function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '+X' }) {
+function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '+X', workspaceState }) {
     const mountRef = useRef(null); const containerRef = useRef(null);
     const [selectedZone, setSelectedZone] = useState(null);
     const [currentDir, setCurrentDir] = useState(defaultDir);

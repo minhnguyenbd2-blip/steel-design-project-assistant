@@ -1,5 +1,5 @@
 ﻿// js/components/WorkspaceLayout.jsx
-const WorkspaceLayout = ({ children, activeModule, onModuleChange, aiPanelOpen, toggleAiPanel, projectTitle }) => {
+const WorkspaceLayout = ({ children, activeModule, onModuleChange, aiPanelOpen, toggleAiPanel, projectTitle, workspaceState }) => {
     const modules = [
         { id: 'dashboard', label: window.t('dashboard'), icon: 'layout-dashboard' },
         { id: 'project', label: window.t('project'), icon: 'folder-open' },
@@ -94,6 +94,13 @@ const WorkspaceLayout = ({ children, activeModule, onModuleChange, aiPanelOpen, 
                         <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 p-3 rounded-lg text-sm border border-blue-100 dark:border-blue-800/50">
                             <p className="font-bold mb-1 flex items-center gap-1"><i data-lucide="info" className="w-4 h-4"></i> {window.t('aiContextActive')}</p>
                             <p>{window.t('aiContextDesc')}</p>
+                            
+                            <div className="mt-3 space-y-1 text-xs opacity-80 border-t border-blue-200/50 dark:border-blue-800/50 pt-2 font-mono">
+                                <div className="flex justify-between"><span>Nodes:</span> <span>{workspaceState?.nodes?.length || 0}</span></div>
+                                <div className="flex justify-between"><span>Members:</span> <span>{workspaceState?.members?.length || 0}</span></div>
+                                <div className="flex justify-between"><span>Combinations:</span> <span>{workspaceState?.loadCombinations?.length || 0}</span></div>
+                                <div className="flex justify-between"><span>Issues:</span> <span className={workspaceState?.validationResults?.issues?.length > 0 ? 'text-red-500 font-bold' : ''}>{workspaceState?.validationResults?.issues?.length || 0}</span></div>
+                            </div>
                         </div>
                     </div>
 

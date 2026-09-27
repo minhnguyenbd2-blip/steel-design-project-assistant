@@ -897,7 +897,7 @@ function App() {
                     {projectViewMode === "2D" ? (
                         <ProjectSvg inputs={rInputs} />
                     ) : (
-                        <Building3DViewer inputs={rInputs} mode="geometry" />
+                        <Building3DViewer inputs={rInputs} mode="geometry" workspaceState={workspaceState} />
                     )}
 
 
@@ -1143,9 +1143,7 @@ function App() {
                                         loadCases={rResults.traces.windCases} 
                                     />
                                 ) : (
-                                    <Building3DViewer 
-                                        inputs={rInputs}
-                                        mode="wind"
+                                    <Building3DViewer workspaceState={workspaceState} inputs={rInputs} mode="wind"
                                         loadCases={rResults.traces.windCases} 
                                     />
                                 )}
@@ -1788,6 +1786,7 @@ function App() {
 
     return (
         <WorkspaceLayout 
+            workspaceState={workspaceState}
             activeModule={activeModule} 
             onModuleChange={handleModuleChange}
             aiPanelOpen={aiPanelOpen}
@@ -1796,6 +1795,10 @@ function App() {
         >
             {activeModule === 'dashboard' ? (
                 workspaceState ? <Dashboard workspaceState={workspaceState} /> : <div>Initializing Workspace...</div>
+            ) : activeModule === 'model' ? (
+                workspaceState ? <Workspace3DViewer workspaceState={workspaceState} /> : <div>Loading 3D Viewer...</div>
+            ) : activeModule === 'combinations' ? (
+                workspaceState ? <LoadCombinationManager workspaceState={workspaceState} /> : <div>Loading Combinations...</div>
             ) : (
                 legacyUI
             )}
