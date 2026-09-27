@@ -95,7 +95,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
     const [currentDir, setCurrentDir] = useState(defaultDir);
     const [showCladding, setShowCladding] = useState(mode === 'wind');
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [theme, setTheme] = useState('dark');
+    const [theme, setTheme] = useState('light');
     const containerRef = useRef(null);
 
     const L = Number(inputs.L) || 25;
