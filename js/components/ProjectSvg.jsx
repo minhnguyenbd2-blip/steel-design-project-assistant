@@ -326,13 +326,19 @@ const ProjectSvg = ({ inputs = {}, results = {} }) => {
     };
 
     const renderSectionDetail = () => {
+        const maxDimCol = Math.max(colSec.h || 600, colSec.b || 250, 300);
+        const vBCol = maxDimCol * 1.5;
+
+        const maxDimRaf = Math.max(rafSec.h || 500, rafSec.b || 200, 300);
+        const vBRaf = maxDimRaf * 1.5;
+
         return (
             <div className="flex flex-col md:flex-row gap-6 p-4 bg-slate-950 text-slate-300">
                 <div className="flex-1">
                     <h4 className="text-sm font-bold text-blue-400 mb-4 border-b border-slate-800 pb-2">TIẾT DIỆN CỘT THÉP</h4>
-                    <svg width="300" height="300" viewBox="0 0 300 300">
+                    <svg width="100%" height="300" viewBox={`-${vBCol/2} -${vBCol/2} ${vBCol} ${vBCol}`}>
                         {renderDefs()}
-                        <g transform="translate(150, 150)">
+                        <g>
                             {/* I-Section Drawing */}
                             {/* Flanges */}
                             <rect x={-colSec.b/2} y={-colSec.h/2} width={colSec.b} height={colSec.tf} fill="url(#steel-hatch)" stroke="#3b82f6" strokeWidth="2" />
@@ -341,7 +347,9 @@ const ProjectSvg = ({ inputs = {}, results = {} }) => {
                             <rect x={-colSec.tw/2} y={-colSec.h/2 + colSec.tf} width={colSec.tw} height={colSec.h - 2*colSec.tf} fill="url(#steel-hatch)" stroke="#3b82f6" strokeWidth="2" />
                             
                             {/* Fillet radius approximation */}
-                            <circle cx={colSec.tw/2 + colSec.r} cy={-colSec.h/2 + colSec.tf + colSec.r} r={colSec.r} fill="none" stroke="#1d4ed8" strokeWidth="1" strokeDasharray="2,2" />
+                            {colSec.r ? (
+                                <circle cx={colSec.tw/2 + colSec.r} cy={-colSec.h/2 + colSec.tf + colSec.r} r={colSec.r} fill="none" stroke="#1d4ed8" strokeWidth="1" strokeDasharray="2,2" />
+                            ) : null}
 
                             {/* CG Marker */}
                             <circle cx="0" cy="0" r="4" fill="#ef4444" />
@@ -350,10 +358,10 @@ const ProjectSvg = ({ inputs = {}, results = {} }) => {
                             
                             {/* Dimensions */}
                             <line x1={-colSec.b/2} y1={-colSec.h/2 - 20} x2={colSec.b/2} y2={-colSec.h/2 - 20} stroke="#94a3b8" markerStart="url(#arrow-dim)" markerEnd="url(#arrow-dim)" />
-                            <text x="0" y={-colSec.h/2 - 25} fill="#cbd5e1" fontSize="12" textAnchor="middle">b = {colSec.b}</text>
+                            <text x="0" y={-colSec.h/2 - 30} fill="#cbd5e1" fontSize={Math.max(12, vBCol/25)} textAnchor="middle">b = {colSec.b}</text>
 
                             <line x1={colSec.b/2 + 20} y1={-colSec.h/2} x2={colSec.b/2 + 20} y2={colSec.h/2} stroke="#94a3b8" markerStart="url(#arrow-dim)" markerEnd="url(#arrow-dim)" />
-                            <text x={colSec.b/2 + 30} y="0" fill="#cbd5e1" fontSize="12" textAnchor="start" dominantBaseline="middle">h = {colSec.h}</text>
+                            <text x={colSec.b/2 + 35} y="0" fill="#cbd5e1" fontSize={Math.max(12, vBCol/25)} textAnchor="start" dominantBaseline="middle">h = {colSec.h}</text>
                         </g>
                     </svg>
                     <div className="mt-4 bg-slate-900 p-3 rounded-lg border border-slate-700">
@@ -370,9 +378,9 @@ const ProjectSvg = ({ inputs = {}, results = {} }) => {
 
                 <div className="flex-1">
                     <h4 className="text-sm font-bold text-blue-400 mb-4 border-b border-slate-800 pb-2">TIẾT DIỆN KÈO THÉP</h4>
-                    <svg width="300" height="300" viewBox="0 0 300 300">
+                    <svg width="100%" height="300" viewBox={`-${vBRaf/2} -${vBRaf/2} ${vBRaf} ${vBRaf}`}>
                         {renderDefs()}
-                        <g transform="translate(150, 150)">
+                        <g>
                             {/* Flanges */}
                             <rect x={-rafSec.b/2} y={-rafSec.h/2} width={rafSec.b} height={rafSec.tf} fill="url(#steel-hatch)" stroke="#3b82f6" strokeWidth="2" />
                             <rect x={-rafSec.b/2} y={rafSec.h/2 - rafSec.tf} width={rafSec.b} height={rafSec.tf} fill="url(#steel-hatch)" stroke="#3b82f6" strokeWidth="2" />
@@ -386,10 +394,10 @@ const ProjectSvg = ({ inputs = {}, results = {} }) => {
 
                             {/* Dimensions */}
                             <line x1={-rafSec.b/2} y1={-rafSec.h/2 - 20} x2={rafSec.b/2} y2={-rafSec.h/2 - 20} stroke="#94a3b8" markerStart="url(#arrow-dim)" markerEnd="url(#arrow-dim)" />
-                            <text x="0" y={-rafSec.h/2 - 25} fill="#cbd5e1" fontSize="12" textAnchor="middle">b = {rafSec.b}</text>
+                            <text x="0" y={-rafSec.h/2 - 30} fill="#cbd5e1" fontSize={Math.max(12, vBRaf/25)} textAnchor="middle">b = {rafSec.b}</text>
 
                             <line x1={rafSec.b/2 + 20} y1={-rafSec.h/2} x2={rafSec.b/2 + 20} y2={rafSec.h/2} stroke="#94a3b8" markerStart="url(#arrow-dim)" markerEnd="url(#arrow-dim)" />
-                            <text x={rafSec.b/2 + 30} y="0" fill="#cbd5e1" fontSize="12" textAnchor="start" dominantBaseline="middle">h = {rafSec.h}</text>
+                            <text x={rafSec.b/2 + 35} y="0" fill="#cbd5e1" fontSize={Math.max(12, vBRaf/25)} textAnchor="start" dominantBaseline="middle">h = {rafSec.h}</text>
                         </g>
                     </svg>
                     <div className="mt-4 bg-slate-900 p-3 rounded-lg border border-slate-700">

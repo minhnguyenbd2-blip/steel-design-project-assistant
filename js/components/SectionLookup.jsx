@@ -131,11 +131,13 @@ function SectionLookup({
           </g>
         ) : (
           <g>
-            <path d="M 80,20 L 20,20 L 20,120 L 80,120 M 80,20 L 80,40 M 20,120 L 20,100" fill="none" stroke="#2563eb" strokeWidth="4" />
-            <line x1="10" y1="20" x2="10" y2="120" stroke="#6b7280" strokeWidth="1" markerStart="url(#arrow)" markerEnd="url(#arrow)" />
-            <text x="0" y="70" fontSize="12" fill="#4b5563" textAnchor="end">h</text>
-            <line x1="20" y1="10" x2="80" y2="10" stroke="#6b7280" strokeWidth="1" markerStart="url(#arrow)" markerEnd="url(#arrow)" />
-            <text x="50" y="5" fontSize="12" fill="#4b5563" textAnchor="middle">b</text>
+            <path d="M 90,40 L 90,20 L 50,20 L 50,120 L 10,120 L 10,100" fill="none" stroke="#059669" strokeWidth="4" />
+            <line x1="0" y1="20" x2="0" y2="120" stroke="#6b7280" strokeWidth="1" markerStart="url(#arrow)" markerEnd="url(#arrow)" />
+            <text x="-5" y="75" fontSize="12" fill="#4b5563" textAnchor="end">h</text>
+            <line x1="50" y1="10" x2="90" y2="10" stroke="#6b7280" strokeWidth="1" markerStart="url(#arrow)" markerEnd="url(#arrow)" />
+            <text x="70" y="5" fontSize="12" fill="#4b5563" textAnchor="middle">b</text>
+            <line x1="100" y1="20" x2="100" y2="40" stroke="#6b7280" strokeWidth="1" markerStart="url(#arrow)" markerEnd="url(#arrow)" />
+            <text x="105" y="34" fontSize="12" fill="#4b5563" textAnchor="start">c</text>
           </g>
         )}
       </svg>
@@ -471,13 +473,25 @@ function SectionLookup({
                   </div>
                 </div>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {subTab === 'purlin' && (
-                  <>
-                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md border border-gray-100 dark:border-gray-600">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Chiều cao (h)</div>
-                      <div className="font-semibold text-gray-900 dark:text-gray-100">{selectedRow.h} <span className="text-xs font-normal text-gray-500">mm</span></div>
-                    </div>
+                <div className="mb-4 p-3 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
+                  <h4 className="text-sm font-bold text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-1.5">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                    </svg>
+                    Nguồn trích dẫn: {subTab === 'ibeam' ? 'Phụ lục TCVN 5575:2024' : 'Catalogue Nhà sản xuất'}
+                  </h4>
+                  <p className="text-xs text-blue-600/80 dark:text-blue-300/80 italic">
+                    Ghi chú: Để hiển thị hình ảnh bảng tra nguồn thực tế, vui lòng chèn ảnh tương ứng vào hệ thống hoặc cấu hình đường dẫn ảnh trong StandardData.
+                  </p>
+                </div>
+              
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {subTab === 'purlin' && (
+                    <>
+                      <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md border border-gray-100 dark:border-gray-600">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Chiều cao (h)</div>
+                        <div className="font-semibold text-gray-900 dark:text-gray-100">{selectedRow.h} <span className="text-xs font-normal text-gray-500">mm</span></div>
+                      </div>
                     <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md border border-gray-100 dark:border-gray-600">
                       <div className="text-xs text-gray-500 dark:text-gray-400">Bề rộng (b)</div>
                       <div className="font-semibold text-gray-900 dark:text-gray-100">{selectedRow.b} <span className="text-xs font-normal text-gray-500">mm</span></div>
@@ -495,10 +509,44 @@ function SectionLookup({
                       <div className="font-semibold text-gray-900 dark:text-gray-100">{formatNumber(selectedRow.Ix / 10000, 2)} <span className="text-xs font-normal text-gray-500">cm⁴</span></div>
                     </div>
                     <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md border border-gray-100 dark:border-gray-600">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Moment kháng uốn Wx</div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">{formatNumber(selectedRow.Wx / 1000, 2)} <span className="text-xs font-normal text-gray-500">cm³</span></div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md border border-gray-100 dark:border-gray-600">
                       <div className="text-xs text-gray-500 dark:text-gray-400">Moment quán tính Iy</div>
                       <div className="font-semibold text-gray-900 dark:text-gray-100">{formatNumber(selectedRow.Iy / 10000, 2)} <span className="text-xs font-normal text-gray-500">cm⁴</span></div>
                     </div>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md border border-gray-100 dark:border-gray-600">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Moment kháng uốn Wy</div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">{formatNumber(selectedRow.Wy / 1000, 2)} <span className="text-xs font-normal text-gray-500">cm³</span></div>
+                    </div>
                   </>
+                )}
+                
+                {subTab === 'purlin' && (
+                  <div className="col-span-2 sm:col-span-3 md:col-span-4 mt-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-lg">
+                    <h4 className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-1 flex items-center gap-1.5">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                      </svg>
+                      Khả năng chịu lực tham khảo (Cường độ uốn)
+                    </h4>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-300 mb-2">
+                      Dựa trên giới hạn chảy thép G450 (fy = 450 MPa) hoặc cường độ thiết kế phổ biến cho xà gồ cán nguội:
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white dark:bg-slate-800 p-2 rounded border border-emerald-200 dark:border-emerald-700">
+                        <div className="text-xs text-emerald-600 dark:text-emerald-400">Khả năng chịu Uốn M_x (kNm)</div>
+                        <div className="font-bold text-slate-800 dark:text-white">≈ {formatNumber((selectedRow.Wx / 1000) * 45 / 1.05 / 100, 2)} kNm</div>
+                        <div className="text-[10px] text-slate-500">Tính với M_x = Wx × fy / γm</div>
+                      </div>
+                      <div className="bg-white dark:bg-slate-800 p-2 rounded border border-emerald-200 dark:border-emerald-700">
+                        <div className="text-xs text-emerald-600 dark:text-emerald-400">Độ cứng EI_x (kNm²)</div>
+                        <div className="font-bold text-slate-800 dark:text-white">{formatNumber((selectedRow.Ix / 10000) * 2.1, 0)} kNm²</div>
+                        <div className="text-[10px] text-slate-500">Tính với E = 2.1×10⁵ MPa</div>
+                      </div>
+                    </div>
+                  </div>
                 )}
                 
                 {subTab === 'sheet' && (
@@ -520,6 +568,55 @@ function SectionLookup({
                       <div className="font-semibold text-gray-900 dark:text-gray-100">{selectedRow.Va} <span className="text-xs font-normal text-gray-500">kN/m</span></div>
                     </div>
                   </>
+                )}
+                
+                {subTab === 'sheet' && (
+                  <div className="col-span-2 sm:col-span-3 md:col-span-4 mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-lg">
+                    <h4 className="text-sm font-bold text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-1.5">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                      </svg>
+                      Bảng tra tải trọng phân bố (kPa) theo nhịp (Span Capacity - Tham khảo)
+                    </h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-center border-collapse">
+                        <thead>
+                          <tr className="bg-amber-100/50 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
+                            <th className="p-2 border border-amber-200 dark:border-amber-700/50">Nhịp (mm)</th>
+                            <th className="p-2 border border-amber-200 dark:border-amber-700/50">900</th>
+                            <th className="p-2 border border-amber-200 dark:border-amber-700/50">1200</th>
+                            <th className="p-2 border border-amber-200 dark:border-amber-700/50">1500</th>
+                            <th className="p-2 border border-amber-200 dark:border-amber-700/50">1800</th>
+                            <th className="p-2 border border-amber-200 dark:border-amber-700/50">2100</th>
+                            <th className="p-2 border border-amber-200 dark:border-amber-700/50">2400</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300">
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50 font-medium">Nhịp liên tục (Internal)</td>
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50">{formatNumber(10 * selectedRow.Ma / Math.pow(0.9, 2), 2)}</td>
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50">{formatNumber(10 * selectedRow.Ma / Math.pow(1.2, 2), 2)}</td>
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50">{formatNumber(10 * selectedRow.Ma / Math.pow(1.5, 2), 2)}</td>
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50">{formatNumber(10 * selectedRow.Ma / Math.pow(1.8, 2), 2)}</td>
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50">{formatNumber(10 * selectedRow.Ma / Math.pow(2.1, 2), 2)}</td>
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50">{formatNumber(10 * selectedRow.Ma / Math.pow(2.4, 2), 2)}</td>
+                          </tr>
+                          <tr className="bg-white/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300">
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50 font-medium">Nhịp đơn (Single)</td>
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50">{formatNumber(8 * selectedRow.Ma / Math.pow(0.9, 2), 2)}</td>
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50">{formatNumber(8 * selectedRow.Ma / Math.pow(1.2, 2), 2)}</td>
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50">{formatNumber(8 * selectedRow.Ma / Math.pow(1.5, 2), 2)}</td>
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50">{formatNumber(8 * selectedRow.Ma / Math.pow(1.8, 2), 2)}</td>
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50">{formatNumber(8 * selectedRow.Ma / Math.pow(2.1, 2), 2)}</td>
+                            <td className="p-2 border border-amber-200 dark:border-amber-700/50">{formatNumber(8 * selectedRow.Ma / Math.pow(2.4, 2), 2)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-[10px] text-amber-600/80 dark:text-amber-400/80 mt-1.5 italic">
+                      * Tải trọng tính toán dựa trên moment cho phép [M] = {selectedRow.Ma} kN.m/m. Giá trị mang tính tham khảo nhanh, cần đối chiếu biểu đồ Capacity thực tế của hãng (Stramit/Hoa Sen/Zamil).
+                    </p>
+                  </div>
                 )}
 
                 {subTab === 'ibeam' && (
@@ -548,7 +645,49 @@ function SectionLookup({
                       <div className="text-xs text-gray-500 dark:text-gray-400">Trọng lượng</div>
                       <div className="font-semibold text-gray-900 dark:text-gray-100">{selectedRow.mass} <span className="text-xs font-normal text-gray-500">kg/m</span></div>
                     </div>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md border border-gray-100 dark:border-gray-600">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Moment quán tính Ix</div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">{selectedRow.Ix} <span className="text-xs font-normal text-gray-500">cm⁴</span></div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md border border-gray-100 dark:border-gray-600">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Moment kháng uốn Wx</div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">{selectedRow.Wx} <span className="text-xs font-normal text-gray-500">cm³</span></div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md border border-gray-100 dark:border-gray-600">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Moment quán tính Iy</div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">{selectedRow.Iy} <span className="text-xs font-normal text-gray-500">cm⁴</span></div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md border border-gray-100 dark:border-gray-600">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Moment kháng uốn Wy</div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">{selectedRow.Wy} <span className="text-xs font-normal text-gray-500">cm³</span></div>
+                    </div>
                   </>
+                )}
+                
+                {subTab === 'ibeam' && (
+                  <div className="col-span-2 sm:col-span-3 md:col-span-4 mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
+                    <h4 className="text-sm font-bold text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-1.5">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                      </svg>
+                      Khả năng chịu lực tham khảo (Cường độ uốn)
+                    </h4>
+                    <p className="text-xs text-blue-600 dark:text-blue-300 mb-2">
+                      Dựa trên giới hạn chảy mác thép S235 (f = 215 MPa đối với thép hình cán nóng theo TCVN 5575:2024):
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white dark:bg-slate-800 p-2 rounded border border-blue-200 dark:border-blue-700">
+                        <div className="text-xs text-blue-600 dark:text-blue-400">Khả năng chịu Uốn M_x (kNm)</div>
+                        <div className="font-bold text-slate-800 dark:text-white">≈ {formatNumber(selectedRow.Wx * 21.5 / 1.05 / 100, 2)} kNm</div>
+                        <div className="text-[10px] text-slate-500">Tính với M_x = Wx × f / γc</div>
+                      </div>
+                      <div className="bg-white dark:bg-slate-800 p-2 rounded border border-blue-200 dark:border-blue-700">
+                        <div className="text-xs text-blue-600 dark:text-blue-400">Khả năng chịu Cắt V_max (kN)</div>
+                        <div className="font-bold text-slate-800 dark:text-white">≈ {formatNumber((selectedRow.h - 2 * selectedRow.tf) * selectedRow.tw * (21.5 * 0.58) / 100, 1)} kN</div>
+                        <div className="text-[10px] text-slate-500">Tính với V_max = A_w × f_v</div>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

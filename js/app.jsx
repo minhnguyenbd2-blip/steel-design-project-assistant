@@ -751,7 +751,7 @@ function App() {
                                         <i data-lucide="check-check" className="w-3.5 h-3.5 text-emerald-500"></i> Đồng bộ tự động
                                     </div>
                                     <p className="text-[11px] text-slate-500 leading-tight">
-                                        i = (H_roof - H_col) / (L/2) × 100%. TCVN 2737 tra bảng hệ số khí động tự động theo góc α này.
+                                        i = (H_roof - H_col) / (L/2) × 100%. TCVN 2737:2023 (Phụ lục F.4 & F.5) tra bảng hệ số khí động tự động theo góc α này.
                                     </p>
                                 </div>
                             </div>
@@ -1056,49 +1056,73 @@ function App() {
                                         BẢNG TỔNG HỢP GIÁ TRỊ TẢI TRỌNG GIÓ TÁC DỤNG LÊN KHUNG NGANG (WIND RESULT TABLE)
                                     </h3>
                                     
-                                    <div className="overflow-x-auto rounded-lg border dark:border-slate-700">
-                                        <table className="w-full text-xs text-left border-collapse">
-                                            <thead className="bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold uppercase">
-                                                <tr>
-                                                    <th className="p-2.5 border dark:border-slate-700">Trường hợp</th>
-                                                    <th className="p-2.5 border dark:border-slate-700 text-center">Hướng</th>
-                                                    <th className="p-2.5 border dark:border-slate-700">Bề mặt</th>
-                                                    <th className="p-2.5 border dark:border-slate-700 text-center">Vùng</th>
-                                                    <th className="p-2.5 border dark:border-slate-700 text-right">z_e (m)</th>
-                                                    <th className="p-2.5 border dark:border-slate-700 text-right">k(z_e)</th>
-                                                    <th className="p-2.5 border dark:border-slate-700 text-right">c_e</th>
-                                                    <th className="p-2.5 border dark:border-slate-700 text-right">c_i</th>
-                                                    <th className="p-2.5 border dark:border-slate-700 text-right">c_net</th>
-                                                    <th className="p-2.5 border dark:border-slate-700 text-right">G_f</th>
-                                                    <th className="p-2.5 border dark:border-slate-700 text-right text-blue-600 dark:text-blue-400">w_k (kN/m²)</th>
-                                                    <th className="p-2.5 border dark:border-slate-700 text-right text-amber-600 dark:text-amber-400">w_d (kN/m²)</th>
-                                                    <th className="p-2.5 border dark:border-slate-700 text-right">B (m)</th>
-                                                    <th className="p-2.5 border dark:border-slate-700 text-right text-emerald-600 dark:text-emerald-400 font-bold">q_d (kN/m)</th>
+                                    <div className="space-y-6">
+                                        {rResults.traces.windCases && Object.entries(rResults.traces.windCases).map(([dir, caseData]) => {
+                                            const wallZones = caseData.surfaces.filter(z => z.surface === 'Tường' || z.surface === 'Wall' || z.surface.includes('Tu'));
+                                            const roofZones = caseData.surfaces.filter(z => z.surface === 'Mái' || z.surface === 'Roof' || z.surface.includes('M'));
+                                            
+                                            const renderZoneRow = (zone, idx) => (
+                                                <tr key={`${dir}-${zone.zone}-${idx}`} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                                    <td className="p-2 border dark:border-slate-700 text-center font-bold">{zone.zone}</td>
+                                                    <td className="p-2 border dark:border-slate-700 text-right font-mono">{zone.ze.toFixed(2)}</td>
+                                                    <td className="p-2 border dark:border-slate-700 text-right font-mono">{zone.kz.toFixed(2)}</td>
+                                                    <td className="p-2 border dark:border-slate-700 text-right font-mono font-bold">{zone.ce > 0 ? '+' + zone.ce : zone.ce}</td>
+                                                    <td className="p-2 border dark:border-slate-700 text-right font-mono text-purple-600 dark:text-purple-400">{zone.ci > 0 ? '+' + zone.ci : zone.ci}</td>
+                                                    <td className="p-2 border dark:border-slate-700 text-right font-mono font-bold text-primary">{zone.c_net > 0 ? '+' + zone.c_net : zone.c_net}</td>
+                                                    <td className="p-2 border dark:border-slate-700 text-right font-mono">{zone.Gf.toFixed(2)}</td>
+                                                    <td className="p-2 border dark:border-slate-700 text-right font-mono font-bold text-blue-600 dark:text-blue-400">{zone.pressure_k.toFixed(3)}</td>
+                                                    <td className="p-2 border dark:border-slate-700 text-right font-mono font-bold text-amber-600 dark:text-amber-400">{zone.pressure_d.toFixed(3)}</td>
+                                                    <td className="p-2 border dark:border-slate-700 text-right font-mono">{zone.tributaryWidth}</td>
+                                                    <td className="p-2 border dark:border-slate-700 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">{zone.frameLineLoad_d.toFixed(2)}</td>
                                                 </tr>
-                                            </thead>
-                                            <tbody>
-                                                {rResults.traces.windCases && Object.entries(rResults.traces.windCases).flatMap(([dir, caseData]) => 
-                                                    caseData.surfaces.map((zone, idx) => (
-                                                        <tr key={`${dir}-${idx}`} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                                                            <td className="p-2 border dark:border-slate-700 font-semibold">{caseData.id}</td>
-                                                            <td className="p-2 border dark:border-slate-700 text-center font-bold">{dir}</td>
-                                                            <td className="p-2 border dark:border-slate-700">{zone.surface}</td>
-                                                            <td className="p-2 border dark:border-slate-700 text-center font-bold">{zone.zone}</td>
-                                                            <td className="p-2 border dark:border-slate-700 text-right font-mono">{zone.ze.toFixed(2)}</td>
-                                                            <td className="p-2 border dark:border-slate-700 text-right font-mono">{zone.kz.toFixed(2)}</td>
-                                                            <td className="p-2 border dark:border-slate-700 text-right font-mono font-bold">{zone.ce > 0 ? `+${zone.ce}` : zone.ce}</td>
-                                                            <td className="p-2 border dark:border-slate-700 text-right font-mono text-purple-600 dark:text-purple-400">{zone.ci > 0 ? `+${zone.ci}` : zone.ci}</td>
-                                                            <td className="p-2 border dark:border-slate-700 text-right font-mono font-bold text-primary">{zone.c_net > 0 ? `+${zone.c_net}` : zone.c_net}</td>
-                                                            <td className="p-2 border dark:border-slate-700 text-right font-mono">{zone.Gf.toFixed(2)}</td>
-                                                            <td className="p-2 border dark:border-slate-700 text-right font-mono font-bold text-blue-600 dark:text-blue-400">{zone.pressure_k.toFixed(3)}</td>
-                                                            <td className="p-2 border dark:border-slate-700 text-right font-mono font-bold text-amber-600 dark:text-amber-400">{zone.pressure_d.toFixed(3)}</td>
-                                                            <td className="p-2 border dark:border-slate-700 text-right font-mono">{zone.tributaryWidth}</td>
-                                                            <td className="p-2 border dark:border-slate-700 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">{zone.frameLineLoad_d.toFixed(2)}</td>
-                                                        </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                        </table>
+                                            );
+
+                                            return (
+                                                <div key={dir} className="rounded-lg border dark:border-slate-700 shadow-sm overflow-hidden">
+                                                    <div className="bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 p-2 font-bold text-sm flex justify-between items-center">
+                                                        <span>Trường hợp: {caseData.id}</span>
+                                                        <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs">Hướng {dir}</span>
+                                                    </div>
+                                                    <div className="overflow-x-auto">
+                                                        <table className="w-full text-xs text-left border-collapse bg-white dark:bg-slate-900">
+                                                            <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-bold uppercase">
+                                                                <tr>
+                                                                    <th className="p-2.5 border dark:border-slate-700 text-center w-16">Vùng</th>
+                                                                    <th className="p-2.5 border dark:border-slate-700 text-right">z_e (m)</th>
+                                                                    <th className="p-2.5 border dark:border-slate-700 text-right">k(z_e)</th>
+                                                                    <th className="p-2.5 border dark:border-slate-700 text-right">c_e</th>
+                                                                    <th className="p-2.5 border dark:border-slate-700 text-right">c_i</th>
+                                                                    <th className="p-2.5 border dark:border-slate-700 text-right">c_net</th>
+                                                                    <th className="p-2.5 border dark:border-slate-700 text-right">G_f</th>
+                                                                    <th className="p-2.5 border dark:border-slate-700 text-right text-blue-600 dark:text-blue-400" title="Áp lực gió tiêu chuẩn">w_k (kN/m²)</th>
+                                                                    <th className="p-2.5 border dark:border-slate-700 text-right text-amber-600 dark:text-amber-400" title="Áp lực gió tính toán">w_d (kN/m²)</th>
+                                                                    <th className="p-2.5 border dark:border-slate-700 text-right" title="Bề rộng đón gió">B (m)</th>
+                                                                    <th className="p-2.5 border dark:border-slate-700 text-right text-emerald-600 dark:text-emerald-400 font-bold" title="Tải phân bố dồn lên khung">q_d (kN/m)</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {wallZones.length > 0 && (
+                                                                    <>
+                                                                        <tr className="bg-blue-50/80 dark:bg-blue-900/30">
+                                                                            <td colSpan="11" className="p-2 font-bold text-blue-700 dark:text-blue-300 border dark:border-slate-700"><div className="flex items-center gap-1.5"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg> Tường (Bề mặt đứng)</div></td>
+                                                                        </tr>
+                                                                        {wallZones.map((zone, idx) => renderZoneRow(zone, idx))}
+                                                                    </>
+                                                                )}
+                                                                {roofZones.length > 0 && (
+                                                                    <>
+                                                                        <tr className="bg-amber-50/80 dark:bg-amber-900/30">
+                                                                            <td colSpan="11" className="p-2 font-bold text-amber-700 dark:text-amber-300 border dark:border-slate-700"><div className="flex items-center gap-1.5"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 22 12 2l10 20"/></svg> Mái (Bề mặt nghiêng)</div></td>
+                                                                        </tr>
+                                                                        {roofZones.map((zone, idx) => renderZoneRow(zone, idx))}
+                                                                    </>
+                                                                )}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 

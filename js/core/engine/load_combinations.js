@@ -90,6 +90,10 @@ function calculateLoadCombinations(gravityResult, windResult, geomInput = null) 
     let q_W_roof_w = 0;
     let q_W_roof_l = 0;
     
+    // Tải trọng gió tiêu chuẩn (characteristic) để tính chuyển vị (SLS)
+    let q_W_push_k = 0;
+    let q_W_pull_k = 0;
+    
     if (windResult && windResult.loadCases && windResult.loadCases['+X']) {
         const surfaces = windResult.loadCases['+X'].surfaces;
         const zoneD = surfaces.find(s => s.zone === 'D');
@@ -97,8 +101,14 @@ function calculateLoadCombinations(gravityResult, windResult, geomInput = null) 
         const zoneG = surfaces.find(s => s.zone === 'G');
         const zoneH = surfaces.find(s => s.zone === 'H');
         const zoneI = surfaces.find(s => s.zone === 'I');
-        if (zoneD) q_W_push = zoneD.frameLineLoad_d || 0;
-        if (zoneE) q_W_pull = zoneE.frameLineLoad_d || 0;
+        if (zoneD) {
+            q_W_push = zoneD.frameLineLoad_d || 0;
+            q_W_push_k = zoneD.frameLineLoad_k || 0;
+        }
+        if (zoneE) {
+            q_W_pull = zoneE.frameLineLoad_d || 0;
+            q_W_pull_k = zoneE.frameLineLoad_k || 0;
+        }
         if (zoneG || zoneH) q_W_roof_w = (zoneG ? zoneG.frameLineLoad_d : zoneH.frameLineLoad_d) || 0;
         if (zoneI) q_W_roof_l = zoneI.frameLineLoad_d || 0;
     }
@@ -129,6 +139,16 @@ function calculateLoadCombinations(gravityResult, windResult, geomInput = null) 
     // Giải nội lực các trường hợp tải đơn lẻ
     const frameAnalysis = solveGablePortalFrame(L, H, f, q_DL, q_LL, windLoads);
     const { dlForces, llForces, windForces } = frameAnalysis;
+    
+    // Nội lực tĩnh tải bé nhất có lợi (0.9 x DL_char) - tính gián tiếp từ dlForces (vốn dùng 1.05 DL_char)
+    const factor_DL_min = 0.9 / 1.05;
+    const dlMinForces = {
+        N: Number((dlForces.N * factor_DL_min).toFixed(2)),
+        Mx: Number((dlForces.Mx * factor_DL_min).toFixed(2)),
+        Vx: Number((dlForces.Vx * factor_DL_min).toFixed(2)),
+        M_knee: Number((dlForces.M_knee * factor_DL_min).toFixed(2))
+    };
+
     const frameAnalysisPush = solveGablePortalFrame(L, H, f, q_DL, q_LL, windLoadsPush);
 
     // ================= 1. TỔ HỢP CƠ BẢN 1 (THCB1): TĨNH TẢI + 1 HOẠT TẢI CHÍNH =================
@@ -189,9 +209,9 @@ function calculateLoadCombinations(gravityResult, windResult, geomInput = null) 
         id: "CB1B_Uplift",
         name: "THCB 1B (0,9 Tĩnh tải + Gió bốc nhổ chân cột)",
         source: "TCVN 2737:2023 Solver",
-        N: Number((0.9 * dlForces.N + 1.0 * Math.min(windForces.windward.N, windForces.leeward.N)).toFixed(2)),
-        Mx: Number((0.9 * dlForces.Mx + 1.0 * windForces.windward.Mx).toFixed(2)),
-        Vx: Number((0.9 * dlForces.Vx + 1.0 * windForces.windward.Vx).toFixed(2))
+        N: Number((dlMinForces.N + 1.0 * Math.min(windForces.windward.N, windForces.leeward.N)).toFixed(2)),
+        Mx: Number((dlMinForces.Mx + 1.0 * windForces.windward.Mx).toFixed(2)),
+        Vx: Number((dlMinForces.Vx + 1.0 * windForces.windward.Vx).toFixed(2))
     };
 
     steps.push(createCalculationStep(
@@ -207,7 +227,7 @@ function calculateLoadCombinations(gravityResult, windResult, geomInput = null) 
         "• ψ_t = 1,0: Tải trọng gió là hoạt tải chính duy nhất\n" +
         `• Gió trái (+X): N = ${forces_TH1B_Left.N} kN, Mx = ${forces_TH1B_Left.Mx} kNm, Vx = ${forces_TH1B_Left.Vx} kN\n` +
         `• Gió phải (-X): N = ${forces_TH1B_Right.N} kN, Mx = ${forces_TH1B_Right.Mx} kNm, Vx = ${forces_TH1B_Right.Vx} kN\n` +
-        `• Kiểm tra nhổ bu lông móng (0,9 DL + Wind Uplift): N = ${forces_TH1B_Uplift.N} kN`
+        `• Kiểm tra nhổ bu lông móng (0,9 DL_char + Wind Uplift): N = ${forces_TH1B_Uplift.N} kN`
     ));
 
     // ================= 2. TỔ HỢP CƠ BẢN 2 (THCB2): TĨNH TẢI + TỪ 2 HOẠT TẢI TRỞ LÊN =================
@@ -266,8 +286,9 @@ function calculateLoadCombinations(gravityResult, windResult, geomInput = null) 
     const drift_limit = drift_H_mm / 150; // mm
     const Ic_default = 5.7e8; // mm4 (ước lượng theo tiết diện cột I600)
     const E_modulus = 2.06e5; // MPa
-    const V_horiz_N = (q_W_push + Math.abs(q_W_pull)) * H * 1000 / 2;
-    const u_sway_mm = (V_horiz_N * Math.pow(H * 1000, 3)) / (3 * E_modulus * Ic_default * (1 + 2 * 1.0));
+    // Tính chuyển vị SLS dựa trên tải trọng gió TIÊU CHUẨN (q_W_push_k, q_W_pull_k) thay vì tải tính toán
+    const V_horiz_N_k = (q_W_push_k + Math.abs(q_W_pull_k)) * H * 1000 / 2;
+    const u_sway_mm = (V_horiz_N_k * Math.pow(H * 1000, 3)) / (3 * E_modulus * Ic_default * (1 + 2 * 1.0));
     const isDriftPass = u_sway_mm <= drift_limit;
 
     steps.push(createCalculationStep(

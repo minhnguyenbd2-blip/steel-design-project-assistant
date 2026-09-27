@@ -22,7 +22,7 @@ const ValidationRules = {
     length: { required: true, min: 1, max: 500, type: 'number', message: 'Chiều dài nhà phải là số dương hợp lý (1m - 500m).' },
     H_column: { required: true, min: 1, max: 50, type: 'number', message: 'Chiều cao đỉnh cột (H_column) phải lớn hơn 0 (1m - 50m).' },
     H_roof: { required: true, min: 1, max: 60, type: 'number', message: 'Chiều cao đỉnh mái (H_roof) phải lớn hơn 0 (1m - 60m).' },
-    roofSlope: { required: false, min: 0, max: 100, type: 'number', message: 'Độ dốc mái (i) phải từ 0% đến 100%.' },
+    roofSlope: { required: false, min: 0, max: 100, type: 'number', message: 'Độ dốc mái (i) vượt quá 100%. Vui lòng kiểm tra và nhập lại Nhịp (L), Chiều cao cột (H_column) hoặc Chiều cao đỉnh mái (H_roof).' },
     windZone: { required: true, allowed: ['I', 'II', 'III', 'IV', 'V'], type: 'string', message: 'Vùng gió không hợp lệ (chỉ chấp nhận I, II, III, IV, V).' },
     terrainCategory: { required: true, allowed: ['A', 'B', 'C'], type: 'string', message: 'Dạng địa hình không hợp lệ (chỉ chấp nhận A, B, C theo Bảng 8 TCVN 2737:2023).' },
     steelGrade: { required: false, allowed: ['S235', 'S275', 'S355'], type: 'string', message: 'Mác thép không hợp lệ (chỉ hỗ trợ S235, S275, S355).' },

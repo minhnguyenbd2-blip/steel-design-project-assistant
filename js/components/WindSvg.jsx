@@ -57,7 +57,11 @@ const WindSvg = (props) => {
 
     const getVal = (zone) => {
         if (!zone) return 0;
-        return coeffMode === 'ci' ? zone.ci : (coeffMode === 'ce' ? zone.ce : (zone.c_net || (zone.ce - (currentCase.ci || 0))));
+        if (coeffMode === 'ci') return zone.ci || 0;
+        if (coeffMode === 'ce') return zone.ce || 0;
+        const ceVal = zone.ce || 0;
+        const ciVal = currentCase?.ci || 0;
+        return zone.c_net !== undefined ? zone.c_net : (ceVal - ciVal);
     };
 
     const getPressureVal = (zone) => {
@@ -142,8 +146,8 @@ const WindSvg = (props) => {
         const dy = isVertical ? 0 : offset;
         return (
             <g>
-                <line x1={x1} y1={y1} x2={x1+dx} y2={y1+dy} stroke="#64748b" strokeWidth="1" strokeDasharray="2,2"/>
-                <line x1={x2} y1={y2} x2={x2+dx} y2={y2+dy} stroke="#64748b" strokeWidth="1" strokeDasharray="2,2"/>
+                <line x1={x1} y1={y1} x2={x1+dx} y2={y1+dy} stroke="rgba(100,116,139,0.3)" strokeWidth="1" strokeDasharray="2,2"/>
+                <line x1={x2} y1={y2} x2={x2+dx} y2={y2+dy} stroke="rgba(100,116,139,0.3)" strokeWidth="1" strokeDasharray="2,2"/>
                 <line x1={x1+dx} y1={y1+dy} x2={x2+dx} y2={y2+dy} stroke="#94a3b8" strokeWidth="1" markerStart="url(#dim-arrow)" markerEnd="url(#dim-arrow)"/>
                 <text x={(x1+x2)/2 + dx + (isVertical?5:0)} y={(y1+y2)/2 + dy - (isVertical?0:5)} fill="#cbd5e1" fontSize="10" textAnchor="middle" dominantBaseline={isVertical ? "middle" : "auto"}>
                     {label}
@@ -162,13 +166,13 @@ const WindSvg = (props) => {
     );
 
     const renderCrossSection = () => {
-        const cx = 400, cy = 370;
+        const cx = 400, cy = 380;
         const spanM = Math.max(Number(L) || 25, 10);
-        const scale = Math.min(20, 460 / spanM);
+        const scale = Math.min(35, 560 / spanM);
         const w = spanM * scale;
         const hCol = (Number(H_col) || 8) * scale;
         const rawRise = H_rf > H_col ? (H_rf - H_col) : (spanM / 2) * Math.tan((alpha || 5.71) * Math.PI / 180);
-        const hRf = Math.max(38, rawRise * scale);
+        const hRf = Math.max(25, rawRise * scale);
         
         const pLL = { x: cx - w/2, y: cy };
         const pLR = { x: cx + w/2, y: cy };
@@ -216,15 +220,25 @@ const WindSvg = (props) => {
                     const z = getZoneData('Tường', zoneName) || getZoneData('Wall', zoneName);
                     if(!z) return null;
                     const val = getVal(z);
+                    const ciVal = z.ci || currentCase.ci || 0;
                     const isSel = selectedZone?.zone === zoneName;
                     const st = getZoneStyle(val, isSel, hoverZone?.zone === zoneName);
                     const wallThick = 14;
                     return (
                         <g onClick={() => handleZoneClick(z)} onMouseEnter={() => setHoverZone(z)} onMouseLeave={() => setHoverZone(null)} className="cursor-pointer group">
-                            <title>{`Vùng ${zoneName} (${isLeftToRight ? 'Đón gió' : 'Khuất gió'}) - c_e: ${z.ce}, c_net: ${val.toFixed(2)}`}</title>
+                            <title>{`Vùng ${zoneName} (${isLeftToRight ? 'Đón gió' : 'Khuất gió'}) - c_e: ${z.ce}, c_i: ${ciVal}, c_net: ${val.toFixed(2)}`}</title>
                             <rect x={pTL.x - wallThick} y={pTL.y} width={wallThick} height={hCol} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} rx="2"/>
-                            {renderPressureArrow(pTL.x - wallThick/2, cy - hCol/2, val, 0, getPressureVal(z), 25)}
+                            
+                            {/* External pressure arrow */}
+                            {renderPressureArrow(pTL.x - wallThick/2, cy - hCol/2, z.ce, 0, getPressureVal(z), 25)}
                             <text x={pTL.x - wallThick - 12} y={cy - hCol/2 + 5} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="end">{zoneName}</text>
+                            
+                            {/* Internal pressure arrow */}
+                            {ciVal !== 0 && (
+                                <g opacity="0.6">
+                                    {renderPressureArrow(pTL.x + 10, cy - hCol/2, ciVal, 180, Math.abs(ciVal * W0 * (z.Gf || 1)), 15)}
+                                </g>
+                            )}
                         </g>
                     );
                 })()}
@@ -235,15 +249,25 @@ const WindSvg = (props) => {
                     const z = getZoneData('Tường', zoneName) || getZoneData('Wall', zoneName);
                     if(!z) return null;
                     const val = getVal(z);
+                    const ciVal = z.ci || currentCase.ci || 0;
                     const isSel = selectedZone?.zone === zoneName;
                     const st = getZoneStyle(val, isSel, hoverZone?.zone === zoneName);
                     const wallThick = 14;
                     return (
                         <g onClick={() => handleZoneClick(z)} onMouseEnter={() => setHoverZone(z)} onMouseLeave={() => setHoverZone(null)} className="cursor-pointer group">
-                            <title>{`Vùng ${zoneName} (${!isLeftToRight ? 'Đón gió' : 'Khuất gió'}) - c_e: ${z.ce}, c_net: ${val.toFixed(2)}`}</title>
+                            <title>{`Vùng ${zoneName} (${!isLeftToRight ? 'Đón gió' : 'Khuất gió'}) - c_e: ${z.ce}, c_i: ${ciVal}, c_net: ${val.toFixed(2)}`}</title>
                             <rect x={pTR.x} y={pTR.y} width={wallThick} height={hCol} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} rx="2"/>
-                            {renderPressureArrow(pTR.x + wallThick/2, cy - hCol/2, val, 180, getPressureVal(z), 25)}
+                            
+                            {/* External pressure arrow */}
+                            {renderPressureArrow(pTR.x + wallThick/2, cy - hCol/2, z.ce, 180, getPressureVal(z), 25)}
                             <text x={pTR.x + wallThick + 12} y={cy - hCol/2 + 5} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="start">{zoneName}</text>
+                            
+                            {/* Internal pressure arrow */}
+                            {ciVal !== 0 && (
+                                <g opacity="0.6">
+                                    {renderPressureArrow(pTR.x - 10, cy - hCol/2, ciVal, 0, Math.abs(ciVal * W0 * (z.Gf || 1)), 15)}
+                                </g>
+                            )}
                         </g>
                     );
                 })()}
@@ -253,6 +277,7 @@ const WindSvg = (props) => {
                     const zG = getZoneData('Mái', 'G') || getZoneData('Roof', 'G') || getZoneData('Mái', 'H');
                     if(!zG) return null;
                     const val = getVal(zG);
+                    const ciVal = zG.ci || currentCase.ci || 0;
                     const isSel = selectedZone?.zone === zG.zone;
                     const st = getZoneStyle(val, isSel, hoverZone?.zone === zG.zone);
                     const midX = (pTL.x + pApex.x) / 2;
@@ -260,10 +285,19 @@ const WindSvg = (props) => {
                     const thick = 14;
                     return (
                         <g onClick={() => handleZoneClick(zG)} onMouseEnter={() => setHoverZone(zG)} onMouseLeave={() => setHoverZone(null)} className="cursor-pointer group">
-                            <title>{`Vùng mái ${zG.zone} - c_e: ${zG.ce}, c_net: ${val.toFixed(2)}`}</title>
+                            <title>{`Vùng mái ${zG.zone} - c_e: ${zG.ce}, c_i: ${ciVal}, c_net: ${val.toFixed(2)}`}</title>
                             <path d={`M ${pTL.x} ${pTL.y} L ${pApex.x} ${pApex.y} L ${pApex.x} ${pApex.y - thick} L ${pTL.x - 4} ${pTL.y - thick} Z`} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth}/>
-                            {renderPressureArrow(midX, midY - thick/2, val, 90 - roofAngleDeg, getPressureVal(zG), 25)}
+                            
+                            {/* External pressure arrow */}
+                            {renderPressureArrow(midX, midY - thick/2, zG.ce, 90 - roofAngleDeg, getPressureVal(zG), 25)}
                             <text x={midX} y={midY - 22} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="middle" stroke="#090d16" strokeWidth="3" paintOrder="stroke">{zG.zone} ({val.toFixed(2)})</text>
+                            
+                            {/* Internal pressure arrow */}
+                            {ciVal !== 0 && (
+                                <g opacity="0.6">
+                                    {renderPressureArrow(midX, midY + 10, ciVal, 270 - roofAngleDeg, Math.abs(ciVal * W0 * (zG.Gf || 1)), 15)}
+                                </g>
+                            )}
                         </g>
                     );
                 })()}
@@ -273,6 +307,7 @@ const WindSvg = (props) => {
                     const zI = getZoneData('Mái', 'I') || getZoneData('Roof', 'I') || getZoneData('Mái', 'J');
                     if(!zI) return null;
                     const val = getVal(zI);
+                    const ciVal = zI.ci || currentCase.ci || 0;
                     const isSel = selectedZone?.zone === zI.zone;
                     const st = getZoneStyle(val, isSel, hoverZone?.zone === zI.zone);
                     const midX = (pTR.x + pApex.x) / 2;
@@ -280,10 +315,19 @@ const WindSvg = (props) => {
                     const thick = 14;
                     return (
                         <g onClick={() => handleZoneClick(zI)} onMouseEnter={() => setHoverZone(zI)} onMouseLeave={() => setHoverZone(null)} className="cursor-pointer group">
-                            <title>{`Vùng mái ${zI.zone} - c_e: ${zI.ce}, c_net: ${val.toFixed(2)}`}</title>
+                            <title>{`Vùng mái ${zI.zone} - c_e: ${zI.ce}, c_i: ${ciVal}, c_net: ${val.toFixed(2)}`}</title>
                             <path d={`M ${pApex.x} ${pApex.y} L ${pTR.x} ${pTR.y} L ${pTR.x + 4} ${pTR.y - thick} L ${pApex.x} ${pApex.y - thick} Z`} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth}/>
-                            {renderPressureArrow(midX, midY - thick/2, val, 90 + roofAngleDeg, getPressureVal(zI), 25)}
+                            
+                            {/* External pressure arrow */}
+                            {renderPressureArrow(midX, midY - thick/2, zI.ce, 90 + roofAngleDeg, getPressureVal(zI), 25)}
                             <text x={midX} y={midY - 22} fill={st.textColor} fontSize="13" fontWeight="bold" textAnchor="middle" stroke="#090d16" strokeWidth="3" paintOrder="stroke">{zI.zone} ({val.toFixed(2)})</text>
+                            
+                            {/* Internal pressure arrow */}
+                            {ciVal !== 0 && (
+                                <g opacity="0.6">
+                                    {renderPressureArrow(midX, midY + 10, ciVal, 270 + roofAngleDeg, Math.abs(ciVal * W0 * (zI.Gf || 1)), 15)}
+                                </g>
+                            )}
                         </g>
                     );
                 })()}
@@ -313,11 +357,11 @@ const WindSvg = (props) => {
     };
 
     const renderRoofPlan = () => {
-        const cx = 400, cy = 230;
+        const cx = 400, cy = 250;
         const b_dim = Math.max(Number(b) || 72, 5);
         const d_dim = Math.max(Number(d) || 25, 5);
-        const maxW = 540;
-        const maxH = 260;
+        const maxW = 660;
+        const maxH = 340;
         const scale = Math.min(maxW / b_dim, maxH / d_dim);
         const w = b_dim * scale;
         const h_dim = d_dim * scale;
@@ -538,11 +582,11 @@ const WindSvg = (props) => {
     };
 
     const renderWallPlan = () => {
-        const cx = 400, cy = 230;
+        const cx = 400, cy = 250;
         const b_dim = Math.max(Number(b) || 72, 5);
         const d_dim = Math.max(Number(d) || 25, 5);
-        const maxW = 540;
-        const maxH = 260;
+        const maxW = 660;
+        const maxH = 340;
         const scale = Math.min(maxW / b_dim, maxH / d_dim);
         const w = b_dim * scale;
         const h_dim = d_dim * scale;
@@ -826,7 +870,7 @@ const WindSvg = (props) => {
                             <div className="grid grid-cols-3 gap-2 text-center">
                                 <div className="bg-slate-900 p-2 rounded border border-slate-700">
                                     <div className="text-[10px] text-slate-400">c_e</div>
-                                    <div className={`font-mono font-bold ${selectedZone.ce > 0 ? 'text-red-400' : 'text-blue-400'}`}>{selectedZone.ce}</div>
+                                    <div className={`font-mono font-bold ${(selectedZone.ce || 0) > 0 ? 'text-red-400' : 'text-blue-400'}`}>{selectedZone.ce !== undefined ? selectedZone.ce : '-'}</div>
                                 </div>
                                 <div className="bg-slate-900 p-2 rounded border border-slate-700">
                                     <div className="text-[10px] text-slate-400">c_i</div>
