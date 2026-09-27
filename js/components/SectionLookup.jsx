@@ -174,7 +174,7 @@ function SectionLookup({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col h-full max-h-[85vh]">
+    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col h-full min-h-[60vh]">
       {/* Header & Tabs */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4">Bảng tra Đặc trưng Hình học</h2>
@@ -399,7 +399,7 @@ function SectionLookup({
 
       {/* Detail Panel */}
       {selectedRow && (
-        <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <div className="border-t-4 border-blue-500 bg-white dark:bg-gray-800 p-4 shadow-xl mt-4 rounded-b-xl">
           <div className="flex flex-col md:flex-row gap-6">
             <div className="w-full md:w-1/3 flex justify-center items-center bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-100 dark:border-gray-700">
               {subTab === 'purlin' && renderPurlinSVG(selectedRow.type)}
