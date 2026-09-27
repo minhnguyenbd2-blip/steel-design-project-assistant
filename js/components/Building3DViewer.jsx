@@ -200,7 +200,15 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             else if (member.type === 'rafter') mesh = new THREE.Mesh(rafterGeom, steelMat);
             else if (member.type === 'purlin') mesh = new THREE.Mesh(purlinGeom, purlinMat);
             else if (member.type === 'brace') mesh = new THREE.Mesh(braceGeom, braceMat);
-            if (mesh) { placeBeam(mesh, p1, p2, member.up); mesh.castShadow = true; mesh.receiveShadow = true; skeletonGroup.add(mesh); }
+            if (mesh) { 
+        placeBeam(mesh, p1, p2, member.up); 
+        mesh.castShadow = true; mesh.receiveShadow = true; 
+        if (member.type === 'purlin' && !showCladding) {
+            // Hide purlins when cladding is hidden to isolate the main frame
+            mesh.visible = false;
+        }
+        skeletonGroup.add(mesh); 
+    }
         });
 
         // RIGOROUS DETAILED CONNECTIONS
@@ -245,6 +253,7 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                     const cleat = new THREE.Mesh(purlinCleatGeom, jointMat);
                     cleat.position.set(px, py_top + 0.075, z - 0.02); // 0.075 is half height of cleat (0.15)
                     cleat.rotation.z = -sign * rafterAngle;
+                    if (!showCladding) cleat.visible = false;
                     skeletonGroup.add(cleat);
                 }
             }
@@ -324,6 +333,12 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             // If x1 < x2 and z1 < z2.
             const p1 = [x1, y1, z2]; const p2 = [x2, y2, z2]; const p3 = [x2, y2, z1]; const p4 = [x1, y1, z1];
             createQuad(p1, p2, p3, p4, 'roof', getZ(zoneName));
+            if (showCladding && mode === 'wind' && getZ(zoneName)) {
+                // Add elegant text label floating slightly above the roof zone
+                const sprite = createTextSprite(zoneName, "#ffffff", "rgba(0,0,0,0.6)");
+                sprite.position.set((x1+x2)/2, (y1+y2)/2 + 0.3, (z1+z2)/2);
+                buildingGroup.add(sprite);
+            }
         };
 
         if (mode === 'wind' && caseData) {
@@ -423,17 +438,11 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
             else if (currentDir === '-Y') { targetZ = zMax; startZ = zMax + 40; }
 
             if (windAnimMode === 'static') {
-                const numArrows = Math.max(4, Math.floor(maxDim / 8));
-                for(let i=0; i<numArrows; i++) {
-                    for(let j=0; j<4; j++) { 
-                        const ratio = (i + 0.5) / numArrows;
-                        let ax = currentDir.includes('X') ? startX + 25 * arrowDir.x : -L/2 + L * ratio;
-                        let az = currentDir.includes('Y') ? startZ + 25 * arrowDir.z : -B_total/2 + B_total * ratio;
-                        // Beautiful thin static arrows
-                        const ah = new THREE.ArrowHelper(arrowDir, new THREE.Vector3(ax, H_col * (0.2 + j*0.3), az), 12, isDark ? 0x38bdf8 : 0x0284c7, 3, 1.5);
-                        windGroup.add(ah);
-                    }
-                }
+                const ax = currentDir.includes('X') ? startX + 20 * arrowDir.x : 0;
+                const az = currentDir.includes('Y') ? startZ + 20 * arrowDir.z : 0;
+                // Just 1 big, clear arrow
+                const ah = new THREE.ArrowHelper(arrowDir, new THREE.Vector3(ax, H_col * 0.7, az), 20, isDark ? 0x38bdf8 : 0x0284c7, 6, 4);
+                windGroup.add(ah);
             } else {
                 const streakCount = 200; 
                 const streakGeom = new THREE.CylinderGeometry(0.015, 0.015, 2.5, 4); // Thin, elegant lines
@@ -459,6 +468,34 @@ function Building3DViewer({ inputs, mode = 'geometry', loadCases, defaultDir = '
                 }
             }
             scene.add(windGroup);
+        }
+
+                // 3D Dimensions (Geometry Mode)
+        if (mode === 'geometry') {
+            const dimGroup = new THREE.Group();
+            
+            // Width L
+            const dimL = createDimensionText(`Nhịp L = ${L}m`, 2);
+            dimL.position.set(0, -0.5, B_total/2 + 2);
+            dimGroup.add(dimL);
+            const lineL = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-L/2, 0, B_total/2 + 2), new THREE.Vector3(L/2, 0, B_total/2 + 2)]), wireMat.clone());
+            dimGroup.add(lineL);
+
+            // Length B_total
+            const dimB = createDimensionText(`Chiều dài = ${B_total}m`, 2);
+            dimB.position.set(L/2 + 3, -0.5, 0);
+            dimGroup.add(dimB);
+            const lineB = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(L/2 + 3, 0, -B_total/2), new THREE.Vector3(L/2 + 3, 0, B_total/2)]), wireMat.clone());
+            dimGroup.add(lineB);
+
+            // Height H_col
+            const dimH = createDimensionText(`H_col = ${H_col}m`, 1.5);
+            dimH.position.set(L/2 + 1.5, H_col/2, B_total/2);
+            dimGroup.add(dimH);
+            const lineH = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(L/2 + 1.5, 0, B_total/2), new THREE.Vector3(L/2 + 1.5, H_col, B_total/2)]), wireMat.clone());
+            dimGroup.add(lineH);
+
+            buildingGroup.add(dimGroup);
         }
 
         const grid = new THREE.GridHelper(maxDim * 4, 80, isDark ? 0x334155 : 0xcbd5e1, isDark ? 0x1e293b : 0xe2e8f0);

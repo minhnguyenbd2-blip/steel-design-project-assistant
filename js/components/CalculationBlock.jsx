@@ -97,7 +97,7 @@ function CalculationBlock({ step }) {
     const hasSymbols = symbols.length > 0;
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-5 transition-all hover:shadow-md" id={stepId}>
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-blue-500 shadow-md overflow-hidden mb-8 transition-all hover:shadow-lg" id={stepId}>
             {/* Header: Mã bước tính & Nguồn tiêu chuẩn */}
             <div className="bg-slate-50 dark:bg-slate-900/70 px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-2">
                 <div className="flex items-center gap-2.5">

@@ -1238,6 +1238,17 @@ function App() {
                                 <p className="text-xs text-slate-500 mt-1">
                                     Cho phép thêm hoặc bớt tổ hợp nội lực tùy ý bằng nút [+] và [-] bên dưới.
                                 </p>
+                                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-lg">
+                                      <h3 className="font-bold text-blue-800 dark:text-blue-300 text-xs mb-1">Hướng dẫn trích xuất từ ETABS/SAP2000:</h3>
+                                      <ul className="text-xs text-blue-700 dark:text-blue-400 list-disc list-inside space-y-0.5">
+                                          <li>Chạy phân tích mô hình (Run Analysis).</li>
+                                          <li>Vào <b>Display > Show Tables</b> (hoặc Ctrl+T).</li>
+                                          <li>Chọn bảng <b>Analysis Results > Element Output > Frame Output > Element Forces - Frames</b>.</li>
+                                          <li>Lọc theo <b>Combo</b> tải trọng muốn thiết kế (VD: BAO). Chọn xuất ra Excel.</li>
+                                          <li>Nhập các giá trị nội lực khống chế (N, V, M) vào bảng bên dưới.</li>
+                                          <li><span className="font-semibold text-red-600 dark:text-red-400">Lưu ý:</span> App dùng quy ước ETABS: Moment uốn chính là <b>M3</b> (trục 3), Lực cắt chính là <b>V2</b> (trục 2).</li>
+                                      </ul>
+                                  </div>
                             </div>
                             <button 
                                 onClick={addForceCase}
@@ -1426,6 +1437,11 @@ function App() {
                             </div>
                         )}
                     </div>
+                          {projectState.slabResult && projectState.slabResult.steps && (
+                              <div className="mt-8">
+                                  <CalculationTraceViewer steps={projectState.slabResult.steps} title="DIỄN GIẢI CHI TIẾT CÔNG THỨC & Ý NGHĨA KÝ HIỆU TOÁN HỌC" />
+                              </div>
+                          )}
                 </div>
 
                 {/* ========================================================================================= */}
@@ -1519,6 +1535,11 @@ function App() {
                             </div>
                         )}
                     </div>
+                          {projectState.beamResult && projectState.beamResult.steps && (
+                              <div className="mt-8">
+                                  <CalculationTraceViewer steps={projectState.beamResult.steps} title="DIỄN GIẢI CHI TIẾT CÔNG THỨC & Ý NGHĨA KÝ HIỆU TOÁN HỌC" />
+                              </div>
+                          )}
                 </div>
 
                 {/* ========================================================================================= */}
