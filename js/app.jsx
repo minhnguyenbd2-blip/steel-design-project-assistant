@@ -1799,6 +1799,8 @@ function App() {
                 workspaceState ? <Workspace3DViewer workspaceState={workspaceState} /> : <div>Loading 3D Viewer...</div>
             ) : activeModule === 'combinations' ? (
                 workspaceState ? <LoadCombinationManager workspaceState={workspaceState} /> : <div>Loading Combinations...</div>
+            ) : activeModule === 'report' ? (
+                workspaceState ? <WorkspaceReport workspaceState={workspaceState} /> : <div>Loading Report...</div>
             ) : (
                 legacyUI
             )}

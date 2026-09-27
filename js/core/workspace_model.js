@@ -123,7 +123,14 @@ window.WorkspaceModel = {
         p.loadCases.push({ id: 'lc-q', name: 'Hoạt tải mái (Live Load)', category: 'LIVE', factor: 1.2 });
         p.loadCases.push({ id: 'lc-wX', name: 'Gió X (Wind X)', category: 'WIND', factor: 1.2 });
         p.loadCases.push({ id: 'lc-wY', name: 'Gió Y (Wind Y)', category: 'WIND', factor: 1.2 });
-        // Infer from legacy forces
+
+        // Auto-generate TCVN 2737 Combinations (Phase 4)
+        if (window.TCVN2737_2023) {
+            const autoCombos = window.TCVN2737_2023.generateCombinations(p.loadCases);
+            p.loadCombinations.push(...autoCombos);
+        }
+
+        // Infer from legacy forces (Legacy Fallback)
         if (legacyState.forces && legacyState.forces.length > 0) {
             // For Phase 2, we just map legacy forces to loadCombinations so UI can read them
             legacyState.forces.forEach((f, idx) => {

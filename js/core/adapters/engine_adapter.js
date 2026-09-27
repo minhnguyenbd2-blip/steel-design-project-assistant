@@ -90,7 +90,7 @@ window.EngineAdapter = {
             const f = combo.legacyForce;
             if (!f) return;
             
-            const check = window.checkSectionCapacity(section, f.N, f.Mx, f.Vx, matProps, L0x, L0y);
+            const check = window.TCVN5575_2024 ? window.TCVN5575_2024.checkSectionCapacity(section, f.N, f.Mx, f.Vx, matProps, L0x, L0y) : window.checkSectionCapacity(section, f.N, f.Mx, f.Vx, matProps, L0x, L0y);
             
             const uStrength = check.utilization.strength || 0;
             const uInPlane = check.utilization.inPlane || 0;

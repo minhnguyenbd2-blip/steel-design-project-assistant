@@ -37,7 +37,10 @@ const LoadCombinationManager = ({ workspaceState }) => {
                             <tbody>
                                 {workspaceState.loadCombinations.map((combo, idx) => (
                                     <tr key={combo.id} className="border-b dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                        <td className="p-3 font-mono text-slate-500">{combo.id}</td>
+                                        <td className="p-3 font-mono text-slate-500 text-xs">
+                                            {combo.id}
+                                            {combo.legacyForce && <span className="block mt-1 text-[10px] text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1 rounded inline-block">LEGACY MAP</span>}
+                                        </td>
                                         <td className="p-3 font-bold">{combo.name}</td>
                                         <td className="p-3">
                                             <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded text-xs font-bold">
@@ -45,8 +48,7 @@ const LoadCombinationManager = ({ workspaceState }) => {
                                             </span>
                                         </td>
                                         <td className="p-3 font-mono text-xs text-slate-600 dark:text-slate-300">
-                                            {/* Fallback to legacy force name since true factors aren't generated yet */}
-                                            {combo.legacyForce ? combo.legacyForce.name : '1.0 G + 1.0 Q'}
+                                            {window.TCVN2737_2023 && !combo.legacyForce ? window.TCVN2737_2023.formatCombinationFormula(combo, workspaceState.loadCases) : (combo.legacyForce ? combo.legacyForce.name : '--')}
                                         </td>
                                         <td className="p-3 text-center">
                                             <span className="text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded text-xs font-bold">
@@ -67,7 +69,7 @@ const LoadCombinationManager = ({ workspaceState }) => {
             
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900 p-4 rounded-xl text-sm text-blue-800 dark:text-blue-300">
                 <p className="font-bold mb-1 flex items-center gap-1"><i data-lucide="info" className="w-4 h-4"></i> Ghi chú (Note)</p>
-                <p>Các tổ hợp tải trọng trên hiện đang được ánh xạ trực tiếp từ bộ Tính toán Nội lực cũ để đảm bảo tính tương thích (Regression Safety). Trình tạo tổ hợp tự động (Auto-Generator) theo TCVN 2737:2023 sẽ được mở khóa ở bản cập nhật tiếp theo.</p>
+                <p>Trình tạo tổ hợp (Auto-Generator) theo TCVN 2737:2023 đã được kích hoạt. Các tổ hợp "auto-X" được sinh ra tự động từ các Load Cases. Các tổ hợp "comb-X" (LEGACY MAP) được ánh xạ từ hệ thống cũ để tương thích ngược.</p>
             </div>
         </div>
     );
