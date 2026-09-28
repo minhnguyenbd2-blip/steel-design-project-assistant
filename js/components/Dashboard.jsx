@@ -2,7 +2,10 @@
 const Dashboard = ({ workspaceState }) => {
     
     // Derived metrics
-    const memberCount = workspaceState.members.length;
+    const memberCount = workspaceState.members ? workspaceState.members.length : 0;
+    const primaryCount = workspaceState.members ? workspaceState.members.filter(m => m.role === 'PRIMARY').length : 0;
+    const secondaryCount = workspaceState.members ? workspaceState.members.filter(m => m.role === 'SECONDARY').length : 0;
+    const bracingCount = workspaceState.members ? workspaceState.members.filter(m => m.role === 'BRACING').length : 0;
     const materialCount = workspaceState.materials.length;
     
     // Mocking status logic for now
