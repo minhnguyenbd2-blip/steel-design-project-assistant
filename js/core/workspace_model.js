@@ -190,7 +190,7 @@ window.WorkspaceModel = {
         const bracedBays = [];
         if (numFrames > 1) bracedBays.push(0); // First bay
         if (numFrames > 2) bracedBays.push(numFrames - 2); // Last bay
-        if (numFrames > 5) bracedBays.push(Math.floor((numFrames - 1) / 2)); // Middle bay
+        // Middle bay bracing removed as per user request
 
         bracedBays.forEach(bay => {
             // Wall Bracing (X-bracing)
