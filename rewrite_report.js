@@ -1,4 +1,6 @@
-// js/components/WorkspaceReport.jsx
+﻿const fs = require('fs');
+
+const content = `// js/components/WorkspaceReport.jsx
 const WorkspaceReport = ({ workspaceState }) => {
     
     if (!workspaceState) return null;
@@ -70,7 +72,7 @@ const WorkspaceReport = ({ workspaceState }) => {
                                                         <td className="border border-slate-200 dark:border-slate-700 p-2">
                                                             {c.factors && Object.entries(c.factors).map(([loadId, factor]) => {
                                                                 const ld = loads.find(l => l.id === loadId);
-                                                                return ld ? `${factor} × ${ld.name}` : '';
+                                                                return ld ? \`\${factor} × \${ld.name}\` : '';
                                                             }).filter(Boolean).join(' + ')}
                                                         </td>
                                                     </tr>
@@ -159,7 +161,7 @@ const WorkspaceReport = ({ workspaceState }) => {
                                             <div className="text-slate-500 text-xs mb-1">Tổ hợp & Nội lực chi phối (Governing)</div>
                                             <div className="font-bold text-amber-600 dark:text-amber-500">
                                                 {dr.governingCombinationId || '--'} 
-                                                {dr.internalForces && ` (N=${dr.internalForces.N?.toFixed(1) || 0}kN, M=${dr.internalForces.M?.toFixed(1) || 0}kNm, V=${dr.internalForces.V?.toFixed(1) || 0}kN)`}
+                                                {dr.internalForces && \` (N=\${dr.internalForces.N?.toFixed(1) || 0}kN, M=\${dr.internalForces.M?.toFixed(1) || 0}kNm, V=\${dr.internalForces.V?.toFixed(1) || 0}kN)\`}
                                             </div>
                                             <div className="text-xs text-slate-500 mt-1">Điều kiện quyết định: {dr.governingCheck}</div>
                                         </div>
@@ -234,3 +236,6 @@ const WorkspaceReport = ({ workspaceState }) => {
 };
 
 window.WorkspaceReport = WorkspaceReport;
+`
+
+fs.writeFileSync('e:/Model antigravity/Đồ án Thép/steel-design-assistant/js/components/WorkspaceReport.jsx', content, 'utf8');

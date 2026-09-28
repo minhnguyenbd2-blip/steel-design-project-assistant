@@ -121,7 +121,7 @@ window.EngineAdapter = {
             else if (maxU === (govCheck.utilization.outPlane || 0)) dr.governingCheck = 'Ổn định ngoài MP (Out-of-plane Buckling)';
             else dr.governingCheck = 'Ổn định cục bộ (Local Buckling)';
 
-            dr.calculationTrace = govCheck.steps.map(s => s.html).join('');
+            dr.calculationSteps = govCheck.steps;
             
             dr.checks = [
                 { name: 'Độ bền (Strength)', utilization: govCheck.utilization.strength, status: govCheck.utilization.strength <= 1 ? 'PASS' : 'FAIL' },
