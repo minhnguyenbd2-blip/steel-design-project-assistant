@@ -121,12 +121,31 @@ window.EngineAdapter = {
             else if (maxU === (govCheck.utilization.outPlane || 0)) dr.governingCheck = 'Ổn định ngoài MP (Out-of-plane Buckling)';
             else dr.governingCheck = 'Ổn định cục bộ (Local Buckling)';
 
-            dr.calculationSteps = govCheck.steps;
+                        let prependedSteps = [];
+            prependedSteps.push(window.createCalculationStep(
+                "PRE-01",
+                "Đặc trưng Hình học Tiết diện (Section Properties)",
+                { standard: 'TCVN 5575:2024', section: 'Phụ lục D' },
+                "A = A_{tổng}; \\quad I_x = I_x; \\quad I_y = I_y",
+                "A = " + (section.A/100).toFixed(2) + "\\text{ cm}^2; \\quad I_x = " + (section.Ix/10000).toFixed(0) + "\\text{ cm}^4; \\quad I_y = " + (section.Iy/10000).toFixed(0) + "\\text{ cm}^4",
+                "Xác định tiết diện",
+                ""
+            ));
+            prependedSteps.push(window.createCalculationStep(
+                "PRE-02",
+                "Xác định chiều dài tính toán (Effective Lengths)",
+                { standard: 'TCVN 5575:2024', section: 'Mục 7.1' },
+                "L_{0x} = \\mu_x \\times L; \\quad L_{0y} = \\mu_y \\times L",
+                "L_{0x} = " + (ws.legacyInputs.mu_x || 1.0) + " \\times " + L_col + " = " + L0x.toFixed(2) + "\\text{ m}; \\quad L_{0y} = " + (ws.legacyInputs.mu_y || 1.0) + " \\times " + L_col + " = " + L0y.toFixed(2) + "\\text{ m}",
+                "Xác định L_0",
+                ""
+            ));
+            dr.calculationSteps = [...prependedSteps, ...govCheck.steps];
             
             dr.checks = [
-                { name: 'Độ bền (Strength)', utilization: govCheck.utilization.strength, status: govCheck.utilization.strength <= 1 ? 'PASS' : 'FAIL' },
-                { name: 'Ổn định trong MP', utilization: govCheck.utilization.inPlane, status: govCheck.utilization.inPlane <= 1 ? 'PASS' : 'FAIL' },
-                { name: 'Ổn định ngoài MP', utilization: govCheck.utilization.outPlane, status: govCheck.utilization.outPlane <= 1 ? 'PASS' : 'FAIL' }
+                { name: 'Độ Bền (Strength)', utilization: govCheck.utilization.strength, status: govCheck.utilization.strength <= 1 ? 'PASS' : 'FAIL' },
+                { name: 'Ổn định trong Mặt phẳng (In-plane Buckling)', utilization: govCheck.utilization.inPlane, status: govCheck.utilization.inPlane <= 1 ? 'PASS' : 'FAIL' },
+                { name: 'Ổn định ngoài Mặt phẳng (Out-of-plane Buckling)', utilization: govCheck.utilization.outPlane, status: govCheck.utilization.outPlane <= 1 ? 'PASS' : 'FAIL' }
             ];
         }
 
@@ -176,9 +195,9 @@ window.EngineAdapter = {
         }
 
         let maxU = momentUtil;
-        let gov = 'Kiểm tra uốn (Bending Check)';
-        if (shearUtil > maxU) { maxU = shearUtil; gov = 'Kiểm tra cắt (Shear Check)'; }
-        if (deflUtil > maxU) { maxU = deflUtil; gov = 'Độ võng (Deflection)'; }
+        let gov = 'Kiểm tra Uốn (Bending)';
+        if (shearUtil > maxU) { maxU = shearUtil; gov = 'Kiểm tra Cắt (Shear)'; }
+        if (deflUtil > maxU) { maxU = deflUtil; gov = 'Độ Võng (Deflection)'; }
         
         dr.utilization = maxU;
         dr.governingCheck = gov;
@@ -188,7 +207,7 @@ window.EngineAdapter = {
         dr.checks = [
             { name: 'Uốn (Bending)', utilization: momentUtil, status: chk.isBendingPass ? 'PASS' : 'FAIL' },
             { name: 'Cắt (Shear)', utilization: shearUtil, status: chk.isShearPass ? 'PASS' : 'FAIL' },
-            { name: 'Độ võng (Deflection)', utilization: deflUtil, status: chk.isDeflectionPass ? 'PASS' : 'FAIL' }
+            { name: 'Độ Võng (Deflection)', utilization: deflUtil, status: chk.isDeflectionPass ? 'PASS' : 'FAIL' }
         ];
 
         return dr;

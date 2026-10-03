@@ -141,12 +141,12 @@ function CalculationBlock({ step }) {
                                 {check.isPass ? (
                                     <span className="px-3 py-1.5 rounded-lg bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 shadow-sm border border-emerald-200 dark:border-emerald-800">
                                         <i data-lucide="check-circle-2" className="w-4 h-4"></i>
-                                        THỎA MÃN
+                                        THỎA MÃN (PASS)
                                     </span>
                                 ) : (
                                     <span className="px-3 py-1.5 rounded-lg bg-red-100/80 dark:bg-red-900/50 text-red-800 dark:text-red-300 text-xs font-bold flex items-center gap-1.5 shadow-sm border border-red-200 dark:border-red-800">
                                         <i data-lucide="x-circle" className="w-4 h-4"></i>
-                                        KHÔNG ĐẠT
+                                        KHÔNG ĐẠT (FAIL)
                                     </span>
                                 )}
                             </div>

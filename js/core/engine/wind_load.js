@@ -1,4 +1,4 @@
-// Động cơ tính toán tải trọng gió TCVN 2737:2023 (Wind Load Calculation Engine)
+﻿// Động cơ tính toán tải trọng gió TCVN 2737:2023 (Wind Load Calculation Engine)
 // Tuân thủ triệt để: Mục 10.2, Phụ lục E, Phụ lục F (F.4.1, F.4.2, F.12) và Đồ án mẫu
 
 const WindEngine = {
@@ -92,7 +92,8 @@ const WindEngine = {
         }
         
         const processedWallZones = wallZones.filter(z => z.width > 0).map(z => {
-            const eqHeightRes = StandardData.TCVN2737_2023.Wind.EquivalentHeight.calculateEquivalentHeight(z.height, h, b, direction);
+            // TCVN 2737:2023 Muc 10.2.4: ze cho TUONG = H_cot (z.height), KHAC voi Moc ze cho MAI = H_mai (h)
+            const eqHeightRes = StandardData.TCVN2737_2023.Wind.EquivalentHeight.calculateEquivalentHeight(z.height, z.height, b, direction);
             const kzRes = StandardData.TCVN2737_2023.Wind.HeightCoefficient.getKze(eqHeightRes.ze, terrain);
             const ceRes = StandardData.TCVN2737_2023.Wind.Wall.getZoneCpe(z.zone, h, d);
             const ce = ceRes.value;
