@@ -41,6 +41,24 @@ const WorkspaceReport = ({ workspaceState }) => {
                 return "Kiểm tra độ bền cắt tại gối tựa, nơi lực cắt đạt giá trị lớn nhất. Ứng suất tiếp lớn nhất tại trục trung hòa của bản bụng phải thỏa mãn điều kiện cường độ chịu cắt (fv).";
             case "CALC-BEAM-005":
                 return "Kiểm tra trạng thái giới hạn thứ 2 (Sls) - Độ võng. Độ võng đàn hồi lớn nhất tại giữa nhịp dưới tác dụng của tải trọng tiêu chuẩn phải nhỏ hơn độ võng cho phép [f/L] theo TCVN 5575:2024 để đảm bảo điều kiện sử dụng bình thường.";
+            case "CALC-PURLIN-001":
+                return "Xác định đặc trưng hình học của tiết diện xà gồ cán nguội (chữ C hoặc Z) dựa trên catalogue nhà sản xuất, chuẩn bị thông số diện tích và mô men quán tính hai phương.";
+            case "CALC-PURLIN-002":
+                return "Phân tích tải trọng tác dụng lên xà gồ: thành phần tĩnh tải (tôn mái, lớp cách nhiệt, trọng lượng bản thân) và gió hút bốc mái hoặc hoạt tải mái. Do mái dốc, tải trọng được phân rã thành hai phương x và y.";
+            case "CALC-PURLIN-003":
+                return "Kiểm tra khả năng chịu lực của xà gồ dưới trạng thái uốn xiên (biaxial bending). Tổng ứng suất sinh ra bởi mô men uốn theo cả hai phương không được vượt quá cường độ thép.";
+            case "CALC-PURLIN-004":
+                return "Kiểm tra độ võng của xà gồ. Độ võng tổng hợp từ hai phương (hoặc phương vuông góc mặt mái) phải thỏa mãn giới hạn cho phép theo TCVN 5575:2024 để tránh võng nứt mái tôn.";
+            case "CALC-CONN-001":
+                return "Xác định cường độ chịu nén của bê tông móng (Rb) theo cấp độ bền của bê tông (VD: B20, B25) dựa vào Bảng 7 TCVN 5574:2018.";
+            case "CALC-CONN-002":
+                return "Cấu tạo bề rộng bản đế. Bản đế mở rộng ra khỏi biên mặt cắt cột một khoảng c (thường 40-100mm) để bố trí lỗ khoan bu lông neo và sườn gia cường.";
+            case "CALC-CONN-003":
+                return "Xác định cường độ ép mặt cục bộ của bê tông móng. Bê tông dưới bản đế bị cản trở nở ngang bởi phần bê tông xung quanh, do đó cường độ chịu nén cục bộ R_{b,loc} được tăng cường bằng hệ số φ_b.";
+            case "CALC-CONN-004":
+                return "Tính toán chiều dài yêu cầu của bản đế sao cho ứng suất ép mặt lớn nhất (do lực dọc và mô men uốn chi phối) không vượt quá cường độ nén cục bộ của bê tông móng.";
+            case "CALC-CONN-005":
+                return "Chọn kích thước chiều dài bản đế thực tế (L_bd). Giá trị này thường được làm tròn chẵn theo mô đun 5cm hoặc 10cm để thuận tiện cho việc chế tạo và thi công.";
             default:
                 return null;
         }
@@ -702,6 +720,27 @@ const WorkspaceReport = ({ workspaceState }) => {
                                         <span className="font-mono mx-1">Δ = √(Δ<sub>x</sub>² + Δ<sub>y</sub>²) ≤ [Δ] = B / 200</span> (TCVN 5575:2024).
                                     </li>
                                 </ul>
+                                {rResults.purlinResult && rResults.purlinResult.steps && (
+                                    <div className="mt-4 p-4 space-y-4 bg-slate-50/50 dark:bg-slate-900/10 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <div className="text-xs font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-dashed border-slate-200 dark:border-slate-700">
+                                            Chi tiết Kiểm tra Xà gồ (Calculation Trace)
+                                        </div>
+                                        {rResults.purlinResult.steps.map((step, idx) => (
+                                            <div key={idx} className="print:break-inside-avoid mb-4">
+                                                <CalculationBlock
+                                                    stepId={step.stepId}
+                                                    title={step.title}
+                                                    source={step.source}
+                                                    formulaLaTeX={step.formulaLaTeX}
+                                                    substitutionLaTeX={step.substitutionLaTeX}
+                                                    result={step.result}
+                                                    unit={step.unit}
+                                                    check={step.check}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </section>
@@ -959,6 +998,27 @@ const WorkspaceReport = ({ workspaceState }) => {
                                         <div className="font-mono font-bold text-blue-600 mt-1">Chọn 4 ÷ 8 bu lông Ø30 ÷ Ø36</div>
                                     </div>
                                 </div>
+                                {rResults.traces && rResults.traces.connections && (
+                                    <div className="mt-4 p-4 space-y-4 bg-slate-50/50 dark:bg-slate-900/10 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <div className="text-xs font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-dashed border-slate-200 dark:border-slate-700">
+                                            Chi tiết Kiểm tra Bản đế cột (Calculation Trace)
+                                        </div>
+                                        {rResults.traces.connections.map((step, idx) => (
+                                            <div key={idx} className="print:break-inside-avoid mb-4">
+                                                <CalculationBlock
+                                                    stepId={step.stepId}
+                                                    title={step.title}
+                                                    source={step.source}
+                                                    formulaLaTeX={step.formulaLaTeX}
+                                                    substitutionLaTeX={step.substitutionLaTeX}
+                                                    result={step.result}
+                                                    unit={step.unit}
+                                                    check={step.check}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             {/* 8.2 LIÊN KẾT NÁCH KHUNG */}
