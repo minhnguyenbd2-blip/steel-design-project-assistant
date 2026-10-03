@@ -5,6 +5,17 @@
 
 function CalculationBlock({ step }) {
     if (!step) return null;
+
+    if (step.isNarrative) {
+        return (
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl shadow-sm border-l-4 border-l-blue-500 border-t border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-200 leading-relaxed text-justify mb-6">
+                {step.content.split('\n').map((para, i) => (
+                    <p key={i} className="mb-2 last:mb-0" dangerouslySetInnerHTML={{__html: para}}></p>
+                ))}
+            </div>
+        );
+    }
+
     const { stepId, title, source, formulaLaTeX, substitutionLaTeX, result, unit, check = null, notes = "" } = step;
 
     // 1. Phân tích nội dung ghi chú (Notes)

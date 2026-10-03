@@ -146,6 +146,10 @@ function createCalculationStep(id, title, source, formulaLaTeX, substitutionLaTe
     return { stepId: id, title, source, formulaLaTeX, substitutionLaTeX, result, unit, check, notes };
 }
 
+function createNarrativeStep(content) {
+    return { isNarrative: true, content };
+}
+
 function createSectionRecord(type, name, h, b, tw, tf, category) {
     const hw = h - 2 * tf;
     const A = 2 * b * tf + hw * tw; 
@@ -171,4 +175,5 @@ const _modelsScope = typeof window !== 'undefined' ? window : global;
 _modelsScope.ProjectState = ProjectState;
 _modelsScope.TestCase01 = TestCase01;
 _modelsScope.createCalculationStep = createCalculationStep;
+_modelsScope.createNarrativeStep = createNarrativeStep;
 _modelsScope.createSectionRecord = createSectionRecord;

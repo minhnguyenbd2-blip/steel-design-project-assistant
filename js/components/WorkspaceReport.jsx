@@ -15,6 +15,37 @@ const WorkspaceReport = ({ workspaceState }) => {
     const windInputs = legacyInputs.windParams || {};
     const proj = workspaceState.metadata || {};
 
+    const getNarrativeForStep = (stepId) => {
+        switch (stepId) {
+            case "CALC-SEC-000":
+                return "Độ mảnh của cột được kiểm tra đầu tiên để đảm bảo cấu kiện không quá thanh mảnh, tránh rủi ro mất ổn định hình học tổng thể trước khi đạt đến cường độ chảy của vật liệu. Giới hạn độ mảnh [λ] tuân theo Bảng 25 đối với cột chịu nén và Bảng 26 đối với cột chịu kéo (TCVN 5575:2024).";
+            case "CALC-SEC-001":
+                return "Kiểm tra độ bền nén uốn (hoặc kéo uốn) tại tiết diện nguy hiểm nhất. Ứng suất lớn nhất phát sinh do tổ hợp lực dọc và mô men uốn phải nhỏ hơn cường độ tính toán của thép, có xét đến hệ số điều kiện làm việc (γ_c).";
+            case "CALC-SEC-002":
+                return "Kiểm tra ứng suất tiếp do lực cắt. Bản bụng của tiết diện đóng vai trò chính yếu trong việc chịu lực cắt. Ứng suất cắt trung bình trên diện tích bản bụng phải nhỏ hơn cường độ chịu cắt của vật liệu.";
+            case "CALC-SEC-003":
+                return "Kiểm tra ổn định tổng thể trong mặt phẳng uốn đối với cột chịu nén lệch tâm. Đây là hiện tượng cột bị uốn cong thêm trong mặt phẳng tác dụng của mô men uốn. Hệ số φ_e được tra cứu nghiêm ngặt dựa trên độ lệch tâm quy ước (m_x) và độ mảnh quy ước (λ̄_x).";
+            case "CALC-SEC-004":
+                return "Kiểm tra ổn định tổng thể ngoài mặt phẳng uốn. Khi cột bị nén lệch tâm, nó có thể bị uốn cong ra khỏi mặt phẳng khung (vặn ngang) nếu không có hệ giằng đủ cứng. Hệ số c xét đến ảnh hưởng của mô men uốn được tính toán chi tiết theo Công thức 110-113.";
+            case "CALC-SEC-005":
+                return "Kiểm tra ổn định cục bộ bản cánh nén. Để tránh hiện tượng bản cánh bị nhăn trước khi cột bị phá hoại tổng thể, tỷ số giữa độ vươn tự do và chiều dày bản cánh phải bị giới hạn tùy thuộc vào mức độ lệch tâm của tải trọng (tra Bảng 24).";
+            case "CALC-SEC-006":
+                return "Kiểm tra ổn định cục bộ bản bụng. Dưới tác dụng của ứng suất nén lớn, bản bụng có nguy cơ bị phình (mất ổn định cục bộ). Giới hạn độ mảnh quy ước của bản bụng được tra từ Bảng 22, phụ thuộc vào đặc trưng chịu nén lệch tâm.";
+            case "CALC-BEAM-001":
+                return "Tải trọng tác dụng lên dầm bao gồm tĩnh tải (trọng lượng bản thân, các lớp hoàn thiện) và hoạt tải sử dụng dồn về từ diện tích truyền tải. Tải trọng được quy đổi thành tải phân bố đều dọc trục dầm.";
+            case "CALC-BEAM-002":
+                return "Dựa trên tải trọng phân bố và sơ đồ nhịp dầm đơn giản, tính toán nội lực nguy hiểm nhất: mô men uốn lớn nhất (M_max) tại giữa nhịp và lực cắt lớn nhất (V_max) tại gối tựa.";
+            case "CALC-BEAM-003":
+                return "Kiểm tra độ bền uốn của dầm tại tiết diện có mô men lớn nhất. Ứng suất pháp cực đại ở thớ ngoài cùng của bản cánh không được vượt quá cường độ chịu kéo/nén tính toán của thép.";
+            case "CALC-BEAM-004":
+                return "Kiểm tra độ bền cắt tại gối tựa, nơi lực cắt đạt giá trị lớn nhất. Ứng suất tiếp lớn nhất tại trục trung hòa của bản bụng phải thỏa mãn điều kiện cường độ chịu cắt (fv).";
+            case "CALC-BEAM-005":
+                return "Kiểm tra trạng thái giới hạn thứ 2 (Sls) - Độ võng. Độ võng đàn hồi lớn nhất tại giữa nhịp dưới tác dụng của tải trọng tiêu chuẩn phải nhỏ hơn độ võng cho phép [f/L] theo TCVN 5575:2024 để đảm bảo điều kiện sử dụng bình thường.";
+            default:
+                return null;
+        }
+    };
+
     // Sắp xếp cấu kiện: Cột (Column) -> Kèo/Dầm (Rafter/Beam) -> Cấu kiện phụ (Purlin/Girt/Brace)
     const sortedMembers = [...members].sort((a, b) => {
         const order = { 'column': 0, 'rafter': 1, 'beam': 2, 'purlin': 3, 'girt': 4, 'brace': 5 };
@@ -769,15 +800,24 @@ const WorkspaceReport = ({ workspaceState }) => {
                                             <div className="text-xs font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-dashed border-slate-200 dark:border-slate-700">
                                                 Trình tự Kiểm tra Chi tiết theo TCVN 5575:2024 (Calculation Trace)
                                             </div>
-                                            {dr.calculationSteps.map((step, idx) => (
-                                                <div key={idx} className="print:break-inside-avoid">
-                                                    {window.CalculationBlock ? (
-                                                        <window.CalculationBlock step={step} />
-                                                    ) : (
-                                                        <div className="p-2 bg-red-50 text-red-500 text-xs rounded">Component CalculationBlock chưa sẵn sàng.</div>
-                                                    )}
-                                                </div>
-                                            ))}
+                                            {dr.calculationSteps.map((step, idx) => {
+                                                const narrative = getNarrativeForStep(step.stepId);
+                                                return (
+                                                    <div key={idx} className="print:break-inside-avoid">
+                                                        {narrative && (
+                                                            <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl shadow-sm border-l-4 border-l-blue-500 border-t border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-200 leading-relaxed text-justify mb-4 mt-2">
+                                                                <i data-lucide="book-open" className="w-4 h-4 text-blue-500 inline-block mr-2 -mt-0.5"></i>
+                                                                {narrative}
+                                                            </div>
+                                                        )}
+                                                        {window.CalculationBlock ? (
+                                                            <window.CalculationBlock step={step} />
+                                                        ) : (
+                                                            <div className="p-2 bg-red-50 text-red-500 text-xs rounded">Component CalculationBlock chưa sẵn sàng.</div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>

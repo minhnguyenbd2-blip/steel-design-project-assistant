@@ -410,7 +410,7 @@ function App() {
 
     // Đề xuất tiết diện cột
     const runSectionProposal = () => {
-        const mat = { f: 215, fv: 125, E: 2.1e5 };
+        const mat = { f: 215, fv: 125, E: 2.1e5, gamma_c: 1.0 };
         if (!mat) return alert("Không tìm thấy thuộc tính mác thép.");
         
         const maxMx = Math.max(...projectState.forces.map(f => Math.abs(f.Mx)));
@@ -437,7 +437,7 @@ function App() {
 
     // Chọn tiết diện cột để kiểm tra chi tiết
     const selectSection = (section) => {
-        const mat = { f: 215, fv: 125, E: 2.1e5 };
+        const mat = { f: 215, fv: 125, E: 2.1e5, gamma_c: 1.0 };
         
         let governingCheck = null;
         let governingCase = null;
@@ -1638,11 +1638,16 @@ function App() {
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-slate-200 dark:border-slate-700 mb-6">
                         <div className="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4">
                             <h2 className="font-bold text-xl flex items-center gap-2 text-primary">
-                                <i data-lucide="box" className="w-5 h-5"></i> 6.1 Đề xuất Tiết diện Cột Thép (Column Proposal Engine)
+                                <i data-lucide="box" className="w-5 h-5"></i> 6.1 Đề xuất & Chọn Tiết diện Cột Thép (Column Proposal Engine)
                             </h2>
-                            <button onClick={runSectionProposal} className="bg-primary hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow transition-all">
-                                <i data-lucide="cpu" className="w-4 h-4"></i> Khởi chạy Đề xuất Tiết diện Cột
-                            </button>
+                            <div className="flex flex-wrap items-center gap-2">
+    <button onClick={() => setActiveTab('lookup')} className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all">
+        <i data-lucide="search" className="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i> Bảng tra Tiết diện (Manual)
+    </button>
+    <button onClick={runSectionProposal} className="bg-primary hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow transition-all">
+        <i data-lucide="cpu" className="w-4 h-4"></i> Khởi chạy Tự động Đề xuất (Auto)
+    </button>
+</div>
                         </div>
                         
                         <p className="text-xs text-slate-500 mb-4">
