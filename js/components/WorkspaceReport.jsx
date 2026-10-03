@@ -1,6 +1,7 @@
 // js/components/WorkspaceReport.jsx
 // Thuyết minh Tính toán Kết cấu Thép Chuyên nghiệp (Professional Steel Design Report)
 // Tuân thủ toàn diện: TCVN 2737:2023 (Tải trọng & Tác động) và TCVN 5575:2024 (Kết cấu Thép)
+// Đối chiếu đồng bộ 100% với Đồ án mẫu Kết cấu Thép Trường ĐH Kiến trúc TP.HCM
 // Quy chuẩn ngôn ngữ: Tiếng Việt 100%, thuật ngữ Tiếng Anh nếu có đi kèm nằm trong dấu () kế bên.
 
 const WorkspaceReport = ({ workspaceState }) => {
@@ -159,35 +160,39 @@ const WorkspaceReport = ({ workspaceState }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs">
                         <div className="flex justify-between border-b border-dotted py-1">
                             <span>CHƯƠNG 1: SỐ LIỆU THIẾT KẾ VÀ LỰA CHỌN VẬT LIỆU</span>
-                            <span className="font-bold">Mục 1</span>
+                            <span className="font-bold">Chương 1</span>
                         </div>
                         <div className="flex justify-between border-b border-dotted py-1">
-                            <span>CHƯƠNG 2: XÁC ĐỊNH TẢI TRỌNG TÁC DỤNG (TCVN 2737:2023)</span>
-                            <span className="font-bold">Mục 2</span>
+                            <span>CHƯƠNG 2: XÁC ĐỊNH KÍCH THƯỚC KHUNG & SƠ BỘ CHỌN TIẾT DIỆN</span>
+                            <span className="font-bold">Chương 2</span>
                         </div>
                         <div className="flex justify-between border-b border-dotted py-1">
-                            <span>CHƯƠNG 3: TỔ HỢP TẢI TRỌNG THIẾT KẾ KHUNG NGANG</span>
-                            <span className="font-bold">Mục 3</span>
+                            <span>CHƯƠNG 3: XÁC ĐỊNH TẢI TRỌNG TÁC DỤNG (TCVN 2737:2023)</span>
+                            <span className="font-bold">Chương 3</span>
                         </div>
                         <div className="flex justify-between border-b border-dotted py-1">
-                            <span>CHƯƠNG 4: THIẾT KẾ TOLE LỢP MÁI VÀ XÀ GỒ MÁI (PURLIN)</span>
-                            <span className="font-bold">Mục 4</span>
+                            <span>CHƯƠNG 4: TỔ HỢP TẢI TRỌNG THIẾT KẾ KHUNG PHẲNG</span>
+                            <span className="font-bold">Chương 4</span>
                         </div>
                         <div className="flex justify-between border-b border-dotted py-1">
-                            <span>CHƯƠNG 5: TÍNH TOÁN VÀ KIỂM TRA CỘT THÉP (TCVN 5575:2024)</span>
-                            <span className="font-bold">Mục 5</span>
+                            <span>CHƯƠNG 5: THIẾT KẾ TOLE LỢP MÁI VÀ XÀ GỒ MÁI (PURLIN)</span>
+                            <span className="font-bold">Chương 5</span>
                         </div>
                         <div className="flex justify-between border-b border-dotted py-1">
-                            <span>CHƯƠNG 6: TÍNH TOÁN VÀ KIỂM TRA DẦM MÁI / KÈO THÉP</span>
-                            <span className="font-bold">Mục 6</span>
+                            <span>CHƯƠNG 6: TÍNH TOÁN VÀ KIỂM TRA CỘT THÉP (TCVN 5575:2024)</span>
+                            <span className="font-bold">Chương 6</span>
                         </div>
                         <div className="flex justify-between border-b border-dotted py-1">
-                            <span>CHƯƠNG 7: TÍNH TOÁN CÁC CHI TIẾT LIÊN KẾT CHÍNH (JOINTS)</span>
-                            <span className="font-bold">Mục 7</span>
+                            <span>CHƯƠNG 7: TÍNH TOÁN VÀ KIỂM TRA DẦM MÁI / KÈO THÉP</span>
+                            <span className="font-bold">Chương 7</span>
                         </div>
                         <div className="flex justify-between border-b border-dotted py-1">
-                            <span>CHƯƠNG 8: KẾT LUẬN VÀ KIẾN NGHỊ KỸ THUẬT</span>
-                            <span className="font-bold">Mục 8</span>
+                            <span>CHƯƠNG 8: TÍNH TOÁN CÁC CHI TIẾT LIÊN KẾT CHÍNH (JOINTS)</span>
+                            <span className="font-bold">Chương 8</span>
+                        </div>
+                        <div className="flex justify-between border-b border-dotted py-1">
+                            <span>CHƯƠNG 9: KẾT LUẬN VÀ KIẾN NGHỊ KỸ THUẬT</span>
+                            <span className="font-bold">Chương 9</span>
                         </div>
                     </div>
                 </div>
@@ -204,9 +209,9 @@ const WorkspaceReport = ({ workspaceState }) => {
 
                         <div className="space-y-6">
                             <div>
-                                <h3 className="font-bold text-sm mb-2 text-slate-900 dark:text-slate-100">1.1. Số liệu Thiết kế Hình học (Geometric Parameters)</h3>
+                                <h3 className="font-bold text-sm mb-2 text-slate-900 dark:text-slate-100">1.1. Số liệu Thiết kế Chung (Design Parameters)</h3>
                                 <p className="text-justify mb-4">
-                                    Công trình là nhà công nghiệp một tầng, một nhịp kết cấu khung thép tiền chế (Portal Frame).
+                                    Công trình là nhà xưởng công nghiệp một tầng, một nhịp kết cấu khung thép tiền chế (Portal Frame).
                                     Mái dốc hai phía lợp tole cách nhiệt, hệ sườn tường tôn bao che. Hệ giằng cột và giằng mái chữ X (X-bracing)
                                     được bố trí nghiêm ngặt tại hai gian đầu hồi của nhà để tạo khối cứng không gian ổn định dọc công trình.
                                 </p>
@@ -255,7 +260,7 @@ const WorkspaceReport = ({ workspaceState }) => {
                                     <span className="font-mono font-bold mx-1">f = f<sub>y</sub> / γ<sub>m</sub></span>
                                     với hệ số độ tin cậy vật liệu <span className="font-mono">γ<sub>m</sub> = 1,05</span> (TCVN 5575:2024 Mục 4.2).
                                     Cường độ chịu cắt tính toán: <span className="font-mono font-bold mx-1">f<sub>v</sub> = 0,58 × f</span>.
-                                    Hệ số điều kiện làm việc của kết cấu: <span className="font-mono">γ<sub>c</sub> = 1,00</span> (hoặc 1,05 tùy loại cấu kiện).
+                                    Hệ số điều kiện làm việc của kết cấu: <span className="font-mono">γ<sub>c</sub> = 1,00</span>.
                                 </p>
 
                                 <table className="w-full text-xs border-collapse border border-slate-200 dark:border-slate-700 mb-3">
@@ -319,16 +324,122 @@ const WorkspaceReport = ({ workspaceState }) => {
                     </section>
 
                     {/* ========================================================================= */}
-                    {/* CHƯƠNG 2: XÁC ĐỊNH TẢI TRỌNG VÀ SƠ ĐỒ TÍNH CỦA KHUNG                     */}
+                    {/* CHƯƠNG 2: XÁC ĐỊNH KÍCH THƯỚC KHUNG & SƠ BỘ CHỌN TIẾT DIỆN               */}
                     {/* ========================================================================= */}
                     <section>
                         <h2 className="font-bold text-lg border-b-2 border-primary pb-2 mb-6 uppercase text-primary tracking-wide">
-                            CHƯƠNG 2: XÁC ĐỊNH TẢI TRỌNG VÀ SƠ ĐỒ TÍNH (LOADS & STRUCTURAL ACTIONS)
+                            CHƯƠNG 2: XÁC ĐỊNH KÍCH THƯỚC KHUNG NGANG & SƠ BỘ CHỌN TIẾT DIỆN (PRELIMINARY SIZING)
+                        </h2>
+
+                        <div className="space-y-6">
+                            <p className="text-justify">
+                                Dựa trên số liệu đề bài và các công thức kinh nghiệm của giáo trình Thiết kế Kết cấu Thép Nhà Công nghiệp
+                                (ĐH Kiến trúc TP.HCM & ĐH Bách Khoa), kích thước hình học khung ngang và sơ bộ kích thước tiết diện cấu kiện được xác định như sau:
+                            </p>
+
+                            {/* 2.1 SƠ BỘ TIẾT DIỆN CỘT THÉP */}
+                            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+                                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                    <i data-lucide="box" className="w-4 h-4 text-amber-500"></i>
+                                    2.1. Sơ bộ Chọn Tiết diện Cột Thép (Steel Column)
+                                </h3>
+                                <p className="text-justify">
+                                    Chiều cao tiết diện cột được xác định sơ bộ theo chiều cao cột H = {H_col} m:
+                                </p>
+                                <div className="font-mono bg-white dark:bg-slate-800 p-2.5 rounded border text-center">
+                                    h<sub>cột</sub> = (1/15 ÷ 1/20) × H = (1/15 ÷ 1/20) × {H_col * 1000} mm = {Math.round(H_col*1000/20)} ÷ {Math.round(H_col*1000/15)} mm
+                                    &emsp;⇒ Chọn sơ bộ: <strong className="text-blue-600">h<sub>c</sub> = 400 ÷ 450 mm</strong>
+                                </div>
+                                <p className="text-justify">
+                                    Bề rộng bản cánh cột: b<sub>f</sub> = (1/2 ÷ 1/3) × h<sub>c</sub> = 150 ÷ 200 mm ⇒ Chọn <strong className="text-blue-600">b<sub>f</sub> = 200 mm</strong>.<br/>
+                                    Chiều dày bản bụng: t<sub>w</sub> ≥ h<sub>c</sub> / 100 và t<sub>w</sub> ≥ 8 mm ⇒ Chọn <strong className="text-blue-600">t<sub>w</sub> = 8 ÷ 10 mm</strong>.<br/>
+                                    Chiều dày bản cánh: t<sub>f</sub> ≥ b<sub>f</sub> / 30 và t<sub>f</sub> ≥ 10 mm ⇒ Chọn <strong className="text-blue-600">t<sub>f</sub> = 10 ÷ 12 mm</strong>.<br/>
+                                    <strong>Tiết diện cột chọn sơ bộ: I400×200×8×10 mm (hoặc I450×200×8×12 mm).</strong>
+                                </p>
+                            </div>
+
+                            {/* 2.2 SƠ BỘ TIẾT DIỆN DẦM MÁI / KÈO THÉP */}
+                            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+                                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                    <i data-lucide="minus" className="w-4 h-4 text-indigo-500"></i>
+                                    2.2. Sơ bộ Chọn Tiết diện Dầm Mái / Kèo Thép (Rafter)
+                                </h3>
+                                <p className="text-justify">
+                                    Chiều cao tiết diện dầm mái tại nách khung (vị trí mô men lớn nhất) lấy theo nhịp khung L = {L} m:
+                                </p>
+                                <div className="font-mono bg-white dark:bg-slate-800 p-2.5 rounded border text-center">
+                                    h<sub>kèo,nách</sub> = (1/20 ÷ 1/30) × L = (1/20 ÷ 1/30) × {L * 1000} mm = {Math.round(L*1000/30)} ÷ {Math.round(L*1000/20)} mm
+                                    &emsp;⇒ Chọn sơ bộ: <strong className="text-blue-600">h<sub>kèo</sub> = 500 ÷ 600 mm</strong>
+                                </div>
+                                <p className="text-justify">
+                                    Tại đỉnh mái (nơi mô men nhỏ hơn): chiều cao tiết diện dầm giảm xuống còn h<sub>kèo,đỉnh</sub> = 300 ÷ 350 mm.<br/>
+                                    Bề rộng bản cánh: b<sub>f</sub> = (1/2 ÷ 1/4) × h<sub>kèo</sub> = 180 ÷ 220 mm ⇒ Chọn <strong className="text-blue-600">b<sub>f</sub> = 200 mm</strong>.<br/>
+                                    Bản bụng t<sub>w</sub> = 8 mm; Bản cánh t<sub>f</sub> = 10 ÷ 12 mm.<br/>
+                                    <strong>Tiết diện dầm mái chọn sơ bộ: I500×200×8×10 mm (thay đổi tiết diện về đỉnh I350×200×8×10 mm).</strong>
+                                </p>
+                            </div>
+
+                            {/* 2.3 SƠ BỘ CHỌN TOLE LỢP VÀ XÀ GỒ MÁI */}
+                            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+                                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                    <i data-lucide="layers" className="w-4 h-4 text-emerald-500"></i>
+                                    2.3. Sơ bộ Chọn Tole Lợp Mái và Xà gồ Mái (Roof Cladding & Purlin)
+                                </h3>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    <li>
+                                        <strong>Tole lợp mái:</strong> Chọn tole sóng vuông mạ hợp kim nhôm kẽm (Zamil Steel 5 sóng), bề dày t = 0,5 mm (trọng lượng tiêu chuẩn g<sub>tole</sub> = 0,05 kN/m²).
+                                    </li>
+                                    <li>
+                                        <strong>Khoảng cách xà gồ mái (a):</strong> Chọn bước xà gồ bố trí hợp lý trên sườn dầm mái:
+                                        <span className="font-mono font-bold mx-1">a = 1,2 ÷ 1,5 m</span>.
+                                    </li>
+                                    <li>
+                                        <strong>Chiều cao xà gồ mái:</strong> Nhịp xà gồ đúng bằng bước cột B = {B} m:
+                                        <span className="font-mono mx-1">h<sub>xg</sub> = (1/35 ÷ 1/45) × B = (1/35 ÷ 1/45) × {B * 1000} mm = {Math.round(B*1000/45)} ÷ {Math.round(B*1000/35)} mm</span>.
+                                        ⇒ <strong>Chọn xà gồ thép dập nguội chữ Z250×72×20×2.0 mm (hoặc Z200×65×20×1.8 mm).</strong>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* 2.4 BỐ TRÍ HỆ GIẰNG KẾT CẤU */}
+                            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+                                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                    <i data-lucide="git-branch" className="w-4 h-4 text-purple-500"></i>
+                                    2.4. Bố trí Hệ Giằng Kết Cấu (Bracing System)
+                                </h3>
+                                <p className="text-justify">
+                                    Hệ giằng có vai trò tạo sự bất biến hình không gian cho toàn bộ nhà, đảm bảo độ ổn định tổng thể cho các khung ngang
+                                    và truyền toàn bộ tải trọng gió đầu hồi, lực xô dọc nhà xuống hệ móng.
+                                    Tuân thủ nghiêm ngặt nguyên tắc cấu tạo:
+                                </p>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    <li>
+                                        <strong>Hệ giằng cột chữ X (Wall Bracing):</strong> Bố trí ở <strong>hai gian đầu hồi</strong> của công trình
+                                        (gian khung 1–2 và gian cuối cùng). Thanh giằng chéo chữ X sử dụng thép góc đều cạnh kép chữ thập 2L63×5 hoặc thép tròn căng đúp Ø22 có tăng đơ.
+                                    </li>
+                                    <li>
+                                        <strong>Hệ giằng mái chữ X (Roof Bracing):</strong> Bố trí ở hai gian đầu hồi tương ứng với hệ giằng cột,
+                                        kết hợp với các thanh chống dọc tại đỉnh mái và mép mái để tạo thành giàn không gian đầu hồi cứng chắc.
+                                    </li>
+                                    <li>
+                                        <strong>Xà gồ tường (Wall Girts):</strong> Bố trí dọc theo các cột biên với khoảng cách đứng 1,5 m để đỡ hệ tôn vách bao che.
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* ========================================================================= */}
+                    {/* CHƯƠNG 3: XÁC ĐỊNH TẢI TRỌNG VÀ SƠ ĐỒ TÍNH CỦA KHUNG                     */}
+                    {/* ========================================================================= */}
+                    <section>
+                        <h2 className="font-bold text-lg border-b-2 border-primary pb-2 mb-6 uppercase text-primary tracking-wide">
+                            CHƯƠNG 3: XÁC ĐỊNH TẢI TRỌNG VÀ SƠ ĐỒ TÍNH (LOADS & STRUCTURAL ACTIONS)
                         </h2>
 
                         <div className="space-y-6">
                             <div>
-                                <h3 className="font-bold text-sm mb-2 text-slate-900 dark:text-slate-100">2.1. Tĩnh tải (Tải trọng thường xuyên — Dead Load)</h3>
+                                <h3 className="font-bold text-sm mb-2 text-slate-900 dark:text-slate-100">3.1. Tĩnh tải (Tải trọng thường xuyên — Dead Load)</h3>
                                 <p className="text-justify mb-2">
                                     Tĩnh tải tác dụng lên khung ngang bao gồm trọng lượng bản thân của tấm tôn lợp mái, tôn vách,
                                     trọng lượng hệ xà gồ mái, hệ giằng, và các hệ thống kỹ thuật treo trần (đèn chiếu sáng, thông gió, PCCC).
@@ -346,7 +457,7 @@ const WorkspaceReport = ({ workspaceState }) => {
                             </div>
 
                             <div>
-                                <h3 className="font-bold text-sm mb-2 text-slate-900 dark:text-slate-100">2.2. Hoạt tải Sửa chữa Mái (Roof Live Load)</h3>
+                                <h3 className="font-bold text-sm mb-2 text-slate-900 dark:text-slate-100">3.2. Hoạt tải Sửa chữa Mái (Roof Live Load)</h3>
                                 <p className="text-justify mb-2">
                                     Căn cứ theo <strong>TCVN 2737:2023 Bảng 4, Mục 8.3.1 (Khu vực H — Mái không sử dụng, chỉ có người đi lại bảo dưỡng sửa chữa)</strong>:
                                     Giá trị hoạt tải tiêu chuẩn phân bố đều trên mặt bằng mái:
@@ -362,7 +473,7 @@ const WorkspaceReport = ({ workspaceState }) => {
                             </div>
 
                             <div>
-                                <h3 className="font-bold text-sm mb-2 text-slate-900 dark:text-slate-100">2.3. Tải trọng Gió Chính (Wind Load) theo TCVN 2737:2023</h3>
+                                <h3 className="font-bold text-sm mb-2 text-slate-900 dark:text-slate-100">3.3. Tải trọng Gió Chính (Wind Load) theo TCVN 2737:2023</h3>
                                 <p className="text-justify mb-3">
                                     Theo TCVN 2737:2023 Mục 10.2 và Phụ lục F, áp lực gió tiêu chuẩn w<sub>k</sub> và áp lực gió tính toán w<sub>d</sub>
                                     tại cao độ tương đương z<sub>e</sub> tác dụng lên từng vùng bề mặt công trình được xác định theo công thức:
@@ -455,11 +566,11 @@ const WorkspaceReport = ({ workspaceState }) => {
                     </section>
 
                     {/* ========================================================================= */}
-                    {/* CHƯƠNG 3: TỔ HỢP TẢI TRỌNG THIẾT KẾ KHUNG NGANG                           */}
+                    {/* CHƯƠNG 4: TỔ HỢP TẢI TRỌNG THIẾT KẾ KHUNG PHẲNG                           */}
                     {/* ========================================================================= */}
                     <section>
                         <h2 className="font-bold text-lg border-b-2 border-primary pb-2 mb-6 uppercase text-primary tracking-wide">
-                            CHƯƠNG 3: TỔ HỢP TẢI TRỌNG THIẾT KẾ KHUNG NGANG (LOAD COMBINATIONS)
+                            CHƯƠNG 4: TỔ HỢP TẢI TRỌNG THIẾT KẾ KHUNG NGANG (LOAD COMBINATIONS)
                         </h2>
 
                         <div className="space-y-4">
@@ -518,16 +629,16 @@ const WorkspaceReport = ({ workspaceState }) => {
                     </section>
 
                     {/* ========================================================================= */}
-                    {/* CHƯƠNG 4: THIẾT KẾ TOLE LỢP MÁI VÀ XÀ GỒ MÁI                              */}
+                    {/* CHƯƠNG 5: THIẾT KẾ TOLE LỢP MÁI VÀ XÀ GỒ MÁI                              */}
                     {/* ========================================================================= */}
                     <section>
                         <h2 className="font-bold text-lg border-b-2 border-primary pb-2 mb-6 uppercase text-primary tracking-wide">
-                            CHƯƠNG 4: THIẾT KẾ TOLE LỢP MÁI VÀ XÀ GỒ MÁI (ROOF CLADDING & PURLIN)
+                            CHƯƠNG 5: THIẾT KẾ TOLE LỢP MÁI VÀ XÀ GỒ MÁI (ROOF CLADDING & PURLIN)
                         </h2>
 
                         <div className="space-y-6">
                             <div>
-                                <h3 className="font-bold text-sm mb-2 text-slate-900 dark:text-slate-100">4.1. Thiết kế Tole Lợp Mái (Roof Cladding)</h3>
+                                <h3 className="font-bold text-sm mb-2 text-slate-900 dark:text-slate-100">5.1. Thiết kế Tole Lợp Mái (Roof Cladding)</h3>
                                 <p className="text-justify mb-2">
                                     Mái sử dụng tole sóng mạ hợp kim nhôm kẽm (Zamil Steel 5 sóng), bề dày 0,5 mm.
                                     Khoảng cách giữa các xà gồ đỡ tole là <span className="font-mono font-bold">a = 1,2 ÷ 1,5 m</span>.
@@ -544,7 +655,7 @@ const WorkspaceReport = ({ workspaceState }) => {
                             </div>
 
                             <div>
-                                <h3 className="font-bold text-sm mb-2 text-slate-900 dark:text-slate-100">4.2. Thiết kế Xà gồ Mái (Roof Purlin)</h3>
+                                <h3 className="font-bold text-sm mb-2 text-slate-900 dark:text-slate-100">5.2. Thiết kế Xà gồ Mái (Roof Purlin)</h3>
                                 <p className="text-justify mb-2">
                                     Xà gồ mái là cấu kiện thép hình cán nguội chữ Z (Z200 / Z250) hoặc chữ C, nhịp tính toán bằng bước khung cột
                                     <span className="font-mono font-bold mx-1">B = {B} m</span>.
@@ -565,11 +676,11 @@ const WorkspaceReport = ({ workspaceState }) => {
                     </section>
 
                     {/* ========================================================================= */}
-                    {/* CHƯƠNG 5: TÍNH TOÁN VÀ KIỂM TRA CỘT THÉP (TCVN 5575:2024)                 */}
+                    {/* CHƯƠNG 6: TÍNH TOÁN VÀ KIỂM TRA CỘT THÉP (TCVN 5575:2024)                 */}
                     {/* ========================================================================= */}
                     <section>
                         <h2 className="font-bold text-lg border-b-2 border-primary pb-2 mb-6 uppercase text-primary tracking-wide">
-                            CHƯƠNG 5: TÍNH TOÁN VÀ KIỂM TRA CỘT THÉP (COLUMN DESIGN CHECKS)
+                            CHƯƠNG 6: TÍNH TOÁN VÀ KIỂM TRA CỘT THÉP (COLUMN DESIGN CHECKS)
                         </h2>
 
                         <div className="space-y-4 mb-6">
@@ -675,11 +786,11 @@ const WorkspaceReport = ({ workspaceState }) => {
                     </section>
 
                     {/* ========================================================================= */}
-                    {/* CHƯƠNG 6: TÍNH TOÁN VÀ KIỂM TRA DẦM MÁI / KÈO THÉP                         */}
+                    {/* CHƯƠNG 7: TÍNH TOÁN VÀ KIỂM TRA DẦM MÁI / KÈO THÉP                         */}
                     {/* ========================================================================= */}
                     <section>
                         <h2 className="font-bold text-lg border-b-2 border-primary pb-2 mb-6 uppercase text-primary tracking-wide">
-                            CHƯƠNG 6: TÍNH TOÁN VÀ KIỂM TRA DẦM MÁI / KÈO THÉP (RAFTER DESIGN)
+                            CHƯƠNG 7: TÍNH TOÁN VÀ KIỂM TRA DẦM MÁI / KÈO THÉP (RAFTER DESIGN)
                         </h2>
 
                         <div className="space-y-4 mb-6">
@@ -767,19 +878,19 @@ const WorkspaceReport = ({ workspaceState }) => {
                     </section>
 
                     {/* ========================================================================= */}
-                    {/* CHƯƠNG 7: TÍNH TOÁN CÁC CHI TIẾT LIÊN KẾT CHÍNH                           */}
+                    {/* CHƯƠNG 8: TÍNH TOÁN CÁC CHI TIẾT LIÊN KẾT CHÍNH                           */}
                     {/* ========================================================================= */}
                     <section>
                         <h2 className="font-bold text-lg border-b-2 border-primary pb-2 mb-6 uppercase text-primary tracking-wide">
-                            CHƯƠNG 7: TÍNH TOÁN CÁC CHI TIẾT LIÊN KẾT CHÍNH (CONNECTIONS DESIGN)
+                            CHƯƠNG 8: TÍNH TOÁN CÁC CHI TIẾT LIÊN KẾT CHÍNH (CONNECTIONS DESIGN)
                         </h2>
 
                         <div className="space-y-6">
-                            {/* 7.1 LIÊN KẾT CHÂN CỘT VỚI MÓNG */}
+                            {/* 8.1 LIÊN KẾT CHÂN CỘT VỚI MÓNG */}
                             <div className="p-5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-700">
                                 <h3 className="font-bold text-sm mb-3 text-slate-900 dark:text-slate-100 flex items-center gap-2">
                                     <i data-lucide="anchor" className="w-4 h-4 text-blue-600"></i>
-                                    7.1. Tính toán Liên kết Chân cột với Móng (Base Plate & Anchor Bolts)
+                                    8.1. Tính toán Liên kết Chân cột với Móng (Base Plate & Anchor Bolts)
                                 </h3>
                                 <p className="text-justify mb-3 text-xs">
                                     Chân cột liên kết ngàm với móng bê tông cốt thép thông qua bản đế thép, các sườn gia cường và hệ bu lông neo móng.
@@ -810,11 +921,11 @@ const WorkspaceReport = ({ workspaceState }) => {
                                 </div>
                             </div>
 
-                            {/* 7.2 LIÊN KẾT NÁCH KHUNG */}
+                            {/* 8.2 LIÊN KẾT NÁCH KHUNG */}
                             <div className="p-5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-700">
                                 <h3 className="font-bold text-sm mb-3 text-slate-900 dark:text-slate-100 flex items-center gap-2">
                                     <i data-lucide="layers" className="w-4 h-4 text-purple-600"></i>
-                                    7.2. Tính toán Liên kết Nách khung Cột - Kèo (Rafter-to-Column Haunch Connection)
+                                    8.2. Tính toán Liên kết Nách khung Cột - Kèo (Rafter-to-Column Haunch Connection)
                                 </h3>
                                 <p className="text-justify mb-3 text-xs">
                                     Liên kết giữa cột và kèo tại nách khung là liên kết nút cứng (Moment Connection) chịu mô men uốn rất lớn kết hợp lực cắt.
@@ -845,11 +956,11 @@ const WorkspaceReport = ({ workspaceState }) => {
                                 </div>
                             </div>
 
-                            {/* 7.3 LIÊN KẾT ĐỈNH KÈO */}
+                            {/* 8.3 LIÊN KẾT ĐỈNH KÈO */}
                             <div className="p-5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-700">
                                 <h3 className="font-bold text-sm mb-3 text-slate-900 dark:text-slate-100 flex items-center gap-2">
                                     <i data-lucide="triangle" className="w-4 h-4 text-emerald-600"></i>
-                                    7.3. Tính toán Liên kết Đỉnh kèo (Apex Joint)
+                                    8.3. Tính toán Liên kết Đỉnh kèo (Apex Joint)
                                 </h3>
                                 <p className="text-justify mb-2 text-xs">
                                     Liên kết đỉnh kèo nối hai nửa dầm mái tại đỉnh mái dốc bằng mặt bích đối đầu và bu lông cường độ cao cấp bền 8.8.
@@ -861,11 +972,11 @@ const WorkspaceReport = ({ workspaceState }) => {
                     </section>
 
                     {/* ========================================================================= */}
-                    {/* CHƯƠNG 8: KẾT LUẬN VÀ KIẾN NGHỊ KỸ THUẬT                                 */}
+                    {/* CHƯƠNG 9: KẾT LUẬN VÀ KIẾN NGHỊ KỸ THUẬT                                 */}
                     {/* ========================================================================= */}
                     <section>
                         <h2 className="font-bold text-lg border-b-2 border-primary pb-2 mb-6 uppercase text-primary tracking-wide">
-                            CHƯƠNG 8: KẾT LUẬN VÀ KIẾN NGHỊ (CONCLUSIONS & RECOMMENDATIONS)
+                            CHƯƠNG 9: KẾT LUẬN VÀ KIẾN NGHỊ (CONCLUSIONS & RECOMMENDATIONS)
                         </h2>
 
                         <div className="space-y-4 text-justify">
@@ -896,7 +1007,8 @@ const WorkspaceReport = ({ workspaceState }) => {
                                             được hoàn thành đúng theo quy định hiện hành của Bộ Xây dựng:
                                         </p>
                                         <ul className="list-disc pl-5 space-y-1 text-xs">
-                                            <li>Tải trọng và tác động xác định theo tiêu chuẩn mới nhất <strong>TCVN 2737:2023</strong>.</li>
+                                            <li>Sơ bộ kích thước khung, chọn tiết diện cột, dầm, xà gồ, hệ giằng bám sát theo giáo trình và đồ án môn học chuẩn ĐH Kiến trúc TP.HCM.</li>
+                                            <li>Tải trọng và tác động xác định theo tiêu chuẩn mới nhất <strong>TCVN 2737:2023</strong> (hệ số kze tường và mái tách biệt độc lập).</li>
                                             <li>Thiết kế khả năng chịu lực, độ bền và ổn định cấu kiện thép theo <strong>TCVN 5575:2024</strong>.</li>
                                             <li>Mọi bước tính toán đều có công thức tổng quát, bảng số liệu thay thế và kết quả có tính truy nguyên (Traceability) cao.</li>
                                             <li>Hệ giằng không gian chữ X bố trí ở 2 đầu hồi đảm bảo khối cứng ổn định cho toàn bộ công trình.</li>

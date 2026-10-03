@@ -1,7 +1,12 @@
+// js/components/CalculationBlock.jsx
+// Khối hiển thị chi tiết bước tính toán kỹ thuật (Engineering Calculation Block)
+// Thiết kế thông minh: Công thức tự ngắt dòng (Multi-line KaTeX), Bảng ký hiệu lưới đa cột (No-scroll Grid)
+// Ngôn ngữ ưu tiên: Tiếng Việt, thuật ngữ Tiếng Anh nếu có đi kèm nằm trong dấu () kế bên.
 
 function CalculationBlock({ step }) {
     if (!step) return null;
     const { stepId, title, source, formulaLaTeX, substitutionLaTeX, result, unit, check = null, notes = "" } = step;
+
     // 1. Phân tích nội dung ghi chú (Notes)
     // Tách Ý NGHĨA KÝ HIỆU và GHI CHÚ CHUNG
     const lines = notes.split('\n');
@@ -47,159 +52,159 @@ function CalculationBlock({ step }) {
 
     const formatSource = (src) => typeof src === 'string' ? src : `${src.standard}, ${src.section}`;
 
+    // Hàm tối ưu hóa công thức KaTeX để tự động ngắt dòng thông minh (Smart Multi-line Wrap)
+    // Tránh việc công thức quá dài trên 1 dòng gây thanh cuộn ngang khó nhìn
+    const formatLatexSmart = (latex) => {
+        if (!latex) return "";
+        // Nếu chuỗi công thức chứa nhiều đẳng thức phân cách bởi ; \quad hoặc ; ta tách thành các dòng căn chỉnh
+        if (latex.includes("; \\quad") || latex.includes(";\\quad") || latex.includes("; \\") || (latex.includes(";") && !latex.includes("\\begin"))) {
+            const parts = latex.split(/;\s*\\quad\s*|;\s*\\\\\s*|;\s*\\|;\s*/);
+            const validParts = parts.filter(p => p.trim().length > 0);
+            if (validParts.length > 1) {
+                return "\\begin{aligned}\n" + validParts.map(p => p.trim()).join(" \\\\[5pt]\n") + "\n\\end{aligned}";
+            }
+        }
+        return latex;
+    };
+
     const renderLatex = (latex, displayMode = false) => {
         try {
-            return { __html: window.katex.renderToString(latex, { throwOnError: false, displayMode, strict: false }) };
+            const formatted = displayMode ? formatLatexSmart(latex) : latex;
+            return { __html: window.katex.renderToString(formatted, { throwOnError: false, displayMode, strict: false }) };
         } catch (e) {
             return { __html: latex };
         }
     };
 
     return (
-        <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/70 dark:border-slate-800/80 overflow-hidden mb-8 transition-all hover:shadow-md" id={stepId}>
-            {/* Elegant Left Accent Line */}
-            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-blue-500 to-indigo-500 dark:from-blue-600 dark:to-indigo-600"></div>
+        <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-800 overflow-hidden mb-8 transition-all hover:shadow-md" id={stepId}>
+            {/* Thanh màu bên trái thể hiện trạng thái */}
+            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${check && !check.isPass ? 'bg-red-500' : 'bg-gradient-to-b from-blue-500 to-indigo-600'}`}></div>
             
-            {/* Header Area */}
-            <div className="px-5 py-4 pl-6 flex flex-wrap justify-between items-center border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-900 gap-3">
+            {/* Header: Mã bước + Tiêu đề + Căn cứ tiêu chuẩn */}
+            <div className="px-5 py-4 pl-6 flex flex-wrap justify-between items-center border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/80 gap-3">
                 <div className="flex items-center gap-3">
-                    <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-mono text-xs px-2.5 py-1 rounded-md font-bold tracking-wide border border-blue-100/50 dark:border-blue-800/40 shadow-sm">
+                    <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-mono text-xs px-2.5 py-1 rounded-md font-bold tracking-wide border border-blue-200 dark:border-blue-800 shadow-sm">
                         {stepId}
                     </span>
-                    <h3 className="text-base md:text-[17px] font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+                    <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 tracking-tight">
                         {title}
                     </h3>
                 </div>
                 {source && (
                     <div 
-                        className="text-[11px] bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-slate-200/60 dark:border-slate-700 shadow-sm"
-                        title="Tiêu chuẩn áp dụng"
+                        className="text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 shadow-sm"
+                        title="Tiêu chuẩn thiết kế áp dụng"
                     >
-                        <i data-lucide="book" className="w-3.5 h-3.5 text-blue-500"></i>
+                        <i data-lucide="book-open" className="w-3.5 h-3.5 text-blue-500"></i>
                         <span className="font-semibold">{formatSource(source)}</span>
                     </div>
                 )}
             </div>
 
-            {/* Main Content Grid */}
-            <div className={`p-5 pl-6 grid grid-cols-1 ${hasSymbols ? 'lg:grid-cols-12' : ''} gap-6`}>
+            {/* Nội dung tính toán: Layout thông minh Full-width, không ép cột hẹp */}
+            <div className="p-6 space-y-5">
                 
-                {/* LFT COLUMN: MATH & RESULT */}
-                <div className={`${hasSymbols ? 'lg:col-span-7' : 'w-full'} flex flex-col gap-4`}>
-                    
-                    {/* Formula Block */}
+                {/* 1. Công thức tổng quát & Thay số thử nguyên: Thiết kế thoáng, căn giữa đẹp mắt */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Khối công thức tổng quát */}
                     {formulaLaTeX && (
-                        <div className="bg-slate-50/50 dark:bg-slate-800/20 rounded-xl p-4 border border-slate-200/60 dark:border-slate-700/40 relative group">
-                            <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span className="text-[9px] uppercase tracking-widest text-slate-300 font-mono">Formula</span>
+                        <div className="bg-slate-50 dark:bg-slate-800/30 rounded-xl p-4 border border-slate-200/80 dark:border-slate-700/60 flex flex-col justify-between">
+                            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200/50 dark:border-slate-700/50">
+                                <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-[11px] font-bold flex items-center justify-center">1</span>
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Công thức Tổng quát (Formula)</span>
                             </div>
-                            <div className="flex items-center gap-2 mb-3">
-                                <div className="w-6 h-6 rounded bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-slate-200 dark:border-slate-700">
-                                    <span className="text-blue-500 text-xs font-bold block leading-none">1</span>
-                                </div>
-                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Công thức tổng quát</span>
-                            </div>
-                            <div className="flex justify-center text-slate-800 dark:text-slate-100 overflow-x-auto py-2">
+                            <div className="flex justify-center items-center text-slate-900 dark:text-slate-100 py-3 text-sm md:text-base overflow-x-auto">
                                 <div dangerouslySetInnerHTML={renderLatex(formulaLaTeX, true)} />
                             </div>
                         </div>
                     )}
 
-                    {/* Substitution Block */}
+                    {/* Khối thay số & thứ nguyên */}
                     {substitutionLaTeX && (
-                        <div className="bg-slate-50/50 dark:bg-slate-800/20 rounded-xl p-4 border border-slate-200/60 dark:border-slate-700/40 relative group">
-                            <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span className="text-[9px] uppercase tracking-widest text-slate-300 font-mono">Subst</span>
+                        <div className="bg-slate-50 dark:bg-slate-800/30 rounded-xl p-4 border border-slate-200/80 dark:border-slate-700/60 flex flex-col justify-between">
+                            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200/50 dark:border-slate-700/50">
+                                <span className="w-5 h-5 rounded-full bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center">2</span>
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Thay số & Thứ nguyên (Substitution)</span>
                             </div>
-                            <div className="flex items-center gap-2 mb-3">
-                                <div className="w-6 h-6 rounded bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-slate-200 dark:border-slate-700">
-                                    <span className="text-emerald-500 text-xs font-bold block leading-none">2</span>
-                                </div>
-                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Thay số & Thử nguyên</span>
-                            </div>
-                            <div className="flex justify-center text-slate-800 dark:text-slate-100 overflow-x-auto py-2">
+                            <div className="flex justify-center items-center text-slate-900 dark:text-slate-100 py-3 text-sm md:text-base overflow-x-auto">
                                 <div dangerouslySetInnerHTML={renderLatex(substitutionLaTeX, true)} />
                             </div>
                         </div>
                     )}
+                </div>
 
-                    {/* Result Block (Stunning Emerald Box) */}
-                    <div className="mt-2 flex flex-wrap items-center justify-between gap-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50/40 dark:from-emerald-900/20 dark:to-teal-900/10 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40 shadow-sm">
-                        <div className="flex items-baseline gap-3">
-                            <span className="text-sm font-semibold text-emerald-800/70 dark:text-emerald-400/80">Kết quả:</span>
-                            <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 font-mono tracking-tight">
-                                {typeof result === 'number' ? result.toLocaleString('vi-VN') : result}
-                            </span>
-                            {unit && (
-                                <span className="text-sm font-medium text-emerald-600/80 dark:text-emerald-500/80">{unit}</span>
-                            )}
-                        </div>
-
-                        {/* Condition Check Badge */}
-                        {check && (
-                            <div className="shrink-0">
-                                {check.isPass ? (
-                                    <span className="px-3 py-1.5 rounded-lg bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 shadow-sm border border-emerald-200 dark:border-emerald-800">
-                                        <i data-lucide="check-circle-2" className="w-4 h-4"></i>
-                                        THỎA MÃN (PASS)
-                                    </span>
-                                ) : (
-                                    <span className="px-3 py-1.5 rounded-lg bg-red-100/80 dark:bg-red-900/50 text-red-800 dark:text-red-300 text-xs font-bold flex items-center gap-1.5 shadow-sm border border-red-200 dark:border-red-800">
-                                        <i data-lucide="x-circle" className="w-4 h-4"></i>
-                                        KHÔNG ĐẠT (FAIL)
-                                    </span>
-                                )}
-                            </div>
+                {/* 2. Khối kết quả tính toán và huy hiệu Đạt / Không đạt */}
+                <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gradient-to-r from-emerald-50 via-teal-50/50 to-blue-50/30 dark:from-emerald-950/20 dark:via-teal-950/20 dark:to-blue-950/10 rounded-xl border border-emerald-200 dark:border-emerald-800 shadow-sm">
+                    <div className="flex items-baseline gap-3">
+                        <span className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Kết quả (Result):</span>
+                        <span className="text-2xl md:text-3xl font-extrabold text-emerald-700 dark:text-emerald-400 font-mono tracking-tight">
+                            {typeof result === 'number' ? result.toLocaleString('vi-VN') : result}
+                        </span>
+                        {unit && (
+                            <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">{unit}</span>
                         )}
                     </div>
-                    
-                    {/* Other Notes */}
-                    {otherNotes.length > 0 && (
-                        <div className="mt-1 text-[11.5px] text-slate-500 dark:text-slate-400 space-y-1">
-                            {otherNotes.map((n, idx) => (
-                                <p key={idx} className="flex items-start gap-1.5">
-                                    <i data-lucide="corner-down-right" className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 shrink-0 mt-0.5"></i>
-                                    <span>{n}</span>
-                                </p>
-                            ))}
+
+                    {check && (
+                        <div className="shrink-0">
+                            {check.isPass ? (
+                                <span className="px-4 py-2 rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 text-xs font-bold flex items-center gap-2 shadow-sm border border-emerald-300 dark:border-emerald-700">
+                                    <i data-lucide="check-circle-2" className="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                                    THỎA MÃN (PASS)
+                                </span>
+                            ) : (
+                                <span className="px-4 py-2 rounded-xl bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 text-xs font-bold flex items-center gap-2 shadow-sm border border-red-300 dark:border-red-700">
+                                    <i data-lucide="x-circle" className="w-4 h-4 text-red-600 dark:text-red-400"></i>
+                                    KHÔNG ĐẠT (FAIL)
+                                </span>
+                            )}
                         </div>
                     )}
                 </div>
 
-                {/* RIGHT COLUMN: SYMBOLS LIST */}
-                {hasSymbols && (
-                    <div className="lg:col-span-5 flex flex-col pt-1">
-                        <div className="flex items-center gap-2 font-bold text-xs text-slate-500 dark:text-slate-400 pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
-                            <i data-lucide="book-open" className="w-4 h-4"></i> 
-                            <span className="uppercase tracking-wider">{header || "Giải thích Ký hiệu"}</span>
+                {/* 3. Khối giải thích ký hiệu & thông số: Bố trí theo Lưới Đa cột thoáng đãng, KHÔNG cuộn dọc */}
+                {hasSymbols && symbols.length > 0 && (
+                    <div className="pt-2">
+                        <div className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                            <i data-lucide="info" className="w-4 h-4 text-blue-500"></i>
+                            <span>{header || "Ý NGHĨA KÝ HIỆU & THÔNG SỐ ÁP DỤNG (SYMBOLS & PARAMETERS)"}</span>
                         </div>
-                        
-                        <div className="space-y-4 overflow-y-auto max-h-[380px] pr-2 custom-scrollbar">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             {symbols.map((item, idx) => (
-                                <div key={idx} className="flex items-start gap-3 group">
-                                    <div className="shrink-0 bg-slate-50 dark:bg-slate-800/60 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 font-mono text-blue-600 dark:text-blue-400 text-xs shadow-sm group-hover:border-blue-300 transition-colors">
+                                <div key={idx} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-start gap-2.5">
+                                    <div className="shrink-0 bg-white dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 font-mono text-blue-600 dark:text-blue-400 text-xs font-bold shadow-2xs">
                                         {item.symbol ? (
                                             <div dangerouslySetInnerHTML={renderLatex(item.symbol, false)} />
                                         ) : (
-                                            <span>—</span>
+                                            <span>•</span>
                                         )}
                                     </div>
-                                    <div className="flex-1 pt-0.5">
-                                        <p className="text-[11.5px] text-slate-600 dark:text-slate-300 leading-snug">
+                                    <div className="flex-1 text-xs">
+                                        <p className="text-slate-700 dark:text-slate-300 leading-snug">
                                             {item.meaning}
                                         </p>
                                         {item.value && (
-                                            <div className="mt-1 flex items-center gap-1.5">
-                                                <span className="w-3 h-[1px] bg-slate-300 dark:bg-slate-600"></span>
-                                                <span className="text-[11px] font-mono text-slate-700 dark:text-slate-400 font-semibold bg-slate-100 dark:bg-slate-800 px-1.5 rounded">
-                                                    = {item.value}
-                                                </span>
+                                            <div className="mt-1 font-mono font-bold text-slate-900 dark:text-slate-100 text-[11px]">
+                                                = {item.value}
                                             </div>
                                         )}
                                     </div>
                                 </div>
                             ))}
                         </div>
+                    </div>
+                )}
+
+                {/* Ghi chú phụ nếu có */}
+                {otherNotes.length > 0 && (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1 pt-1 bg-slate-50/50 dark:bg-slate-900/30 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                        {otherNotes.map((n, idx) => (
+                            <p key={idx} className="flex items-start gap-1.5">
+                                <i data-lucide="chevron-right" className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5"></i>
+                                <span>{n}</span>
+                            </p>
+                        ))}
                     </div>
                 )}
 

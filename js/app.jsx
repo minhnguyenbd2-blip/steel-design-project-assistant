@@ -50,7 +50,7 @@ function App() {
         if (modId === 'project' || modId === 'model') setActiveTab('input');
         if (modId === 'loads') setActiveTab('loads');
         if (modId === 'combinations' || modId === 'analysis') setActiveTab('forces');
-        if (modId === 'design') setActiveTab('slab'); // Default to slab
+        if (modId === 'design') setActiveTab('column'); // Default to slab
         if (modId === 'report') setActiveTab('report');
     };
 
@@ -518,34 +518,51 @@ function App() {
                 </div>
             </header>
 
-            {/* Workflow Navigation */}
-            <nav className={`bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 print:hidden shadow-sm ${activeModule === 'design' ? '' : 'hidden'}`}>
+            {/* Workflow Navigation: Luôn hiển thị rõ ràng, đầy đủ các cấu kiện thiết kế */}
+            <nav className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 print:hidden shadow-sm sticky top-0 z-10">
                 <div className="max-w-7xl mx-auto flex overflow-x-auto text-sm">
-                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'input' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('input')} style={{ display: 'none' }}>
-                        <i data-lucide="sliders" className="w-4 h-4"></i> 1. Cài đặt Dự án & Hình học 2D
+                    <button 
+                        className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 transition-colors ${activeTab === 'input' ? 'border-primary text-primary bg-blue-50/50 dark:bg-blue-900/20' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`} 
+                        onClick={() => setActiveTab('input')}
+                    >
+                        <i data-lucide="sliders" className="w-4 h-4 text-blue-500"></i> 1. Cài đặt Dự án & Hình học 2D (Geometry)
                     </button>
-                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'loads' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('loads')} style={{ display: 'none' }}>
-                        <i data-lucide="wind" className="w-4 h-4"></i> 2. Tải trọng & Xà gồ mái
+                    <button 
+                        className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 transition-colors ${activeTab === 'loads' ? 'border-primary text-primary bg-blue-50/50 dark:bg-blue-900/20' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`} 
+                        onClick={() => setActiveTab('loads')}
+                    >
+                        <i data-lucide="wind" className="w-4 h-4 text-emerald-500"></i> 2. Tải trọng & Xà gồ Mái (Loads & Purlin)
                     </button>
-                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'forces' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('forces')} style={{ display: 'none' }}>
-                        <i data-lucide="table" className="w-4 h-4"></i> 3. Nội lực Thiết kế ({projectState.forces.length} THCB)
+                    <button 
+                        className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 transition-colors ${activeTab === 'forces' ? 'border-primary text-primary bg-blue-50/50 dark:bg-blue-900/20' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`} 
+                        onClick={() => setActiveTab('forces')}
+                    >
+                        <i data-lucide="table" className="w-4 h-4 text-purple-500"></i> 3. Nội lực Thiết kế & Tổ hợp (Forces & Combos)
                     </button>
-                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'slab' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('slab')}>
-                        <i data-lucide="grid" className="w-4 h-4"></i> 4. Thiết kế Sàn BTCT
+                    <button 
+                        className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 transition-colors ${activeTab === 'column' ? 'border-primary text-primary bg-blue-50/50 dark:bg-blue-900/20' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`} 
+                        onClick={() => setActiveTab('column')}
+                    >
+                        <i data-lucide="box" className="w-4 h-4 text-amber-500"></i> 4. Thiết kế Cột Thép (Column Design)
                     </button>
-                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'beam' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('beam')}>
-                        <i data-lucide="minus" className="w-4 h-4"></i> 5. Thiết kế Dầm Thép
+                    <button 
+                        className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 transition-colors ${activeTab === 'beam' ? 'border-primary text-primary bg-blue-50/50 dark:bg-blue-900/20' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`} 
+                        onClick={() => setActiveTab('beam')}
+                    >
+                        <i data-lucide="minus" className="w-4 h-4 text-indigo-500"></i> 5. Thiết kế Dầm / Kèo Thép (Beam & Rafter)
                     </button>
-                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'column' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('column')}>
-                        <i data-lucide="box" className="w-4 h-4"></i> 6. Thiết kế Cột Thép
+                    <button 
+                        className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 transition-colors ${activeTab === 'slab' ? 'border-primary text-primary bg-blue-50/50 dark:bg-blue-900/20' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`} 
+                        onClick={() => setActiveTab('slab')}
+                    >
+                        <i data-lucide="grid" className="w-4 h-4 text-teal-500"></i> 6. Thiết kế Sàn BTCT (Slab Design)
                     </button>
-                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'lookup' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('lookup')}>
-                        <i data-lucide="book-open" className="w-4 h-4"></i> 7. Bảng tra Tiết diện
+                    <button 
+                        className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 transition-colors ${activeTab === 'lookup' ? 'border-primary text-primary bg-blue-50/50 dark:bg-blue-900/20' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`} 
+                        onClick={() => setActiveTab('lookup')}
+                    >
+                        <i data-lucide="book-open" className="w-4 h-4 text-rose-500"></i> 7. Bảng tra Tiết diện Thép (Lookup)
                     </button>
-                    <button className={`px-4 py-3 font-semibold border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'report' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`} onClick={() => setActiveTab('report')} style={{ display: 'none' }}>
-                        <i data-lucide="printer" className="w-4 h-4 text-emerald-600"></i> 8. Xuất Thuyết Minh
-                    </button>
-
                 </div>
             </nav>
 
