@@ -62,6 +62,7 @@ window.EngineAdapter = {
                 dr.analysisStatus = 'NOT_ANALYZED';
             }
 
+            if (dr.designStatus === "FAIL") console.log("FAILED MEMBER:", member.id, dr.governingCheck);
             results[member.id] = dr;
         });
 

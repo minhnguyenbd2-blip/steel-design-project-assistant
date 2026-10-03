@@ -3,7 +3,7 @@
 
 const { useState, useEffect, useCallback, useMemo } = React;
 
-const STORAGE_KEY = "steel_design_assistant_project_v3";
+const STORAGE_KEY = "steel_design_assistant_project_v4";
 
 function usePersistentState(key, defaultValue) {
     const [state, setState] = useState(() => {

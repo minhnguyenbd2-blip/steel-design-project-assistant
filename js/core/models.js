@@ -52,7 +52,7 @@ const ProjectState = {
         beamParams: {
             L_beam: 9.0,
             tributaryWidth: 2.5,
-            chosenBeamId: 'I350'
+            chosenBeamId: 'I400'
         }
     },
     // Thành phần tĩnh tải mái tự động cập nhật từ tôn lợp và xà gồ đã chọn
