@@ -485,6 +485,19 @@ function App() {
     const rRoofComps = projectState.roofComponents;
 
     
+    useEffect(() => {
+        // Hoàn thiện toàn bộ bài thiết kế 100% làm giao diện mặc định (Auto-fill trên lần chạy đầu)
+        if (!rResults.isAnalyzed && rInputs.L > 0) {
+            console.log("Auto-running structural pipeline for default mock view...");
+            runSectionProposal();
+            setTimeout(() => {
+                _runCalculationsSync();
+                // Đánh dấu đã tính toán
+                setProjectState(prev => ({ ...prev, results: { ...prev.results, isAnalyzed: true } }));
+            }, 100);
+        }
+    }, [rResults.isAnalyzed, rInputs.L]);
+
     const legacyUI = (
         <div className="w-full bg-slate-50 dark:bg-slate-900 transition-colors duration-200 text-slate-800 dark:text-slate-200 font-sans">
 

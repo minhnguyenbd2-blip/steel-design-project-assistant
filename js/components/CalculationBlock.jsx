@@ -81,7 +81,15 @@ function CalculationBlock({ step }) {
     const renderLatex = (latex, displayMode = false) => {
         try {
             const formatted = displayMode ? formatLatexSmart(latex) : latex;
-            return { __html: window.katex.renderToString(formatted, { throwOnError: false, displayMode, strict: false }) };
+            // Suppress KaTeX console warnings for Vietnamese characters
+            const originalWarn = console.warn;
+            console.warn = (...args) => {
+                if (typeof args[0] === 'string' && args[0].includes('No character metrics')) return;
+                originalWarn.apply(console, args);
+            };
+            const html = window.katex.renderToString(formatted, { throwOnError: false, displayMode, strict: "ignore" });
+            console.warn = originalWarn;
+            return { __html: html };
         } catch (e) {
             return { __html: latex };
         }
