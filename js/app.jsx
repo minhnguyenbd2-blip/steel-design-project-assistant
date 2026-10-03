@@ -436,7 +436,13 @@ function App() {
     };
 
     // Chọn tiết diện cột để kiểm tra chi tiết
-    const selectSection = (section) => {
+    const selectSection = (rawSection) => {
+        let section = rawSection;
+        if (rawSection && rawSection.id && typeof rawSection.hw === 'undefined') {
+            if (typeof window.createSectionRecord === 'function') {
+                section = window.createSectionRecord("I", rawSection.name, rawSection.h, rawSection.b, rawSection.tw, rawSection.tf, "Thép định hình TCVN");
+            }
+        }
         const mat = { f: 215, fv: 125, E: 2.1e5, gamma_c: 1.0 };
         
         let governingCheck = null;

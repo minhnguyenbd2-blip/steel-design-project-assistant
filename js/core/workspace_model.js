@@ -40,6 +40,7 @@ window.WorkspaceModel = {
         p.metadata.author = legacyState.meta?.studentName || "Người dùng (User)";
         
         p.legacyInputs = JSON.parse(JSON.stringify(legacyState.inputs || {}));
+        p.legacyResults = JSON.parse(JSON.stringify(legacyState.results || {}));
         
         // 1. THƯ VIỆN VẬT LIỆU (MATERIAL LIBRARY)
         const steelGrade = p.legacyInputs.steelGrade || "S235";

@@ -74,7 +74,7 @@ window.EngineAdapter = {
             return dr;
         }
 
-        const section = ws.legacyInputs.results?.selectedSections?.column || {
+        const section = ws.legacyResults?.selectedSections?.column || ws.legacyInputs?.results?.selectedSections?.column || {
             h: 300, b: 200, tw: 8, tf: 12, A: 5000, Ix: 80000000, Iy: 20000000, Wx: 500000, Wy: 200000, ix: 120, iy: 60
         };
 
@@ -170,7 +170,7 @@ window.EngineAdapter = {
             slabLoadQd: slabLoadQd,
             slabLoadQk: slabLoadQk,
             steelGrade: member.materialId ? ws.materials.find(m => m.id === member.materialId)?.name : 'S235',
-            chosenBeamId: member.sectionId || 'I300'
+            chosenBeamId: legacyInputs.beamParams?.chosenBeamId || 'I300'
         };
 
         const engineOutput = window.SlabBeamEngine.calculateBeam(params);
