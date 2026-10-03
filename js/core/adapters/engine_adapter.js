@@ -1,4 +1,4 @@
-﻿// js/core/adapters/engine_adapter.js
+// js/core/adapters/engine_adapter.js
 
 window.EngineAdapter = {
     // Defines the Canonical DesignResult format
@@ -215,9 +215,55 @@ window.EngineAdapter = {
     },
 
     runPurlinDesign: function(member, ws, legacyInputs, dr) {
-        if (!window.PurlinCladdingEngine || !window.PurlinCladdingEngine.calculatePurlin) return dr;
-        // Purlin integration is possible but skip for brevity if too complex.
-        dr.analysisStatus = 'NOT_ANALYZED';
+        if (!window.PurlinCladdingEngine || !window.PurlinCladdingEngine.designPurlin) return dr;
+        
+        const params = legacyInputs || {};
+        // designPurlin(purlinProfile, claddingProfile, purlinSpacing_a, frameSpacing_B, roofSlopeDeg, W0, kz, windCeSuction, insulationKNM2)
+        const purlinSpacing = params.purlinSpacing || 1.2;
+        const frameSpacing = params.B || 9.0; // B is frame spacing
+        const roofSlope = params.roofSlope || 10.0;
+        
+        // Cần truyền các giá trị gió
+        const W0 = 0.95; // Có thể lấy từ bảng vùng gió, dùng tạm 0.95 cho Vùng II
+        const kz = 1.0;
+        
+        let purlinProfile = null;
+        let claddingProfile = null;
+        
+        if (window.StandardData && window.StandardData.TCVN2737_2023) {
+            const purlinId = params.selectedPurlinId || 'Z25019';
+            const claddingId = params.selectedCladdingId || 'tole-050';
+            purlinProfile = window.StandardData.TCVN2737_2023.PurlinAndCladding.purlinProfiles.find(p => p.id === purlinId);
+            claddingProfile = window.StandardData.TCVN2737_2023.PurlinAndCladding.sheetProfiles.find(p => p.id === claddingId);
+        }
+
+        const engineOutput = window.PurlinCladdingEngine.designPurlin(purlinProfile, claddingProfile, purlinSpacing, frameSpacing, roofSlope, W0, kz, -1.372, 0.02);
+        
+        dr.analysisStatus = 'ANALYZED';
+        dr.designStatus = engineOutput.isAllPass ? 'PASS' : 'FAIL';
+        dr.internalForces.M = engineOutput.combo2.Mx; // Lấy moment từ tổ hợp 2
+        
+        const utilCombo1 = Math.max(engineOutput.combo1.sigma / engineOutput.combo1.f_allow, engineOutput.combo1.deflRatio / engineOutput.combo1.deflLimit);
+        const utilCombo2 = Math.max(engineOutput.combo2.sigma / engineOutput.combo2.f_allow, engineOutput.combo2.deflRatio / engineOutput.combo2.deflLimit);
+        dr.utilization = Math.max(utilCombo1, utilCombo2);
+        
+        if (utilCombo1 > utilCombo2) {
+            dr.governingCheck = 'Tổ hợp 1 (Gió hút)';
+            dr.governingCombinationId = 'COMB_WIND_UP';
+        } else {
+            dr.governingCheck = 'Tổ hợp 2 (Tải trọng đứng)';
+            dr.governingCombinationId = 'COMB_GRAVITY';
+        }
+        
+        dr.calculationSteps = engineOutput.steps || [];
+        
+        dr.checks = [
+            { name: 'Bền Uốn xiên (TH1)', utilization: engineOutput.combo1.sigma / engineOutput.combo1.f_allow, status: engineOutput.combo1.isStrengthPass ? 'PASS' : 'FAIL' },
+            { name: 'Độ Võng (TH1)', utilization: engineOutput.combo1.deflRatio / engineOutput.combo1.deflLimit, status: engineOutput.combo1.isDeflPass ? 'PASS' : 'FAIL' },
+            { name: 'Bền Uốn xiên (TH2)', utilization: engineOutput.combo2.sigma / engineOutput.combo2.f_allow, status: engineOutput.combo2.isStrengthPass ? 'PASS' : 'FAIL' },
+            { name: 'Độ Võng (TH2)', utilization: engineOutput.combo2.deflRatio / engineOutput.combo2.deflLimit, status: engineOutput.combo2.isDeflPass ? 'PASS' : 'FAIL' }
+        ];
+
         return dr;
     }
 };

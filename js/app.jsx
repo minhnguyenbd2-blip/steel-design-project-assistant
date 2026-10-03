@@ -410,7 +410,7 @@ function App() {
 
     // Đề xuất tiết diện cột
     const runSectionProposal = () => {
-        const mat = { f: 215, fv: 125, E: 2.1e5, gamma_c: 1.0 };
+        const mat = { f: 230, fv: 133, E: 2.06e5, gamma_c: 1.0 };
         if (!mat) return alert("Không tìm thấy thuộc tính mác thép.");
         
         const maxMx = Math.max(...projectState.forces.map(f => Math.abs(f.Mx)));
@@ -443,7 +443,7 @@ function App() {
                 section = window.createSectionRecord("I", rawSection.name, rawSection.h, rawSection.b, rawSection.tw, rawSection.tf, "Thép định hình TCVN");
             }
         }
-        const mat = { f: 215, fv: 125, E: 2.1e5, gamma_c: 1.0 };
+        const mat = { f: 230, fv: 133, E: 2.06e5, gamma_c: 1.0 };
         
         let governingCheck = null;
         let governingCase = null;
